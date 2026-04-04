@@ -53,6 +53,15 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # ── Index ──────────────────────────────────────────────────────────────────────
+
+@app.route('/manifest.json')
+def manifest():
+    return send_file('templates/manifest.json', mimetype='application/manifest+json')
+
+@app.route('/sw.js')
+def service_worker():
+    return send_file('templates/sw.js', mimetype='application/javascript')
+
 @app.route("/")
 def index():
     return render_template("index.html")
