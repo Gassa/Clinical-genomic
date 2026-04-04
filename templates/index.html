@@ -1,7 +1,18 @@
 <!DOCTYPE html>
 <html lang="fr" id="html-root">
 <head>
-<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<meta charset="UTF-8"/>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0c6e9c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="SenGenoScope">
+<meta property="og:title" content="SenGenoScope — Oncogénomique Clinique">
+<meta property="og:description" content="Plateforme d'analyse oncogénomique : PubMed, ClinVar, OMIM, COSMIC, gnomAD, essais cliniques et IA clinique.">
+<meta property="og:url" content="https://clinical-genomic.onrender.com/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');</script><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>SenGenoScope v7 — Plateforme d'Oncogénomique et Oncopharmacogénomique Clinique</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
@@ -340,6 +351,14 @@ canvas{max-width:100%;border-radius:5px;}
 .api-status-ok{background:#dcfce7;color:#15803d;border-radius:7px;padding:9px 13px;font-size:13px;margin-bottom:10px;display:none;}
 .api-status-err{background:#fee2e2;color:#b91c1c;border-radius:7px;padding:9px 13px;font-size:13px;margin-bottom:10px;display:none;}
 </style>
+<script>
+// Early stubs — évite "not defined" pendant le chargement du script principal
+var _pendingCalls = [];
+function qs(q){ _pendingCalls.push(['qs', q]); }
+function showSec(n, b){ _pendingCalls.push(['showSec', n, b]); }
+function openApiSettings(){ _pendingCalls.push(['openApiSettings']); }
+function setLang(l){ _pendingCalls.push(['setLang', l]); }
+</script>
 </head>
 <body>
 <div class="shell">
@@ -1043,6 +1062,9 @@ canvas{max-width:100%;border-radius:5px;}
 </div><!-- /shell -->
 
 <script>
+// ══ FONCTIONS GLOBALES (disponibles immediatement) ════════════════════════
+function openDB(n){const DB={pubmed:'https://pubmed.ncbi.nlm.nih.gov/',clinvar:'https://www.ncbi.nlm.nih.gov/clinvar/',omim:'https://omim.org/',cosmic:'https://cancer.sanger.ac.uk/cosmic',gnomad:'https://gnomad.broadinstitute.org/',orphanet:'https://www.orpha.net/',hgmd:'https://www.hgmd.cf.ac.uk/',varsome:'https://varsome.com/',franklin:'https://franklin.genoox.com/',dgidb:'https://dgidb.org/',clinicaltrials:'https://clinicaltrials.gov/',decipher:'https://www.deciphergenomics.org/',insight:'https://www.insight-group.org/',enigma:'https://enigmaconsortium.org/',hpo:'https://hpo.jax.org/',lovd:'https://www.lovd.nl/',uniprot:'https://www.uniprot.org/',gtex:'https://gtexportal.org/home/',gencc:'https://thegencc.org/',spliceai:'https://spliceailookup.broadinstitute.org/',alphamissense:'https://alphamissense.hegelab.org/',scholar:'https://scholar.google.com/',europepmc:'https://europepmc.org/',crossref:'https://www.crossref.org/'};if(DB[n])window.open(DB[n],'_blank');}
+
 // ══ LANG ══════════════════════════════════════════════════════════════════
 let lang=localStorage.getItem('sgs_lang')||'fr';
 
@@ -1077,7 +1099,7 @@ function setLang(l){
 let hist=JSON.parse(localStorage.getItem('sgs_hist')||'[]');
 function addHist(q){hist=[q,...hist.filter(x=>x!==q)].slice(0,10);localStorage.setItem('sgs_hist',JSON.stringify(hist));renderHist();}
 function renderHist(){const b=document.getElementById('histBar'),t=document.getElementById('histTags');if(!hist.length){b.style.display='none';return;}b.style.display='flex';t.innerHTML=hist.map(q=>`<span class="ht3" onclick="qs('${q.replace(/'/g,"\\'")}')">  ${q}</span>`).join('');}
-function qs(q){document.getElementById('query').value=q;runSearch();}
+function qs(q){document.getElementById('query').value=q;if(typeof runSearch==='function')runSearch();}
 
 // ══ BOOKMARKS ═════════════════════════════════════════════════════════════
 let bks=JSON.parse(localStorage.getItem('sgs_bks')||'[]');
@@ -1096,7 +1118,7 @@ document.addEventListener('click',e=>{if(!e.target.closest('.hw'))document.getEl
 // ══ NAV ═══════════════════════════════════════════════════════════════════
 let glData=[];
 function showSec(name,btn){
-  ['search','prs','founder','penetrance','tools','ngs','acmg','risk','glcomp','bookmarks','about','litimport','ai_chat','ai_upload','ai_pharma'].forEach(s=>{
+  ['search','prs','founder','penetrance','tools','ngs','acmg','risk','glcomp','bookmarks','about','litimport','ai_chat','ai_upload','ai_pharma','clinicians'].forEach(s=>{
     const el=document.getElementById('sec-'+s);
     if(el) el.style.display=s===name?'block':'none';
   });
@@ -1111,6 +1133,7 @@ function showSec(name,btn){
   if(name==='ngs')initNGS();
   if(name==='bookmarks')renderBk();
   if(name==='ai_chat')initAIChat();
+  if(name==='clinicians')initClinicians();
 }
 
 // ══ LITERATURE IMPORT ════════════════════════════════════════════════════
@@ -1895,7 +1918,7 @@ async function initAIChat(){
   if(badge.dataset.checked) return;
   badge.dataset.checked='1';
   try{
-    const r=await fetch('/ai/status');
+    const r=await aiFetch('/ai/status');
     const d=await r.json();
     if(d.configured){
       badge.style.background='#dcfce7';badge.style.color='#15803d';
@@ -1940,16 +1963,14 @@ async function sendChat(){
   const btn=document.getElementById('chatSendBtn');
   btn.textContent='⏳';btn.disabled=true;
   try{
-    const r=await fetch('/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg})});
+    const r=await aiFetch('/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg})});
     const d=await r.json();
     if(d.success!==false&&d.response){
       let liveInfo='';
       if(d.live_pubmed>0||d.live_clinvar>0){
         liveInfo=`<div style="font-size:11px;color:var(--mu);margin-top:6px;padding-top:5px;border-top:1px solid var(--bd)">📡 Enrichi avec ${d.live_pubmed||0} articles PubMed${d.live_clinvar>0?' · '+d.live_clinvar+' variants ClinVar':''} en temps réel</div>`;
       }
-      appendChatMsg('assistant',d.response+(liveInfo?'
-
-'+liveInfo:''));
+      appendChatMsg('assistant',d.response+(liveInfo?'\n\n'+liveInfo:''));;;
       chatHistory.push({role:'user',content:msg},{role:'assistant',content:d.response});
     } else {
       appendChatMsg('assistant','❌ '+(d.error||d.message||'Erreur serveur.'));
@@ -1994,7 +2015,7 @@ async function analyzeFile(){
     fd.append('file',selectedFile);
     const q=document.getElementById('uploadQuestion').value.trim();
     if(q) fd.append('question',q);
-    const r=await fetch('/ai/upload',{method:'POST',body:fd});
+    const r=await aiFetch('/ai/upload',{method:'POST',body:fd});
     const d=await r.json();
     if(d.success===false||d.error){
       res.innerHTML=`<div class="erb">❌ ${d.error||'Erreur analyse.'}</div>`;return;
@@ -2025,7 +2046,7 @@ async function runPharmaAnalysis(){
   btn.textContent='⏳ Analyse pharmacogénomique…';btn.disabled=true;
   res.innerHTML='<div class="stb"><div class="sp"></div><span>Claude AI analyse le profil pharmacogénomique…</span></div>';
   try{
-    const r=await fetch('/ai/pharmacogenomics',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({gene,variant,drug})});
+    const r=await aiFetch('/ai/pharmacogenomics',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({gene,variant,drug})});
     const d=await r.json();
     if(!d.success||d.error){res.innerHTML=`<div class="erb">❌ ${d.error||'Erreur.'}</div>`;return;}
     const md=d.analysis||'';
@@ -2109,18 +2130,15 @@ function getUserApiKey(){
   return localStorage.getItem('sgs_api_key') || '';
 }
 
-// Override fetch for AI routes to inject user API key
-const _origFetch = window.fetch;
-window.fetch = function(url, opts={}) {
-  if(typeof url === 'string' && url.startsWith('/ai/')) {
-    const userKey = getUserApiKey();
-    if(userKey) {
-      opts.headers = opts.headers || {};
-      opts.headers['X-User-Api-Key'] = userKey;
-    }
+// Inject user API key in AI fetch calls
+function aiFetch(url, opts={}) {
+  const userKey = getUserApiKey();
+  if(userKey) {
+    opts.headers = opts.headers || {};
+    opts.headers['X-User-Api-Key'] = userKey;
   }
-  return _origFetch(url, opts);
-};
+  return fetch(url, opts);
+}
 
 // ══ INIT ══════════════════════════════════════════════════════════════════
 setLang(lang);
@@ -2143,6 +2161,151 @@ updateApiKeyBtn();
     },15000);
   }
 })();
+
+// ══ CLINICIENS VIRTUELS ═══════════════════════════════════════════════════
+let activeClinician = null;
+let clinicianHistory = [];
+
+async function initClinicians() {
+  if (document.getElementById('clinicianCards').children.length > 0) return;
+  try {
+    const r = await fetch('/clinicians');
+    const clinicians = await r.json();
+    renderClinicianCards(clinicians);
+  } catch(e) {
+    document.getElementById('clinicianCards').innerHTML = '<div style="color:red">Erreur chargement cliniciens</div>';
+  }
+}
+
+function renderClinicianCards(clinicians) {
+  const container = document.getElementById('clinicianCards');
+  container.innerHTML = clinicians.map(c => `
+    <div class="card" style="cursor:pointer;border:2px solid var(--bd);transition:all .2s;padding:16px" 
+         onclick="selectClinician(${JSON.stringify(c).replace(/"/g,'&quot;')})"
+         onmouseover="this.style.borderColor='${c.couleur}';this.style.transform='translateY(-2px)'"
+         onmouseout="this.style.borderColor='var(--bd)';this.style.transform='none'">
+      <div style="font-size:36px;margin-bottom:8px">${c.avatar}</div>
+      <div style="font-weight:700;font-size:15px;color:var(--tx)">${c.nom}</div>
+      <div style="font-size:12px;color:${c.couleur};font-weight:600;margin:3px 0">${c.titre}</div>
+      <div style="font-size:12px;color:var(--mu);margin:8px 0;line-height:1.5">${c.description}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px">
+        ${c.sources.map(s => `<span style="font-size:10px;background:var(--s2);padding:2px 6px;border-radius:4px;color:var(--mu)">${s}</span>`).join('')}
+      </div>
+      <button class="btn bp3" style="width:100%;margin-top:12px;font-size:13px">Consulter →</button>
+    </div>
+  `).join('');
+}
+
+function selectClinician(c) {
+  activeClinician = c;
+  clinicianHistory = [];
+  document.getElementById('clinicianCards').style.display = 'none';
+  document.getElementById('consultationPanel').style.display = 'block';
+  document.getElementById('activeClinician').innerHTML = `
+    <span style="font-size:32px">${c.avatar}</span>
+    <div>
+      <div style="font-weight:700;font-size:15px">${c.nom}</div>
+      <div style="font-size:12px;color:${c.couleur};font-weight:600">${c.titre} — ${c.specialite}</div>
+    </div>
+    <button class="btn" style="margin-left:auto;font-size:12px;background:var(--s2);color:var(--mu)" onclick="backToClinicians()">← Changer</button>
+  `;
+  document.getElementById('clinicianMessages').innerHTML = `
+    <div style="text-align:center;padding:20px;color:var(--mu)">
+      <div style="font-size:40px;margin-bottom:12px">${c.avatar}</div>
+      <div style="font-weight:600;font-size:15px;margin-bottom:6px">Bonjour, je suis ${c.nom}</div>
+      <div style="font-size:13px">${c.description}</div>
+      <div style="font-size:12px;margin-top:12px;color:var(--mu)">Décrivez le cas clinique ci-dessous pour commencer la consultation.</div>
+    </div>
+  `;
+}
+
+function backToClinicians() {
+  activeClinician = null;
+  clinicianHistory = [];
+  document.getElementById('clinicianCards').style.display = 'grid';
+  document.getElementById('consultationPanel').style.display = 'none';
+}
+
+function resetClinicianChat() {
+  clinicianHistory = [];
+  document.getElementById('clinicianMessages').innerHTML = `
+    <div style="text-align:center;padding:20px;color:var(--mu)">
+      <div style="font-size:13px">Nouvelle consultation démarrée.</div>
+    </div>
+  `;
+  document.getElementById('clinicianInput').value = '';
+}
+
+function appendClinicianMsg(role, content) {
+  const el = document.getElementById('clinicianMessages');
+  const isUser = role === 'user';
+  const div = document.createElement('div');
+  div.style.cssText = `margin-bottom:16px;display:flex;gap:10px;${isUser ? 'flex-direction:row-reverse' : ''}`;
+  div.innerHTML = `
+    <div style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;background:${isUser ? 'var(--pr)' : 'var(--s2)'}">
+      ${isUser ? '👤' : (activeClinician ? activeClinician.avatar : '🩺')}
+    </div>
+    <div style="max-width:80%;background:${isUser ? 'var(--pr)' : 'var(--sf)'};color:${isUser ? '#fff' : 'var(--tx)'};padding:12px 16px;border-radius:${isUser ? '16px 4px 16px 16px' : '4px 16px 16px 16px'};font-size:14px;line-height:1.6;border:1px solid ${isUser ? 'transparent' : 'var(--bd)'};white-space:pre-wrap">${content}</div>
+  `;
+  el.appendChild(div);
+  document.getElementById('clinicianChat').scrollTop = 9999;
+}
+
+async function sendClinicianMessage() {
+  if (!activeClinician) return;
+  const input = document.getElementById('clinicianInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+
+  const btn = document.getElementById('clinicianSendBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Consultation en cours...';
+  input.value = '';
+
+  appendClinicianMsg('user', msg);
+  clinicianHistory.push({ role: 'user', content: msg });
+
+  try {
+    const r = await aiFetch('/clinicians/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clinician_id: activeClinician.id,
+        messages: clinicianHistory
+      })
+    });
+    const d = await r.json();
+    if (d.success) {
+      appendClinicianMsg('assistant', d.response);
+      clinicianHistory.push({ role: 'assistant', content: d.response });
+    } else {
+      appendClinicianMsg('assistant', '❌ ' + (d.error || 'Erreur serveur'));
+    }
+  } catch(e) {
+    appendClinicianMsg('assistant', '❌ Erreur réseau. Vérifiez que le serveur est en ligne.');
+  }
+
+  btn.disabled = false;
+  btn.textContent = '📤 Envoyer au clinicien';
+}
+
+// Envoyer avec Ctrl+Enter
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key === 'Enter' && document.getElementById('clinicianInput') === document.activeElement) {
+    sendClinicianMessage();
+  }
+});
+
+// ══ FLUSH EARLY CALLS (appels reçus avant chargement complet) ════════════
+if(typeof _pendingCalls !== 'undefined'){
+  _pendingCalls.forEach(c=>{
+    if(c[0]==='qs') qs(c[1]);
+    else if(c[0]==='showSec') showSec(c[1], c[2]);
+    else if(c[0]==='openApiSettings') openApiSettings();
+    else if(c[0]==='setLang') setLang(c[1]);
+  });
+  _pendingCalls = [];
+}
 </script>
 </body>
 </html>
