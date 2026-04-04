@@ -1118,7 +1118,7 @@ document.addEventListener('click',e=>{if(!e.target.closest('.hw'))document.getEl
 // ══ NAV ═══════════════════════════════════════════════════════════════════
 let glData=[];
 function showSec(name,btn){
-  ['search','prs','founder','penetrance','tools','ngs','acmg','risk','glcomp','bookmarks','about','litimport','ai_chat','ai_upload','ai_pharma'].forEach(s=>{
+  ['search','prs','founder','penetrance','tools','ngs','acmg','risk','glcomp','bookmarks','about','litimport','ai_chat','ai_upload','ai_pharma','clinicians'].forEach(s=>{
     const el=document.getElementById('sec-'+s);
     if(el) el.style.display=s===name?'block':'none';
   });
@@ -1133,6 +1133,7 @@ function showSec(name,btn){
   if(name==='ngs')initNGS();
   if(name==='bookmarks')renderBk();
   if(name==='ai_chat')initAIChat();
+  if(name==='clinicians')initClinicians();
 }
 
 // ══ LITERATURE IMPORT ════════════════════════════════════════════════════
@@ -2160,6 +2161,141 @@ updateApiKeyBtn();
     },15000);
   }
 })();
+
+// ══ CLINICIENS VIRTUELS ═══════════════════════════════════════════════════
+let activeClinician = null;
+let clinicianHistory = [];
+
+async function initClinicians() {
+  if (document.getElementById('clinicianCards').children.length > 0) return;
+  try {
+    const r = await fetch('/clinicians');
+    const clinicians = await r.json();
+    renderClinicianCards(clinicians);
+  } catch(e) {
+    document.getElementById('clinicianCards').innerHTML = '<div style="color:red">Erreur chargement cliniciens</div>';
+  }
+}
+
+function renderClinicianCards(clinicians) {
+  const container = document.getElementById('clinicianCards');
+  container.innerHTML = clinicians.map(c => `
+    <div class="card" style="cursor:pointer;border:2px solid var(--bd);transition:all .2s;padding:16px" 
+         onclick="selectClinician(${JSON.stringify(c).replace(/"/g,'&quot;')})"
+         onmouseover="this.style.borderColor='${c.couleur}';this.style.transform='translateY(-2px)'"
+         onmouseout="this.style.borderColor='var(--bd)';this.style.transform='none'">
+      <div style="font-size:36px;margin-bottom:8px">${c.avatar}</div>
+      <div style="font-weight:700;font-size:15px;color:var(--tx)">${c.nom}</div>
+      <div style="font-size:12px;color:${c.couleur};font-weight:600;margin:3px 0">${c.titre}</div>
+      <div style="font-size:12px;color:var(--mu);margin:8px 0;line-height:1.5">${c.description}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px">
+        ${c.sources.map(s => `<span style="font-size:10px;background:var(--s2);padding:2px 6px;border-radius:4px;color:var(--mu)">${s}</span>`).join('')}
+      </div>
+      <button class="btn bp3" style="width:100%;margin-top:12px;font-size:13px">Consulter →</button>
+    </div>
+  `).join('');
+}
+
+function selectClinician(c) {
+  activeClinician = c;
+  clinicianHistory = [];
+  document.getElementById('clinicianCards').style.display = 'none';
+  document.getElementById('consultationPanel').style.display = 'block';
+  document.getElementById('activeClinician').innerHTML = `
+    <span style="font-size:32px">${c.avatar}</span>
+    <div>
+      <div style="font-weight:700;font-size:15px">${c.nom}</div>
+      <div style="font-size:12px;color:${c.couleur};font-weight:600">${c.titre} — ${c.specialite}</div>
+    </div>
+    <button class="btn" style="margin-left:auto;font-size:12px;background:var(--s2);color:var(--mu)" onclick="backToClinicians()">← Changer</button>
+  `;
+  document.getElementById('clinicianMessages').innerHTML = `
+    <div style="text-align:center;padding:20px;color:var(--mu)">
+      <div style="font-size:40px;margin-bottom:12px">${c.avatar}</div>
+      <div style="font-weight:600;font-size:15px;margin-bottom:6px">Bonjour, je suis ${c.nom}</div>
+      <div style="font-size:13px">${c.description}</div>
+      <div style="font-size:12px;margin-top:12px;color:var(--mu)">Décrivez le cas clinique ci-dessous pour commencer la consultation.</div>
+    </div>
+  `;
+}
+
+function backToClinicians() {
+  activeClinician = null;
+  clinicianHistory = [];
+  document.getElementById('clinicianCards').style.display = 'grid';
+  document.getElementById('consultationPanel').style.display = 'none';
+}
+
+function resetClinicianChat() {
+  clinicianHistory = [];
+  document.getElementById('clinicianMessages').innerHTML = `
+    <div style="text-align:center;padding:20px;color:var(--mu)">
+      <div style="font-size:13px">Nouvelle consultation démarrée.</div>
+    </div>
+  `;
+  document.getElementById('clinicianInput').value = '';
+}
+
+function appendClinicianMsg(role, content) {
+  const el = document.getElementById('clinicianMessages');
+  const isUser = role === 'user';
+  const div = document.createElement('div');
+  div.style.cssText = `margin-bottom:16px;display:flex;gap:10px;${isUser ? 'flex-direction:row-reverse' : ''}`;
+  div.innerHTML = `
+    <div style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;background:${isUser ? 'var(--pr)' : 'var(--s2)'}">
+      ${isUser ? '👤' : (activeClinician ? activeClinician.avatar : '🩺')}
+    </div>
+    <div style="max-width:80%;background:${isUser ? 'var(--pr)' : 'var(--sf)'};color:${isUser ? '#fff' : 'var(--tx)'};padding:12px 16px;border-radius:${isUser ? '16px 4px 16px 16px' : '4px 16px 16px 16px'};font-size:14px;line-height:1.6;border:1px solid ${isUser ? 'transparent' : 'var(--bd)'};white-space:pre-wrap">${content}</div>
+  `;
+  el.appendChild(div);
+  document.getElementById('clinicianChat').scrollTop = 9999;
+}
+
+async function sendClinicianMessage() {
+  if (!activeClinician) return;
+  const input = document.getElementById('clinicianInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+
+  const btn = document.getElementById('clinicianSendBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Consultation en cours...';
+  input.value = '';
+
+  appendClinicianMsg('user', msg);
+  clinicianHistory.push({ role: 'user', content: msg });
+
+  try {
+    const r = await aiFetch('/clinicians/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clinician_id: activeClinician.id,
+        messages: clinicianHistory
+      })
+    });
+    const d = await r.json();
+    if (d.success) {
+      appendClinicianMsg('assistant', d.response);
+      clinicianHistory.push({ role: 'assistant', content: d.response });
+    } else {
+      appendClinicianMsg('assistant', '❌ ' + (d.error || 'Erreur serveur'));
+    }
+  } catch(e) {
+    appendClinicianMsg('assistant', '❌ Erreur réseau. Vérifiez que le serveur est en ligne.');
+  }
+
+  btn.disabled = false;
+  btn.textContent = '📤 Envoyer au clinicien';
+}
+
+// Envoyer avec Ctrl+Enter
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key === 'Enter' && document.getElementById('clinicianInput') === document.activeElement) {
+    sendClinicianMessage();
+  }
+});
+
 // ══ FLUSH EARLY CALLS (appels reçus avant chargement complet) ════════════
 if(typeof _pendingCalls !== 'undefined'){
   _pendingCalls.forEach(c=>{

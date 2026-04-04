@@ -736,6 +736,26 @@ def clinvar_lookup():
 
 
 # ── Test/Debug route ─────────────────────────────────────────────────────────
+
+# ══ CLINICIENS VIRTUELS ═══════════════════════════════════════════════════
+
+@app.route("/clinicians", methods=["GET"])
+def get_clinicians():
+    from virtual_clinicians import get_all_clinicians
+    return jsonify(get_all_clinicians())
+
+@app.route("/clinicians/chat", methods=["POST"])
+def clinician_chat():
+    from virtual_clinicians import get_clinician_response
+    data = request.json or {}
+    clinician_id = data.get("clinician_id", "")
+    messages     = data.get("messages", [])
+    user_key     = request.headers.get("X-User-Api-Key", "")
+    if not clinician_id or not messages:
+        return jsonify({"success": False, "error": "clinician_id et messages requis"}), 400
+    result = get_clinician_response(clinician_id, messages, api_key=user_key or None)
+    return jsonify(result)
+
 @app.route("/test")
 def test_route():
     import sys, platform
