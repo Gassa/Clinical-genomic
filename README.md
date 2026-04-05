@@ -97,3 +97,4 @@ chmod +x setup.sh
 
 Puis éditez `.env` pour ajouter votre `ANTHROPIC_API_KEY`.
 # rebuilt sam.  4 avr. 2026 20:58:46 EDT
+rebuild
