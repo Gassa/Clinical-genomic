@@ -2237,7 +2237,7 @@ function fillClinicianExample(i) {
   document.getElementById('clinicianInput').value = CLINICIAN_EXAMPLES[i] || '';
 }
 
-async function initClinicians() {
+async async function initClinicians() {
   const grid = document.getElementById('clinicianCards');
   if (!grid || grid.children.length > 0) return;
 
