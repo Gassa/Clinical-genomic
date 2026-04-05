@@ -12,7 +12,9 @@
 <meta property="og:url" content="https://clinical-genomic.onrender.com/">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
-<script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');</script><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<script>if('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
+}</script><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>SenGenoScope v7 — Plateforme d'Oncogénomique et Oncopharmacogénomique Clinique</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
