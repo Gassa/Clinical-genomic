@@ -2239,7 +2239,7 @@ function fillClinicianExample(i) {
   document.getElementById('clinicianInput').value = CLINICIAN_EXAMPLES[i] || '';
 }
 
-async async function initClinicians() {
+async function initClinicians() {
   const grid = document.getElementById('clinicianCards');
   if (!grid) return;
   grid.innerHTML = ''; // reset avant rechargement
@@ -2335,53 +2335,6 @@ function appendClinicianMsg(role, text) {
   if (chat) chat.scrollTop = chat.scrollHeight;
 }
 
-async function sendClinicianMessage() {
-  if (!activeClinician) { alert('Sélectionnez un clinicien d\'abord.'); return; }
-  const input = document.getElementById('clinicianInput');
-  const msg = input.value.trim();
-  if (!msg) return;
-
-  const btn = document.getElementById('clinicianSendBtn');
-  btn.disabled = true;
-  btn.textContent = '⏳ Consultation en cours…';
-  input.value = '';
-
-  appendClinicianMsg('user', msg);
-  clinicianHistory.push({ role: 'user', content: msg });
-
-  try {
-    const r = await fetch('/clinicians/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        clinician_id: activeClinician.id,
-        messages: clinicianHistory
-      })
-    });
-    const d = await r.json();
-
-    if (d.success) {
-      appendClinicianMsg('assistant', d.response);
-      clinicianHistory.push({ role: 'assistant', content: d.response });
-
-      // Afficher les sources consultées
-      if (d.sources_consulted && d.sources_consulted.length > 0) {
-        document.getElementById('clinicianSources').style.display = 'block';
-        document.getElementById('clinicianSourcesList').innerHTML =
-          d.sources_consulted.map(s =>
-            `<span style="display:inline-block;background:var(--prl);color:var(--prd);border-radius:4px;padding:1px 7px;margin:2px;font-size:11px;font-weight:600">${s}</span>`
-          ).join('');
-      }
-    } else {
-      appendClinicianMsg('assistant', '❌ ' + (d.error || 'Erreur serveur. Vérifiez la clé API Anthropic dans Render.'));
-    }
-  } catch(e) {
-    appendClinicianMsg('assistant', '❌ Erreur réseau : ' + e.message);
-  }
-
-  btn.disabled = false;
-  btn.textContent = '📤 Envoyer au clinicien';
-}
 
 function resetClinicianChat() {
   clinicianHistory = [];
