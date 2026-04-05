@@ -741,8 +741,22 @@ def clinvar_lookup():
 
 @app.route("/clinicians", methods=["GET"])
 def get_clinicians():
-    from virtual_clinicians import get_all_clinicians
-    return jsonify(get_all_clinicians())
+    try:
+        from virtual_clinicians import get_all_clinicians
+        data = get_all_clinicians()
+        if not isinstance(data, list):
+            return jsonify([]), 200
+        return jsonify(data), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/clinicians/test", methods=["GET"])
+def test_clinicians():
+    try:
+        from virtual_clinicians import get_all_clinicians, CLINICIANS
+        return jsonify({"ok": True, "count": len(CLINICIANS), "ids": [c["id"] for c in CLINICIANS]})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)})
 
 @app.route("/clinicians/chat", methods=["POST"])
 def clinician_chat():
