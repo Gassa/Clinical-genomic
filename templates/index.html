@@ -2264,7 +2264,7 @@ function renderClinicianCards(clinicians) {
   // Stocker les cliniciens globalement pour y accéder par index
   window._cliniciansData = clinicians;
   grid.innerHTML = clinicians.map((c, i) => `
-    <div onclick="selectClinician(window._cliniciansData[${i}])"
+    <div onclick="selectClinician((window._cliniciansStore||window._cliniciansData)[${i}])"
       style="background:var(--sf);border:2px solid var(--bd);border-radius:10px;padding:14px;cursor:pointer;transition:all .2s"
       onmouseover="this.style.borderColor='${c.color}';this.style.transform='translateY(-2px)'"
       onmouseout="this.style.borderColor='var(--bd)';this.style.transform='none'">
