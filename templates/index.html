@@ -2241,7 +2241,8 @@ function fillClinicianExample(i) {
 
 async async function initClinicians() {
   const grid = document.getElementById('clinicianCards');
-  if (!grid || grid.children.length > 0) return;
+  if (!grid) return;
+  grid.innerHTML = ''; // reset avant rechargement
 
   try {
     const r = await fetch('/clinicians');
