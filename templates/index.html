@@ -384,6 +384,7 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
     <button class="ni" onclick="showSec('ai_chat',this)"><span class="ni-i">🤖</span><span data-fr="Chat IA Clinique" data-en="Clinical AI Chat">Chat IA Clinique</span></button>
     <button class="ni" onclick="showSec('ai_upload',this)"><span class="ni-i">📁</span><span data-fr="Analyse fichier IA" data-en="AI File Analysis">Analyse fichier IA</span></button>
     <button class="ni" onclick="showSec('ai_pharma',this)"><span class="ni-i">💊</span><span data-fr="Pharmacogénomique IA" data-en="AI Pharmacogenomics">Pharmacogénomique IA</span></button>
+    <button class="ni" onclick="showSec('clinicians',this)"><span class="ni-i">🩺</span>Cliniciens Virtuels</button>
     <button class="ni" onclick="showSec('bookmarks',this)"><span class="ni-i">🔖</span><span data-fr="Favoris" data-en="Bookmarks">Favoris</span></button>
     <button class="ni" onclick="showSec('about',this)"><span class="ni-i">👤</span><span data-fr="À propos" data-en="About">À propos</span></button>
     <div class="ns" data-fr="Bases de données" data-en="Databases">Bases de données</div>
@@ -921,7 +922,65 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
     </div>
   </div>
 
-  <!-- BOOKMARKS -->
+  
+  <!-- ══ CLINICIENS VIRTUELS ══════════════════════════════════════════════ -->
+  <div id="sec-clinicians" style="display:none">
+    <div class="card" style="margin-bottom:12px">
+      <div class="ch">
+        <span class="ct2">🩺 Cliniciens Virtuels en Oncologie — Basés sur les bases de données internationales</span>
+      </div>
+      <div style="padding:12px 14px;font-size:13px;color:var(--mu);background:var(--s2);border-bottom:1px solid var(--bd);line-height:1.7">
+        Chaque clinicien consulte en temps réel : <b>PubMed</b> · <b>ClinVar</b> · <b>gnomAD</b> · <b>OMIM</b> · <b>DGIdb</b> · <b>ClinicalTrials.gov</b> · guidelines <b>NCCN/ESMO/HAS</b> avant de répondre.<br>
+        ⚠️ Usage éducatif et d'aide à la décision — toute conclusion clinique doit être validée par un médecin.
+      </div>
+
+      <!-- Cartes de sélection des cliniciens -->
+      <div style="padding:14px">
+        <div id="clinicianCards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:16px"></div>
+
+        <!-- Panel de consultation -->
+        <div id="consultationPanel" style="display:none">
+
+          <!-- Clinicien actif -->
+          <div id="activeClinician" style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--s2);border-radius:9px;margin-bottom:12px;border:2px solid var(--bd)"></div>
+
+          <!-- Historique du chat -->
+          <div id="clinicianChat" style="min-height:300px;max-height:440px;overflow-y:auto;background:var(--s2);border-radius:9px;padding:14px;margin-bottom:10px;border:1px solid var(--bd)">
+            <div id="clinicianMessages"></div>
+          </div>
+
+          <!-- Zone de saisie -->
+          <div style="background:var(--sf);border:1.5px solid var(--bd);border-radius:9px;padding:12px">
+            <div style="font-size:12px;color:var(--mu);margin-bottom:7px;font-weight:600">
+              💡 Décrivez le cas clinique (variant, gène, contexte patient, question) :
+            </div>
+            <textarea id="clinicianInput" rows="4"
+              placeholder="Ex: Patiente 42 ans, BRCA1 c.5266dupC pathogène confirmé, cancer sein T2N0M0 triple négatif. Quels traitements ciblés recommandez-vous ? Quels essais cliniques en cours ?"
+              style="width:100%;border:none;outline:none;resize:vertical;font-size:14px;font-family:inherit;background:transparent;color:var(--tx);line-height:1.6"></textarea>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;flex-wrap:wrap;gap:7px">
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <button class="btn bgh2 bsm" onclick="fillClinicianExample(0)">BRCA1 pathogène</button>
+                <button class="btn bgh2 bsm" onclick="fillClinicianExample(1)">Lynch MSI-H</button>
+                <button class="btn bgh2 bsm" onclick="fillClinicianExample(2)">EGFR muté CBNPC</button>
+                <button class="btn bgh2 bsm" onclick="resetClinicianChat()">🔄 Nouvelle consultation</button>
+              </div>
+              <button class="btn bp3" onclick="sendClinicianMessage()" id="clinicianSendBtn">
+                📤 Envoyer au clinicien
+              </button>
+            </div>
+          </div>
+
+          <!-- Sources consultées (affichées après réponse) -->
+          <div id="clinicianSources" style="display:none;margin-top:10px;background:var(--s2);border-radius:7px;padding:10px 13px;font-size:12px;color:var(--mu);border:1px solid var(--bd)">
+            <b style="color:var(--tx)">📚 Sources consultées pour cette réponse :</b>
+            <div id="clinicianSourcesList" style="margin-top:5px;line-height:1.8"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<!-- BOOKMARKS -->
   <div id="sec-bookmarks" style="display:none">
     <div class="card"><div class="ch"><span class="ct2" data-fr="🔖 Recherches sauvegardées" data-en="🔖 Saved searches">🔖 Recherches sauvegardées</span></div>
     <div style="padding:12px" id="bkList"></div></div>
@@ -2166,16 +2225,180 @@ updateApiKeyBtn();
 let activeClinician = null;
 let clinicianHistory = [];
 
+// ══ CLINICIENS VIRTUELS ══════════════════════════════════════════════════════
+
+const CLINICIAN_EXAMPLES = [
+  "Patiente 42 ans, BRCA1 c.5266dupC pathogène, cancer du sein triple négatif T2N0M0. Quels traitements ciblés et essais cliniques recommandez-vous ?",
+  "Patient 58 ans, Lynch MLH1 déficient, cancer colorectal MSI-H stade III. Immunothérapie indiquée ? Quelle surveillance familiale ?",
+  "Patient 67 ans, EGFR exon 19 del, carcinome bronchique non à petites cellules stade IV. Osimertinib en première ligne ? Résistances à anticiper ?"
+];
+
+let activeClinician = null;
+let clinicianHistory = [];
+
+function fillClinicianExample(i) {
+  document.getElementById('clinicianInput').value = CLINICIAN_EXAMPLES[i] || '';
+}
+
 async function initClinicians() {
-  if (document.getElementById('clinicianCards').children.length > 0) return;
+  const grid = document.getElementById('clinicianCards');
+  if (!grid || grid.children.length > 0) return;
+
   try {
     const r = await fetch('/clinicians');
+    if (!r.ok) throw new Error('API /clinicians non disponible');
     const clinicians = await r.json();
     renderClinicianCards(clinicians);
   } catch(e) {
-    document.getElementById('clinicianCards').innerHTML = '<div style="color:red">Erreur chargement cliniciens</div>';
+    if (grid) grid.innerHTML = `<div style="color:var(--mu);font-size:13px;padding:10px">
+      ⚠️ Cliniciens indisponibles : ${e.message}<br>
+      Vérifiez que <code>virtual_clinicians.py</code> est dans le repo et que le serveur est redémarré.
+    </div>`;
   }
 }
+
+function renderClinicianCards(clinicians) {
+  const grid = document.getElementById('clinicianCards');
+  if (!grid) return;
+  grid.innerHTML = clinicians.map(c => `
+    <div onclick="selectClinician(${JSON.stringify(c).replace(/"/g,'&quot;')})"
+      style="background:var(--sf);border:2px solid var(--bd);border-radius:10px;padding:14px;cursor:pointer;transition:all .2s"
+      onmouseover="this.style.borderColor='${c.color}';this.style.transform='translateY(-2px)'"
+      onmouseout="this.style.borderColor='var(--bd)';this.style.transform='none'">
+      <div style="font-size:28px;margin-bottom:8px">${c.icon}</div>
+      <div style="font-size:15px;font-weight:700;color:var(--tx);margin-bottom:3px">${c.name}</div>
+      <div style="font-size:12px;font-weight:600;color:${c.color};margin-bottom:7px">${c.specialty}</div>
+      <div style="font-size:12px;color:var(--mu);line-height:1.5">${c.description}</div>
+      <div style="margin-top:9px;display:flex;flex-wrap:wrap;gap:4px">
+        ${(c.examples||[]).map(ex => `<span style="background:${c.bg||'var(--s2)'};color:${c.color};border-radius:4px;padding:2px 7px;font-size:10px;font-weight:600">${ex}</span>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function selectClinician(c) {
+  activeClinician = c;
+  clinicianHistory = [];
+
+  // Afficher le panel
+  document.getElementById('consultationPanel').style.display = 'block';
+  document.getElementById('clinicianMessages').innerHTML = '';
+  document.getElementById('clinicianSources').style.display = 'none';
+
+  // Afficher le clinicien actif
+  document.getElementById('activeClinician').innerHTML = `
+    <span style="font-size:32px">${c.icon}</span>
+    <div>
+      <div style="font-size:15px;font-weight:700">${c.name}</div>
+      <div style="font-size:12px;color:${c.color};font-weight:600">${c.specialty}</div>
+      <div style="font-size:11px;color:var(--mu);margin-top:3px">
+        Consulte en temps réel : PubMed · ClinVar · gnomAD · OMIM · DGIdb · ClinicalTrials · Guidelines NCCN/ESMO
+      </div>
+    </div>
+    <button onclick="activeClinician=null;document.getElementById('consultationPanel').style.display='none'"
+      style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:18px;color:var(--mu)">✕</button>`;
+
+  // Message de bienvenue
+  appendClinicianMsg('assistant',
+    `Bonjour, je suis ${c.name} — ${c.specialty}.
+
+Avant de vous répondre, je consulte systématiquement les bases de données scientifiques (PubMed, ClinVar, gnomAD, OMIM) et les guidelines internationales (NCCN, ESMO, HAS).
+
+Décrivez le cas clinique ou posez votre question.`
+  );
+
+  // Scroll vers le panel
+  document.getElementById('consultationPanel').scrollIntoView({behavior:'smooth'});
+}
+
+function appendClinicianMsg(role, text) {
+  const el = document.getElementById('clinicianMessages');
+  if (!el) return;
+  const isUser = role === 'user';
+  const div = document.createElement('div');
+  div.style.cssText = `display:flex;gap:9px;margin-bottom:14px;flex-direction:${isUser?'row-reverse':'row'};align-items:flex-start`;
+
+  const avatar = document.createElement('div');
+  avatar.style.cssText = `width:32px;height:32px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:${isUser?'13px':'16px'};font-weight:700;background:${isUser?'var(--pr)':'var(--s2)'};color:${isUser?'#fff':'var(--tx)'};border:1px solid var(--bd)`;
+  avatar.textContent = isUser ? 'Vous' : (activeClinician?.icon || '🩺');
+
+  const bubble = document.createElement('div');
+  bubble.style.cssText = `max-width:82%;padding:11px 14px;border-radius:${isUser?'14px 4px 14px 14px':'4px 14px 14px 14px'};background:${isUser?'var(--pr)':'var(--sf)'};color:${isUser?'#fff':'var(--tx)'};font-size:13px;line-height:1.7;border:1px solid ${isUser?'transparent':'var(--bd)'};white-space:pre-wrap`;
+  bubble.textContent = text;
+
+  div.appendChild(avatar);
+  div.appendChild(bubble);
+  el.appendChild(div);
+
+  const chat = document.getElementById('clinicianChat');
+  if (chat) chat.scrollTop = chat.scrollHeight;
+}
+
+async function sendClinicianMessage() {
+  if (!activeClinician) { alert('Sélectionnez un clinicien d\'abord.'); return; }
+  const input = document.getElementById('clinicianInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+
+  const btn = document.getElementById('clinicianSendBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Consultation en cours…';
+  input.value = '';
+
+  appendClinicianMsg('user', msg);
+  clinicianHistory.push({ role: 'user', content: msg });
+
+  try {
+    const r = await fetch('/clinicians/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clinician_id: activeClinician.id,
+        messages: clinicianHistory
+      })
+    });
+    const d = await r.json();
+
+    if (d.success) {
+      appendClinicianMsg('assistant', d.response);
+      clinicianHistory.push({ role: 'assistant', content: d.response });
+
+      // Afficher les sources consultées
+      if (d.sources_consulted && d.sources_consulted.length > 0) {
+        document.getElementById('clinicianSources').style.display = 'block';
+        document.getElementById('clinicianSourcesList').innerHTML =
+          d.sources_consulted.map(s =>
+            `<span style="display:inline-block;background:var(--prl);color:var(--prd);border-radius:4px;padding:1px 7px;margin:2px;font-size:11px;font-weight:600">${s}</span>`
+          ).join('');
+      }
+    } else {
+      appendClinicianMsg('assistant', '❌ ' + (d.error || 'Erreur serveur. Vérifiez la clé API Anthropic dans Render.'));
+    }
+  } catch(e) {
+    appendClinicianMsg('assistant', '❌ Erreur réseau : ' + e.message);
+  }
+
+  btn.disabled = false;
+  btn.textContent = '📤 Envoyer au clinicien';
+}
+
+function resetClinicianChat() {
+  clinicianHistory = [];
+  const el = document.getElementById('clinicianMessages');
+  if (el) el.innerHTML = '';
+  document.getElementById('clinicianSources').style.display = 'none';
+  if (activeClinician) {
+    appendClinicianMsg('assistant', `Nouvelle consultation. Je suis ${activeClinician.name} — posez votre question.`);
+  }
+}
+
+// Ctrl+Enter pour envoyer
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key === 'Enter') {
+    const inp = document.getElementById('clinicianInput');
+    if (inp && document.activeElement === inp) sendClinicianMessage();
+  }
+});
+
 
 function renderClinicianCards(clinicians) {
   const container = document.getElementById('clinicianCards');
