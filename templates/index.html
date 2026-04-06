@@ -965,7 +965,7 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
         <div id="consultationPanel" style="display:none;clear:both;width:100%">
 
           <!-- Clinicien actif -->
-          <div id="activeClinician" style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--s2);border-radius:9px;margin-bottom:12px;border:2px solid var(--bd)"></div>
+          <div id="activeClinician" style="display:none;align-items:center;gap:12px;padding:12px 14px;background:var(--s2);border-radius:9px;margin-bottom:12px;border:2px solid var(--bd)"></div>
 
           <!-- Historique du chat -->
           <div id="clinicianChat" style="min-height:300px;max-height:440px;overflow-y:auto;background:var(--s2);border-radius:9px;padding:14px;margin-bottom:10px;border:1px solid var(--bd)">
@@ -2317,7 +2317,7 @@ function selectClinician(c) {
   document.getElementById('clinicianSources').style.display = 'none';
 
   // Afficher le clinicien actif
-  document.getElementById('activeClinician').innerHTML = `
+  const acDiv = document.getElementById('activeClinician'); acDiv.style.display='flex'; acDiv.innerHTML = `
     <span style="font-size:32px">${c.icon}</span>
     <div>
       <div style="font-size:15px;font-weight:700">${c.name}</div>
