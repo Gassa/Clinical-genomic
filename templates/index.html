@@ -1278,7 +1278,7 @@ function setLang(l){
   const tbEn = document.getElementById('topbar-btn-en');
   if(tbFr){ tbFr.style.background = l==='fr' ? 'var(--pr)' : 'var(--s2)'; tbFr.style.color = l==='fr' ? '#fff' : 'var(--mu)'; }
   if(tbEn){ tbEn.style.background = l==='en' ? 'var(--pr)' : 'var(--s2)'; tbEn.style.color = l==='en' ? '#fff' : 'var(--mu)'; }
-  document.getElementById('html-root').lang=l;
+  const hr=document.getElementById('html-root'); if(hr) hr.lang=l;
 
   // Translate elements with data-fr / data-en (skip buttons to preserve onclick)
   document.querySelectorAll('[data-fr]').forEach(el=>{
@@ -1923,7 +1923,7 @@ async function initPRS(){
 async function selectCancer(id){
   selectedCancer=id;prsAlleles={};
   document.querySelectorAll('.prs-card').forEach(c=>c.classList.remove('sel'));
-  document.getElementById('prs-'+id).classList.add('sel');
+  const pe=document.getElementById('prs-'+id); if(pe) pe.classList.add('sel');
   const r=await fetch('/calculate_prs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cancer_type:id,risk_alleles:{}})});
   const data=await r.json();
   document.getElementById('prsSnps').style.display='block';
