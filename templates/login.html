@@ -9,23 +9,27 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:"DM Sans",sans-serif;background:linear-gradient(135deg,#0c6e9c 0%,#7c3aed 100%);min-height:100vh;display:flex;align-items:center;justify-content:center}
-.card{background:#fff;border-radius:20px;padding:48px 40px;width:100%;max-width:420px;box-shadow:0 24px 60px rgba(0,0,0,.2)}
-.logo{display:flex;align-items:center;gap:10px;margin-bottom:32px;justify-content:center}
+body{font-family:"DM Sans",sans-serif;background:linear-gradient(135deg,#0c6e9c 0%,#7c3aed 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:#fff;border-radius:20px;padding:44px 40px;width:100%;max-width:440px;box-shadow:0 24px 60px rgba(0,0,0,.2)}
+.logo{display:flex;align-items:center;gap:10px;margin-bottom:28px;justify-content:center}
 .logo-icon{width:44px;height:44px;background:linear-gradient(135deg,#0c6e9c,#7c3aed);border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:22px}
 .logo-text{font-size:22px;font-weight:800;color:#1a2332}
 .logo-text span{color:#0c6e9c}
-h1{font-size:22px;font-weight:700;margin-bottom:6px;text-align:center}
-.sub{font-size:14px;color:#6b7a8d;text-align:center;margin-bottom:32px;line-height:1.5}
-label{font-size:13px;font-weight:600;color:#1a2332;display:block;margin-bottom:6px}
-input{width:100%;padding:12px 14px;border:1.5px solid #dde3ea;border-radius:9px;font-size:15px;font-family:inherit;outline:none;transition:border .15s;color:#1a2332}
+.tabs{display:flex;background:#f0f4f8;border-radius:10px;padding:4px;margin-bottom:28px}
+.tab{flex:1;text-align:center;padding:9px;border-radius:7px;font-size:14px;font-weight:600;cursor:pointer;color:#6b7a8d;border:none;background:none;font-family:inherit;transition:all .15s}
+.tab.active{background:#fff;color:#0c6e9c;box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.panel{display:none}.panel.active{display:block}
+label{font-size:13px;font-weight:600;color:#1a2332;display:block;margin-bottom:5px}
+input{width:100%;padding:11px 14px;border:1.5px solid #dde3ea;border-radius:9px;font-size:14px;font-family:inherit;outline:none;transition:border .15s;color:#1a2332;margin-bottom:14px}
 input:focus{border-color:#0c6e9c}
-.btn{width:100%;padding:13px;background:#0c6e9c;color:#fff;border:none;border-radius:9px;font-size:15px;font-weight:700;cursor:pointer;margin-top:16px;font-family:inherit;transition:all .15s}
+.btn{width:100%;padding:13px;background:#0c6e9c;color:#fff;border:none;border-radius:9px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;margin-top:4px}
 .btn:hover{background:#085880}
-.error{background:#fee2e2;color:#b91c1c;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:16px}
-.back{text-align:center;margin-top:20px;font-size:13px;color:#6b7a8d}
+.error{background:#fee2e2;color:#b91c1c;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:14px}
+.success{background:#dcfce7;color:#15803d;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:14px}
+.badge{background:#f0f4f8;border-radius:6px;padding:4px 10px;font-size:12px;color:#6b7a8d;text-align:center;margin-bottom:20px;display:block}
+.hint{font-size:12px;color:#9aa3af;margin-top:-10px;margin-bottom:14px}
+.back{text-align:center;margin-top:18px;font-size:13px;color:#6b7a8d}
 .back a{color:#0c6e9c;text-decoration:none;font-weight:600}
-.badge{background:#f0f4f8;border-radius:6px;padding:4px 10px;font-size:12px;color:#6b7a8d;text-align:center;margin-bottom:24px}
 </style>
 </head>
 <body>
@@ -34,18 +38,59 @@ input:focus{border-color:#0c6e9c}
     <div class="logo-icon">🧬</div>
     <div class="logo-text"><span>Sen</span>GenoScope</div>
   </div>
-  <div class="badge">🔒 Clinical Access · Restricted</div>
-  <h1>Sign in</h1>
-  <p class="sub">Enter your access code to use the oncogenomics platform.</p>
-  {% if error %}<div class="error">{{ error }}</div>{% endif %}
-  <form method="POST" action="/login">
-    <div style="margin-bottom:16px">
-      <label>Access Code</label>
-      <input type="password" name="password" placeholder="Enter access code..." autofocus autocomplete="off"/>
-    </div>
-    <button type="submit" class="btn">🚀 Access Platform</button>
-  </form>
+  <span class="badge">🔬 Clinical Oncogenomics Platform · Free Access</span>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('login',this)">Sign in</button>
+    <button class="tab" onclick="switchTab('register',this)">Create account</button>
+  </div>
+
+  <!-- LOGIN -->
+  <div class="panel active" id="panel-login">
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+    <form method="POST" action="/login">
+      <input type="hidden" name="action" value="login">
+      <label>Email</label>
+      <input type="email" name="email" placeholder="your@email.com" autofocus autocomplete="email"/>
+      <label>Password</label>
+      <input type="password" name="password" placeholder="Your password" autocomplete="current-password"/>
+      <button type="submit" class="btn">🚀 Sign in</button>
+    </form>
+  </div>
+
+  <!-- REGISTER -->
+  <div class="panel" id="panel-register">
+    {% if reg_error %}<div class="error">{{ reg_error }}</div>{% endif %}
+    {% if reg_success %}<div class="success">{{ reg_success }}</div>{% endif %}
+    <form method="POST" action="/login">
+      <input type="hidden" name="action" value="register">
+      <label>Full name</label>
+      <input type="text" name="name" placeholder="Dr. Firstname Lastname" autocomplete="name"/>
+      <label>Institution (optional)</label>
+      <input type="text" name="institution" placeholder="UCAD, CHU de Dakar…" autocomplete="organization"/>
+      <label>Email</label>
+      <input type="email" name="email" placeholder="your@email.com" autocomplete="email"/>
+      <label>Password</label>
+      <input type="password" name="password" placeholder="Min. 6 characters" autocomplete="new-password"/>
+      <p class="hint">Your data is stored securely and never shared.</p>
+      <button type="submit" class="btn">✅ Create my account</button>
+    </form>
+  </div>
+
   <div class="back"><a href="/">← Back to home</a></div>
 </div>
+
+<script>
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel-' + tab).classList.add('active');
+}
+// Si erreur d'inscription, afficher l'onglet register
+{% if reg_error or reg_success %}
+document.querySelector('.tab:last-child').click();
+{% endif %}
+</script>
 </body>
 </html>

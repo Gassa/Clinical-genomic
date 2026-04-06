@@ -1,2 +1,6 @@
 .env
 .env
+
+# Base de données utilisateurs (ne pas committer)
+users.db
+*.db

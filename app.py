@@ -41,14 +41,58 @@ except Exception:
     def pharmacogenomics_analysis(*a,**k): return {"error":"Claude AI non configuré"}
 import requests as req
 import io, csv, os, json, base64
+import sqlite3, hashlib
+from datetime import timedelta
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(32))
+app.permanent_session_lifetime = timedelta(days=30)
 
-# Multi-codes : ACCESS_CODES = "CODE1,CODE2,CODE3" dans les variables Render
-_raw = os.environ.get("ACCESS_CODES", os.environ.get("ACCESS_CODE", "sengenoscope2026"))
-ACCESS_CODES = [c.strip() for c in _raw.split(",") if c.strip()]
+# ── Base de données utilisateurs SQLite ─────────────────────
+DB_PATH = os.path.join(os.path.dirname(__file__), "users.db")
+
+def init_db():
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute("""CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        institution TEXT DEFAULT '',
+        email TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )""")
+    conn.commit()
+    conn.close()
+
+def hash_password(pwd):
+    return hashlib.sha256(pwd.encode()).hexdigest()
+
+def create_user(name, institution, email, password):
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute(
+            "INSERT INTO users (name, institution, email, password_hash) VALUES (?,?,?,?)",
+            (name, institution, email, hash_password(password))
+        )
+        conn.commit()
+        conn.close()
+        return True, None
+    except sqlite3.IntegrityError:
+        return False, "This email is already registered."
+    except Exception as e:
+        return False, str(e)
+
+def verify_user(email, password):
+    conn = sqlite3.connect(DB_PATH)
+    row = conn.execute(
+        "SELECT id, name, institution FROM users WHERE email=? AND password_hash=?",
+        (email, hash_password(password))
+    ).fetchone()
+    conn.close()
+    return row  # (id, name, institution) ou None
+
+init_db()
 app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10 MB max
 _last_result = {}
 _chat_history = []
@@ -84,18 +128,43 @@ def login_required(f):
 @app.route("/login", methods=["GET", "POST"])
 def login_page():
     error = None
+    reg_error = None
+    reg_success = None
+
     if request.method == "POST":
-        pwd = request.form.get("password", "")
-        if pwd in ACCESS_CODES:
-            session["authenticated"] = True
-            session["user_code"] = pwd[:4] + "***"  # log partiel, pas le code complet
-            session.permanent = True
-            import logging
-            logging.info(f"[LOGIN] Connexion avec code: {pwd[:4]}***")
-            return redirect(url_for("app_main"))
-        else:
-            error = "❌ Incorrect access code. Please try again."
-    return render_template("login.html", error=error)
+        action = request.form.get("action", "login")
+
+        if action == "register":
+            name = request.form.get("name", "").strip()
+            institution = request.form.get("institution", "").strip()
+            email = request.form.get("email", "").strip().lower()
+            password = request.form.get("password", "")
+            if not name or not email or not password:
+                reg_error = "Please fill in all required fields."
+            elif len(password) < 6:
+                reg_error = "Password must be at least 6 characters."
+            else:
+                ok, err = create_user(name, institution, email, password)
+                if ok:
+                    reg_success = f"Account created for {name}! You can now sign in."
+                else:
+                    reg_error = err
+
+        else:  # login
+            email = request.form.get("email", "").strip().lower()
+            password = request.form.get("password", "")
+            user = verify_user(email, password)
+            if user:
+                session["authenticated"] = True
+                session["user_id"] = user[0]
+                session["user_name"] = user[1]
+                session["user_institution"] = user[2]
+                session.permanent = True
+                return redirect(url_for("app_main"))
+            else:
+                error = "❌ Incorrect email or password."
+
+    return render_template("login.html", error=error, reg_error=reg_error, reg_success=reg_success)
 
 @app.route("/logout")
 def logout():
@@ -839,6 +908,18 @@ def test_route():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
+
+
+@app.route("/api/users/count")
+def users_count():
+    """Nombre d'utilisateurs inscrits (public, sans données perso)."""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        count = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+        conn.close()
+        return jsonify({"count": count})
+    except:
+        return jsonify({"count": 0})
 
 @app.route('/morpho_analyze', methods=['POST'])
 def morpho_analyze():
