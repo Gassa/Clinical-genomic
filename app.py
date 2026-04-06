@@ -286,6 +286,75 @@ def logout():
     session.clear()
     return redirect(url_for("landing_page"))
 
+
+# ══ ADMIN DASHBOARD ══════════════════════════════════════════════════════
+
+@app.route("/admin")
+def admin_dashboard():
+    admin_pwd = request.args.get("key", "")
+    if admin_pwd != os.environ.get("ADMIN_PASSWORD", "admin2026"):
+        return "<h2>Access denied</h2>", 403
+    try:
+        conn, db_type = get_conn()
+        if db_type == "pg":
+            cur = conn.cursor()
+            cur.execute("SELECT id, name, institution, email, created_at, last_login FROM users ORDER BY created_at DESC")
+            users = cur.fetchall()
+            cur.execute("SELECT name, email, ip, login_at FROM login_logs ORDER BY login_at DESC LIMIT 50")
+            logs = cur.fetchall()
+        else:
+            users = conn.execute("SELECT id, name, institution, email, created_at, last_login FROM users ORDER BY created_at DESC").fetchall()
+            logs = conn.execute("SELECT name, email, ip, login_at FROM login_logs ORDER BY login_at DESC LIMIT 50").fetchall()
+        conn.close()
+
+        html = """<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<title>SenGenoScope Admin</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',sans-serif;background:#f0f4f8;color:#1a2332;padding:24px}
+h1{font-size:24px;font-weight:800;margin-bottom:6px;color:#0c6e9c}
+.sub{color:#6b7a8d;font-size:14px;margin-bottom:24px}
+.stats{display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+.stat{background:#fff;border-radius:12px;padding:20px 24px;border:1px solid #dde3ea;min-width:150px}
+.stat-n{font-size:32px;font-weight:800;color:#0c6e9c}
+.stat-l{font-size:13px;color:#6b7a8d;margin-top:4px}
+h2{font-size:16px;font-weight:700;margin-bottom:12px;margin-top:8px}
+table{width:100%;background:#fff;border-radius:12px;border-collapse:collapse;overflow:hidden;border:1px solid #dde3ea;margin-bottom:24px}
+th{background:#f7f9fb;padding:10px 14px;text-align:left;font-size:12px;font-weight:700;color:#6b7a8d;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #dde3ea}
+td{padding:10px 14px;font-size:13px;border-bottom:1px solid #f0f4f8}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#f7f9fb}
+.badge{display:inline-block;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:600;background:#dff0f8;color:#0c6e9c}
+</style>
+</head><body>
+<h1>🧬 SenGenoScope — Admin Dashboard</h1>
+<div class="sub">Real-time monitoring · """ + str(len(users)) + """ users registered</div>
+<div class="stats">
+  <div class="stat"><div class="stat-n">""" + str(len(users)) + """</div><div class="stat-l">Total users</div></div>
+  <div class="stat"><div class="stat-n">""" + str(len(logs)) + """</div><div class="stat-l">Recent logins</div></div>
+</div>
+<h2>👥 Registered Users</h2>
+<table>
+<tr><th>#</th><th>Name</th><th>Institution</th><th>Email</th><th>Registered</th><th>Last login</th></tr>"""
+
+        for i, u in enumerate(users, 1):
+            html += f"<tr><td>{i}</td><td><b>{u[1]}</b></td><td>{u[2] or '—'}</td><td>{u[3]}</td><td>{str(u[4])[:16]}</td><td>{str(u[5])[:16] if u[5] else '—'}</td></tr>"
+
+        html += """</table>
+<h2>📋 Recent Login Activity (last 50)</h2>
+<table>
+<tr><th>Name</th><th>Email</th><th>IP Address</th><th>Date & Time</th></tr>"""
+
+        for log in logs:
+            html += f"<tr><td>{log[0]}</td><td>{log[1]}</td><td><span class='badge'>{log[2]}</span></td><td>{str(log[3])[:19]}</td></tr>"
+
+        html += "</table></body></html>"
+        return html
+
+    except Exception as e:
+        return f"<h2>Error: {e}</h2>", 500
+
 @app.route("/landing")
 def landing():
     return render_template("landing.html")
@@ -295,6 +364,7 @@ def landing_page():
     return render_template("landing.html")
 
 @app.route("/app")
+@login_required
 def app_main():
     return render_template("index.html")
 
