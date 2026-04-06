@@ -125,7 +125,16 @@ def log_login(user_id, name, email, ip):
         logging.error(f"[LOGIN LOG ERROR] {e}")
 
 def hash_password(pwd):
-    return hashlib.sha256(pwd.encode()).hexdigest()
+    from werkzeug.security import generate_password_hash
+    return generate_password_hash(pwd, method='pbkdf2:sha256', salt_length=16)
+
+def check_password(pwd, pwd_hash):
+    from werkzeug.security import check_password_hash
+    # Compatibilité avec anciens hash SHA-256
+    if len(pwd_hash) == 64 and ':' not in pwd_hash:
+        import hashlib
+        return hashlib.sha256(pwd.encode()).hexdigest() == pwd_hash
+    return check_password_hash(pwd_hash, pwd)
 
 def create_user(name, institution, email, password):
     try:
@@ -154,21 +163,16 @@ def create_user(name, institution, email, password):
 
 def verify_user(email, password):
     conn, db_type = get_conn()
-    ph = hash_password(password)
     if db_type == "pg":
         cur = conn.cursor()
-        cur.execute(
-            "SELECT id, name, institution FROM users WHERE email=%s AND password_hash=%s",
-            (email, ph)
-        )
+        cur.execute("SELECT id, name, institution, password_hash FROM users WHERE email=%s", (email,))
         row = cur.fetchone()
     else:
-        row = conn.execute(
-            "SELECT id, name, institution FROM users WHERE email=? AND password_hash=?",
-            (email, ph)
-        ).fetchone()
+        row = conn.execute("SELECT id, name, institution, password_hash FROM users WHERE email=?", (email,)).fetchone()
     conn.close()
-    return row
+    if row and check_password(password, row[3]):
+        return (row[0], row[1], row[2])
+    return None
 
 init_db()
 app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10 MB max
@@ -267,7 +271,11 @@ def login_page():
         else:  # login
             email = request.form.get("email", "").strip().lower()
             password = request.form.get("password", "")
-            user = verify_user(email, password)
+            ip = request.headers.get("X-Forwarded-For", request.remote_addr or "unknown")
+            if not check_rate_limit(f"login_{ip}", max_calls=5, window=60):
+                error = "⏱️ Too many attempts. Please wait 1 minute."
+            else:
+                user = verify_user(email, password)
             if user:
                 session["authenticated"] = True
                 session["user_id"] = user[0]
