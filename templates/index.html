@@ -1129,7 +1129,7 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
       <div class="abtt" data-fr="Plateforme d'Oncogénomique et Oncopharmacogénomique Clinique" data-en="Clinical Oncogenomics and Oncopharmacogenomics Platform">Plateforme d'Oncogénomique et Oncopharmacogénomique Clinique</div>
       <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,.8);margin-top:10px" data-fr="Dr. Moustapha Gassama — Oncogénéticien médical · Public Health Data Scientist" data-en="Dr. Moustapha Gassama — Medical Oncogeneticist · Public Health Data Scientist">Dr. Moustapha Gassama — Oncogénéticien médical · Public Health Data Scientist</div>
       <div style="font-size:13px;color:rgba(255,255,255,.65);margin-top:16px;line-height:1.9;text-align:justify;border-top:1px solid rgba(255,255,255,.1);padding-top:14px;hyphens:auto;word-spacing:0.05em">
-        SenGenoScope est une plateforme bioinformatique clinique dédiée à l'oncogénomique et à l'oncopharmacogénomique, avec un focus particulier sur les populations africaines et sénégalaises. Elle permet aux cliniciens et chercheurs d'analyser des variants génétiques selon les critères ACMG/AMP 2015, d'interroger simultanément les grandes bases de données internationales (PubMed, ClinVar, gnomAD v4, OMIM, COSMIC, ClinicalTrials.gov), d'évaluer les risques héréditaires de cancer, de calculer des scores polygéniques (PRS), d'interpréter des rapports NGS en langage clinique, et d'analyser les implications pharmacogénomiques des variants pour guider les décisions thérapeutiques. Le module de corrélation morphologie–génétique permet l'analyse d'images histologiques par IA pour les cancers du sein, de la prostate et les tumeurs pédiatriques. L'intégration de l'intelligence artificielle Claude permet une synthèse automatisée de la littérature scientifique et la génération de rapports cliniques structurés. Développé par le Dr. Moustapha Gassama en collaboration avec le Pr. Dial Ndiaye (UCAD, Dakar).
+        SenGenoScope est une plateforme bioinformatique clinique dédiée à l'oncogénomique et à l'oncopharmacogénomique, avec un focus particulier sur les populations africaines et sénégalaises. Elle permet aux cliniciens et chercheurs d'analyser des variants génétiques selon les critères ACMG/AMP 2015, d'interroger simultanément les grandes bases de données internationales (PubMed, ClinVar, gnomAD v4, OMIM, COSMIC, ClinicalTrials.gov), d'évaluer les risques héréditaires de cancer, de calculer des scores polygéniques (PRS), d'interpréter des rapports NGS en langage clinique, et d'analyser les implications pharmacogénomiques des variants pour guider les décisions thérapeutiques. Le module de corrélation morphologie–génétique permet l'analyse d'images histologiques par IA pour les cancers du sein, de la prostate et les tumeurs pédiatriques. L'intégration de l'intelligence artificielle Claude permet une synthèse automatisée de la littérature scientifique et la génération de rapports cliniques structurés.
       </div>
     </div>
     <div class="rmg">
@@ -1260,9 +1260,6 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
 let activeClinician = null;
 let clinicianHistory = [];
 
-// ══ FONCTIONS GLOBALES (disponibles immediatement) ════════════════════════
-function openDB(n){const DB={pubmed:'https://pubmed.ncbi.nlm.nih.gov/',clinvar:'https://www.ncbi.nlm.nih.gov/clinvar/',omim:'https://omim.org/',cosmic:'https://cancer.sanger.ac.uk/cosmic',gnomad:'https://gnomad.broadinstitute.org/',orphanet:'https://www.orpha.net/',hgmd:'https://www.hgmd.cf.ac.uk/',varsome:'https://varsome.com/',franklin:'https://franklin.genoox.com/',dgidb:'https://dgidb.org/',clinicaltrials:'https://clinicaltrials.gov/',decipher:'https://www.deciphergenomics.org/',insight:'https://www.insight-group.org/',enigma:'https://enigmaconsortium.org/',hpo:'https://hpo.jax.org/',lovd:'https://www.lovd.nl/',uniprot:'https://www.uniprot.org/',gtex:'https://gtexportal.org/home/',gencc:'https://thegencc.org/',spliceai:'https://spliceailookup.broadinstitute.org/',alphamissense:'https://alphamissense.hegelab.org/',scholar:'https://scholar.google.com/',europepmc:'https://europepmc.org/',crossref:'https://www.crossref.org/',oncokb:'https://www.oncokb.org/',civic:'https://civicdb.org/',cbioportal:'https://www.cbioportal.org/',iarctp53:'https://tp53.isb-cgc.org/',pharmgkb:'https://www.pharmgkb.org/',cpic:'https://cpicpgx.org/',drugbank:'https://go.drugbank.com/',h3africa:'https://h3africa.org/',awiGen:'https://gnomad.broadinstitute.org/',alphafold:'https://alphafold.ebi.ac.uk/',string:'https://string-db.org/',mavedb:'https://mavedb.org/',esmo:'https://www.esmo.org/guidelines',nccn:'https://www.nccn.org/guidelines/',has:'https://www.has-sante.fr/',dbsnp:'https://www.ncbi.nlm.nih.gov/snp/',nord:'https://rarediseases.org/',pdb:'https://www.rcsb.org/'};if(DB[n])window.open(DB[n],'_blank');}
-
 // ══ LANG ══════════════════════════════════════════════════════════════════
 let lang=localStorage.getItem('sgs_lang')||'en';
 
@@ -1274,8 +1271,8 @@ function updateLangToggle() {
 function setLang(l){
   lang=l;
   localStorage.setItem('sgs_lang',l);
-  document.getElementById('btn-fr').classList.toggle('active',l==='fr');
-  document.getElementById('btn-en').classList.toggle('active',l==='en');
+  const bfr=document.getElementById('btn-fr'); if(bfr) bfr.classList.toggle('active',l==='fr');
+  const ben=document.getElementById('btn-en'); if(ben) ben.classList.toggle('active',l==='en');
   // Synchroniser les boutons de la topbar
   const tbFr = document.getElementById('topbar-btn-fr');
   const tbEn = document.getElementById('topbar-btn-en');
