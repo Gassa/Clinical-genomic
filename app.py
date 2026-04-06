@@ -52,6 +52,19 @@ app.permanent_session_lifetime = timedelta(days=30)
 # ── Base de données utilisateurs SQLite ─────────────────────
 DB_PATH = os.path.join(os.path.dirname(__file__), "users.db")
 
+DATABASE_URL = os.environ.get("DATABASE_URL", "")
+USE_POSTGRES = bool(DATABASE_URL)
+
+def get_conn():
+    if USE_POSTGRES:
+        import psycopg2
+        conn = psycopg2.connect(DATABASE_URL, sslmode="require")
+        return conn, "pg"
+    else:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        return conn, "sqlite"
+
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     conn.execute("""CREATE TABLE IF NOT EXISTS users (
