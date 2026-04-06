@@ -2298,6 +2298,12 @@ function renderClinicianCards(clinicians) {
     </div>`).join('');
 }
 
+function selectClinicianById(id) {
+  const c = window._cliniciansById && window._cliniciansById[id];
+  if (!c) { console.error('Clinicien non trouvé:', id, window._cliniciansById); return; }
+  selectClinician(c);
+}
+
 function selectClinician(c) {
   activeClinician = c;
   clinicianHistory = [];
