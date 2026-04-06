@@ -45,7 +45,10 @@ from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(32))
-ACCESS_CODE = os.environ.get("ACCESS_CODE", "sengenoscope2026")
+
+# Multi-codes : ACCESS_CODES = "CODE1,CODE2,CODE3" dans les variables Render
+_raw = os.environ.get("ACCESS_CODES", os.environ.get("ACCESS_CODE", "sengenoscope2026"))
+ACCESS_CODES = [c.strip() for c in _raw.split(",") if c.strip()]
 app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10 MB max
 _last_result = {}
 _chat_history = []
@@ -83,9 +86,12 @@ def login_page():
     error = None
     if request.method == "POST":
         pwd = request.form.get("password", "")
-        if pwd == ACCESS_CODE:
+        if pwd in ACCESS_CODES:
             session["authenticated"] = True
+            session["user_code"] = pwd[:4] + "***"  # log partiel, pas le code complet
             session.permanent = True
+            import logging
+            logging.info(f"[LOGIN] Connexion avec code: {pwd[:4]}***")
             return redirect(url_for("app_main"))
         else:
             error = "❌ Incorrect access code. Please try again."
