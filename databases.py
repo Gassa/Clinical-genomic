@@ -136,3 +136,71 @@ GUIDELINES = [
 
 def get_guidelines():
     return GUIDELINES
+
+
+# ── OncoKB ────────────────────────────────────────────────────────────────────
+
+def search_oncokb(gene: str) -> list:
+    """Liens OncoKB pour un gène oncologique."""
+    encoded = requests.utils.quote(gene.upper())
+    return [{
+        "name": f"OncoKB — {gene.upper()} variants & thérapies",
+        "url": f"https://www.oncokb.org/gene/{encoded}",
+        "description": "Niveaux de preuve FDA/EMA pour les variants oncologiques (MSK)"
+    }]
+
+
+# ── CIViC ─────────────────────────────────────────────────────────────────────
+
+def search_civic(gene: str) -> list:
+    """Liens CIViC pour un gène."""
+    encoded = requests.utils.quote(gene.upper())
+    return [{
+        "name": f"CIViC — Évidences cliniques {gene.upper()}",
+        "url": f"https://civicdb.org/genes/{encoded}/summary",
+        "description": "Clinical Interpretation of Variants in Cancer (Washington University)"
+    }]
+
+
+# ── PharmGKB ──────────────────────────────────────────────────────────────────
+
+def search_pharmgkb(gene: str) -> list:
+    """Liens PharmGKB pour les interactions médicament-gène."""
+    encoded = requests.utils.quote(gene.upper())
+    return [{
+        "name": f"PharmGKB — Pharmacogénomique {gene.upper()}",
+        "url": f"https://www.pharmgkb.org/gene?symbol={encoded}",
+        "description": "Interactions médicament-gène et variants pharmacogénomiques"
+    }, {
+        "name": "CPIC Guidelines",
+        "url": f"https://cpicpgx.org/genes-drugs/",
+        "description": "Guidelines cliniques de pharmacogénomique (CPIC)"
+    }]
+
+
+# ── cBioPortal ────────────────────────────────────────────────────────────────
+
+def search_cbioportal(gene: str) -> list:
+    """Liens cBioPortal pour les données TCGA."""
+    encoded = requests.utils.quote(gene.upper())
+    return [{
+        "name": f"cBioPortal — Mutations {gene.upper()} (TCGA)",
+        "url": f"https://www.cbioportal.org/results/mutations?gene_list={encoded}",
+        "description": "Fréquences de mutation dans les cancers TCGA/GENIE"
+    }]
+
+
+# ── H3Africa ──────────────────────────────────────────────────────────────────
+
+def search_h3africa(query: str) -> list:
+    """Liens H3Africa pour les données génomiques africaines."""
+    return [{
+        "name": "H3Africa — Génomique des populations africaines",
+        "url": "https://h3africa.org/",
+        "description": "Human Heredity and Health in Africa — données génomiques africaines"
+    }, {
+        "name": "AWI-Gen — Variants africains",
+        "url": "https://h3africa.org/index.php/consortium/awiGen/",
+        "description": "African Wits-INDEPTH partnership for Genomic studies"
+    }]
+

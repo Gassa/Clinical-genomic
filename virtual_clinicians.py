@@ -303,6 +303,79 @@ def extract_genes_from_message(text: str) -> list:
     return found[:5]  # Max 5 gènes
 
 
+
+def fetch_oncokb_context(gene: str) -> str:
+    """Récupère les données OncoKB pour un gène oncologique."""
+    try:
+        r = requests.get(
+            f"https://www.oncokb.org/api/v1/genes/{gene.upper()}",
+            headers={"accept": "application/json"},
+            timeout=8
+        )
+        if r.status_code == 200:
+            data = r.json()
+            summary = data.get("summary", "")
+            return f"OncoKB {gene.upper()}: {summary[:400]}" if summary else f"OncoKB: Gene {gene.upper()} répertorié — https://www.oncokb.org/gene/{gene.upper()}"
+    except Exception:
+        pass
+    return ""
+
+
+def fetch_civic_context(gene: str) -> str:
+    """Récupère les données CIViC pour un gène."""
+    try:
+        r = requests.get(
+            f"https://civicdb.org/api/genes/{gene.upper()}",
+            timeout=8
+        )
+        if r.status_code == 200:
+            data = r.json()
+            desc = data.get("description", "")[:400]
+            ev = data.get("evidence_item_count", "?")
+            return f"CIViC {gene.upper()}: {ev} évidences cliniques. {desc}" if desc else ""
+    except Exception:
+        pass
+    return ""
+
+
+def fetch_pharmgkb_context(gene: str) -> str:
+    """Récupère les données PharmGKB pharmacogénomiques."""
+    try:
+        r = requests.get(
+            "https://api.pharmgkb.org/v1/data/gene",
+            params={"symbol": gene.upper(), "view": "base"},
+            timeout=8
+        )
+        if r.status_code == 200:
+            data = r.json()
+            items = data.get("data", [])
+            if items:
+                item = items[0]
+                gid = item.get("id", "")
+                return f"PharmGKB {gene.upper()}: Données pharmacogénomiques disponibles — https://www.pharmgkb.org/gene/{gid}"
+    except Exception:
+        pass
+    return ""
+
+
+def fetch_cbioportal_context(gene: str) -> str:
+    """Récupère les données cBioPortal (TCGA) pour un gène."""
+    try:
+        r = requests.get(
+            f"https://www.cbioportal.org/api/genes/{gene.upper()}",
+            headers={"accept": "application/json"},
+            timeout=8
+        )
+        if r.status_code == 200:
+            data = r.json()
+            hugo = data.get("hugoGeneSymbol", gene)
+            etype = data.get("type", "")
+            return f"cBioPortal/TCGA — {hugo} (Type: {etype}): https://www.cbioportal.org/results/mutations?gene_list={hugo}"
+    except Exception:
+        pass
+    return ""
+
+
 def build_enriched_context(clinician: dict, user_message: str) -> tuple:
     """
     Construit le contexte enrichi avec les données des bases de données.
@@ -342,7 +415,7 @@ def build_enriched_context(clinician: dict, user_message: str) -> tuple:
             context_parts.append(f"=== DONNÉES gnomAD ===\n" + "\n".join(gnomad_results))
             sources.append("gnomAD r4")
 
-    # 4. Essais cliniques — pour les oncologues et oncogénéticiens
+    # 4. Essais cliniques
     if clinician.get("id") in ["oncologist", "oncogeneticist"]:
         trial_query = " ".join(genes[:2]) + " cancer" if genes else user_message[:80]
         trials_ctx = fetch_clinical_trials_context(trial_query)
@@ -350,7 +423,51 @@ def build_enriched_context(clinician: dict, user_message: str) -> tuple:
             context_parts.append(f"=== ESSAIS CLINIQUES EN COURS (ClinicalTrials.gov) ===\n{trials_ctx}")
             sources.append("ClinicalTrials.gov (essais en recrutement)")
 
-    # 5. Guidelines intégrées au système
+    # 5. OncoKB — variants oncologiques avec niveau de preuve FDA
+    if genes and clinician.get("id") in ["oncologist", "oncogeneticist", "pathologist"]:
+        oncokb_results = []
+        for gene in genes[:2]:
+            ctx = fetch_oncokb_context(gene)
+            if ctx:
+                oncokb_results.append(ctx)
+        if oncokb_results:
+            context_parts.append(f"=== DONNÉES ONCOKB (Niveau de preuve FDA/EMA) ===\n" + "\n".join(oncokb_results))
+            sources.append("OncoKB (MSK)")
+
+    # 6. CIViC — évidences cliniques variants
+    if genes and clinician.get("id") in ["oncologist", "pathologist"]:
+        civic_results = []
+        for gene in genes[:2]:
+            ctx = fetch_civic_context(gene)
+            if ctx:
+                civic_results.append(ctx)
+        if civic_results:
+            context_parts.append(f"=== DONNÉES CIViC (Clinical Interpretation of Variants in Cancer) ===\n" + "\n".join(civic_results))
+            sources.append("CIViC Database")
+
+    # 7. PharmGKB — pharmacogénomique
+    if genes and clinician.get("id") == "oncologist":
+        pharma_results = []
+        for gene in genes[:2]:
+            ctx = fetch_pharmgkb_context(gene)
+            if ctx:
+                pharma_results.append(ctx)
+        if pharma_results:
+            context_parts.append(f"=== DONNÉES PHARMGKB (Pharmacogénomique) ===\n" + "\n".join(pharma_results))
+            sources.append("PharmGKB")
+
+    # 8. cBioPortal TCGA — fréquences tumorales
+    if genes and clinician.get("id") in ["oncologist", "pathologist"]:
+        cbio_results = []
+        for gene in genes[:2]:
+            ctx = fetch_cbioportal_context(gene)
+            if ctx:
+                cbio_results.append(ctx)
+        if cbio_results:
+            context_parts.append(f"=== DONNÉES cBIOPORTAL/TCGA ===\n" + "\n".join(cbio_results))
+            sources.append("cBioPortal (TCGA)")
+
+    # 9. Guidelines intégrées au système
     sources.append(f"Guidelines: {clinician.get('guidelines', 'NCCN/ESMO/HAS')}")
 
     return "\n\n".join(context_parts), sources
