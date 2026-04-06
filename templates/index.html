@@ -660,12 +660,12 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
 
   <!-- PRS -->
   <div id="sec-prs" style="display:none">
-    <div class="card"><div class="ch"><span class="ct2">📊 Calculateur de Score Polygénique (PRS) — Risque de cancer basé sur les SNPs GWAS</span></div>
+    <div class="card"><div class="ch"><span class="ct2"><span data-fr="📊 Calculateur de Score Polygénique (PRS) — Risque de cancer basé sur les SNPs GWAS" data-en="📊 Polygenic Risk Score (PRS) Calculator — Cancer risk based on GWAS SNPs">📊 Calculateur de Score Polygénique (PRS) — Risque de cancer basé sur les SNPs GWAS</span></span></div>
     <div style="padding:14px">
       <div style="font-size:13px;color:var(--mu);background:var(--s2);padding:10px 13px;border-radius:7px;margin-bottom:12px;line-height:1.7">
-        Le PRS (Polygenic Risk Score) combine des variants génétiques communs (SNPs) identifiés par GWAS pour estimer le risque polygénique de cancer.<br>
-        ⚠️ Usage informatif uniquement — ne remplace pas le conseil génétique. Les OR proviennent de méta-analyses GWAS publiées.<br>
-        Sélectionnez un cancer → indiquez vos allèles à risque (0 = aucun, 1 = hétérozygote, 2 = homozygote).
+        <span data-fr="Le PRS (Polygenic Risk Score) combine des variants génétiques communs (SNPs) identifiés par GWAS pour estimer le risque polygénique de cancer." data-en="The PRS (Polygenic Risk Score) combines common genetic variants (SNPs) identified by GWAS to estimate polygenic cancer risk.">Le PRS (Polygenic Risk Score) combine des variants génétiques communs (SNPs) identifiés par GWAS pour estimer le risque polygénique de cancer.</span><br>
+        <span data-fr="⚠️ Usage informatif uniquement — ne remplace pas le conseil génétique. Les OR proviennent de méta-analyses GWAS publiées." data-en="⚠️ For informational use only — does not replace genetic counseling. ORs are from published GWAS meta-analyses.">⚠️ Usage informatif uniquement — ne remplace pas le conseil génétique. Les OR proviennent de méta-analyses GWAS publiées.</span><br>
+        <span data-fr="Sélectionnez un cancer → indiquez vos allèles à risque (0 = aucun, 1 = hétérozygote, 2 = homozygote)." data-en="Select a cancer → enter your risk alleles (0 = none, 1 = heterozygous, 2 = homozygous).">Sélectionnez un cancer → indiquez vos allèles à risque (0 = aucun, 1 = hétérozygote, 2 = homozygote).</span>
       </div>
       <div class="prs-grid" id="prsGrid"></div>
       <div id="prsSnps" style="display:none">
@@ -2855,7 +2855,7 @@ EXAMENS COMPLÉMENTAIRES
 ${r.examens_complementaires}
 
 ${'='.repeat(55)}
-Usage clinique confidentiel · SenGenoScope v7
+Usage clinique confidentiel · SenGenoScope
 Dr. Moustapha Gassama`;
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([txt],{type:'text/plain'}));

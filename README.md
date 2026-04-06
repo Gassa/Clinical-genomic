@@ -1,4 +1,4 @@
-# 🧬 SenGenoScope v7 — Plateforme d'Oncogénomique et Oncopharmacogénomique Clinique
+# 🧬 SenGenoScope — Plateforme d'Oncogénomique et Oncopharmacogénomique Clinique
 
 **Dr. Moustapha Gassama** — Oncogénéticien médical | Public Health Data Scientist
 
@@ -7,7 +7,7 @@
 
 ---
 
-## 🆕 Nouveautés v7
+## 🆕 Nouveautés v1.0
 
 | Module | Description |
 |--------|-------------|
@@ -27,13 +27,13 @@
 ```bash
 # Sur votre Mac / Linux, dans le dossier du projet :
 chmod +x deploy.sh
-./deploy.sh "SenGenoScope v7 — Oncopharmacogénomique"
+./deploy.sh "SenGenoScope — Oncopharmacogénomique"
 
 # OU manuellement :
 git init
 git remote add origin https://github.com/Gassa/Clinical-genomic.git
 git add -A
-git commit -m "SenGenoScope v7"
+git commit -m "SenGenoScope"
 git push -u origin main --force
 ```
 
@@ -74,7 +74,7 @@ Clinical-genomic/
 ├── deploy.sh               # 🆕 Script déploiement GitHub
 ├── setup.sh                # Installation locale
 └── templates/
-    └── index.html          # 🆕 Interface v7 — 15 modules
+    └── index.html          # 🆕 Interface v1.0 — 16 modules
 ```
 
 ---
