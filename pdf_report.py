@@ -46,9 +46,9 @@ def generate_pdf_report(query: str, articles: list, gene_data: dict, clinvar_res
     now = datetime.now().strftime("%d %B %Y à %H:%M")
 
     # En-tête
-    story.append(Paragraph("GenoScope", title_style))
+    story.append(Paragraph("SenGenoScope", title_style))
     story.append(Paragraph("Rapport d'analyse génomique clinique", subtitle_style))
-    story.append(Paragraph(f"Dr. Mous Gassama  ·  {now}", author_style))
+    story.append(Paragraph(f"Dr. Moustapha Gassama  ·  {now}", author_style))
     story.append(HRFlowable(width="100%", thickness=2, color=TEAL, spaceAfter=12))
 
     # Résumé
@@ -131,7 +131,7 @@ def generate_pdf_report(query: str, articles: list, gene_data: dict, clinvar_res
     # Pied de page
     story.append(HRFlowable(width="100%", thickness=1, color=MID_GRAY, spaceBefore=12))
     story.append(Paragraph(
-        "Rapport généré par GenoScope · Dr. Mous Gassama · Usage clinique confidentiel",
+        "Rapport généré par GenoScope · Dr. Moustapha Gassama · Usage clinique confidentiel",
         ParagraphStyle("Footer", fontSize=7, textColor=MID_GRAY,
                        fontName="Helvetica-Oblique", alignment=TA_CENTER)
     ))
