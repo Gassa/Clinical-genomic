@@ -131,7 +131,7 @@ def generate_pdf_report(query: str, articles: list, gene_data: dict, clinvar_res
     # Pied de page
     story.append(HRFlowable(width="100%", thickness=1, color=MID_GRAY, spaceBefore=12))
     story.append(Paragraph(
-        "Rapport généré par GenoScope · Dr. Moustapha Gassama · Usage clinique confidentiel",
+        "Rapport généré par SenGenoScope · Dr. Moustapha Gassama · Usage clinique confidentiel",
         ParagraphStyle("Footer", fontSize=7, textColor=MID_GRAY,
                        fontName="Helvetica-Oblique", alignment=TA_CENTER)
     ))
