@@ -1,3 +1,8 @@
+
+@app.route("/")
+def index():
+    return render_template("landing.html")
+
 """
 app.py — SenGenoScope v1.0
 Flask backend complet — sans clé API Claude requise
@@ -62,8 +67,13 @@ def manifest():
 def service_worker():
     return send_file('templates/sw.js', mimetype='application/javascript')
 
-@app.route("/")
-def index():
+
+@app.route("/landing")
+def landing():
+    return render_template("landing.html")
+
+@app.route("/app")
+def app_main():
     return render_template("index.html")
 
 # ── HPO ────────────────────────────────────────────────────────────────────────
