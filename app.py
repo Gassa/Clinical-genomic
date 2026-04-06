@@ -1062,20 +1062,10 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated
 
-@app.route("/admin/login", methods=["GET", "POST"])
-def admin_login():
-    error = None
-    if request.method == "POST":
-        if request.form.get("password") == ADMIN_PASSWORD:
-            session["admin_authenticated"] = True
-            return redirect("/admin")
-        error = "Incorrect admin password."
-    return render_template("admin_login.html", error=error)
-
 @app.route("/admin/logout")
 def admin_logout():
     session.pop("admin_authenticated", None)
-    return redirect("/admin/login")
+    return "", 403
 
 @app.route("/admin")
 @admin_required
