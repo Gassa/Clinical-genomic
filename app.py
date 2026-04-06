@@ -2,8 +2,9 @@
 app.py — SenGenoScope v1.0
 Flask backend complet — sans clé API Claude requise
 """
+import logging
 from flask import Flask, render_template, request, jsonify, send_file, Response, session, redirect, url_for
-import os, secrets
+import os, secrets, logging
 from pubmed import search_pubmed, fetch_articles
 try:
     from pubmed import get_article_count
