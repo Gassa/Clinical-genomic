@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<meta name="google" content="notranslate">
+<link rel="icon" href="/static/favicon.ico">
+<title>SenGenoScope — Access</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"DM Sans",sans-serif;background:linear-gradient(135deg,#0c6e9c 0%,#7c3aed 100%);min-height:100vh;display:flex;align-items:center;justify-content:center}
+.card{background:#fff;border-radius:20px;padding:48px 40px;width:100%;max-width:420px;box-shadow:0 24px 60px rgba(0,0,0,.2)}
+.logo{display:flex;align-items:center;gap:10px;margin-bottom:32px;justify-content:center}
+.logo-icon{width:44px;height:44px;background:linear-gradient(135deg,#0c6e9c,#7c3aed);border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:22px}
+.logo-text{font-size:22px;font-weight:800;color:#1a2332}
+.logo-text span{color:#0c6e9c}
+h1{font-size:22px;font-weight:700;margin-bottom:6px;text-align:center}
+.sub{font-size:14px;color:#6b7a8d;text-align:center;margin-bottom:32px;line-height:1.5}
+label{font-size:13px;font-weight:600;color:#1a2332;display:block;margin-bottom:6px}
+input{width:100%;padding:12px 14px;border:1.5px solid #dde3ea;border-radius:9px;font-size:15px;font-family:inherit;outline:none;transition:border .15s;color:#1a2332}
+input:focus{border-color:#0c6e9c}
+.btn{width:100%;padding:13px;background:#0c6e9c;color:#fff;border:none;border-radius:9px;font-size:15px;font-weight:700;cursor:pointer;margin-top:16px;font-family:inherit;transition:all .15s}
+.btn:hover{background:#085880}
+.error{background:#fee2e2;color:#b91c1c;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:16px}
+.back{text-align:center;margin-top:20px;font-size:13px;color:#6b7a8d}
+.back a{color:#0c6e9c;text-decoration:none;font-weight:600}
+.badge{background:#f0f4f8;border-radius:6px;padding:4px 10px;font-size:12px;color:#6b7a8d;text-align:center;margin-bottom:24px}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <div class="logo-icon">🧬</div>
+    <div class="logo-text"><span>Sen</span>GenoScope</div>
+  </div>
+  <div class="badge">🔒 Clinical Access · Restricted</div>
+  <h1>Sign in</h1>
+  <p class="sub">Enter your access code to use the oncogenomics platform.</p>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <form method="POST" action="/login">
+    <div style="margin-bottom:16px">
+      <label>Access Code</label>
+      <input type="password" name="password" placeholder="Enter access code..." autofocus autocomplete="off"/>
+    </div>
+    <button type="submit" class="btn">🚀 Access Platform</button>
+  </form>
+  <div class="back"><a href="/">← Back to home</a></div>
+</div>
+</body>
+</html>

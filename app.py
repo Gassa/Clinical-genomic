@@ -2,7 +2,8 @@
 app.py — SenGenoScope v1.0
 Flask backend complet — sans clé API Claude requise
 """
-from flask import Flask, render_template, request, jsonify, send_file, Response
+from flask import Flask, render_template, request, jsonify, send_file, Response, session, redirect, url_for
+import os, secrets
 from pubmed import search_pubmed, fetch_articles
 try:
     from pubmed import get_article_count
@@ -43,6 +44,8 @@ import io, csv, os, json, base64
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(32))
+ACCESS_CODE = os.environ.get("ACCESS_CODE", "sengenoscope2026")
 app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10 MB max
 _last_result = {}
 _chat_history = []
@@ -63,6 +66,36 @@ def service_worker():
     return send_file('templates/sw.js', mimetype='application/javascript')
 
 
+
+# ══ AUTHENTIFICATION ══════════════════════════════════════════════════════
+
+def login_required(f):
+    from functools import wraps
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get("authenticated"):
+            return redirect(url_for("login_page"))
+        return f(*args, **kwargs)
+    return decorated
+
+@app.route("/login", methods=["GET", "POST"])
+def login_page():
+    error = None
+    if request.method == "POST":
+        pwd = request.form.get("password", "")
+        if pwd == ACCESS_CODE:
+            session["authenticated"] = True
+            session.permanent = True
+            return redirect(url_for("app_main"))
+        else:
+            error = "❌ Incorrect access code. Please try again."
+    return render_template("login.html", error=error)
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("landing_page"))
+
 @app.route("/landing")
 def landing():
     return render_template("landing.html")
@@ -72,6 +105,7 @@ def landing_page():
     return render_template("landing.html")
 
 @app.route("/app")
+@login_required
 def app_main():
     return render_template("index.html")
 
