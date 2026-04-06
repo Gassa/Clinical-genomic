@@ -191,6 +191,42 @@ def service_worker():
 
 
 
+
+# ══ SECURITY HEADERS ═════════════════════════════════════════════════════
+@app.after_request
+def add_security_headers(response):
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()'
+    # CSP permissive pour permettre fonts Google et APIs externes
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "connect-src 'self' https://api.anthropic.com https://eutils.ncbi.nlm.nih.gov https://clinicaltrials.gov https://hpo.jax.org https://dgidb.org; "
+        "img-src 'self' data:; "
+        "frame-ancestors 'self';"
+    )
+    return response
+
+# ══ RATE LIMITING MANUEL ═════════════════════════════════════════════════
+from collections import defaultdict
+import time as _time
+
+_rate_store = defaultdict(list)
+
+def check_rate_limit(key, max_calls=10, window=60):
+    now = _time.time()
+    calls = _rate_store[key]
+    _rate_store[key] = [t for t in calls if now - t < window]
+    if len(_rate_store[key]) >= max_calls:
+        return False
+    _rate_store[key].append(now)
+    return True
+
 # ══ AUTHENTIFICATION ══════════════════════════════════════════════════════
 
 def login_required(f):
@@ -455,6 +491,9 @@ def consequence_types():
 # ── Main analyze ──────────────────────────────────────────────────────────────
 @app.route("/analyze", methods=["POST"])
 def analyze():
+    ip = request.remote_addr
+    if not check_rate_limit(f"analyze_{ip}", max_calls=15, window=60):
+        return jsonify({"error": "Rate limit exceeded. Max 15 requests/minute."}), 429
     global _last_result
     data=request.get_json()
     query=data.get("query","").strip(); max_results=int(data.get("max_results",0)); gene_filter=data.get("gene_filter","").strip().upper(); hpo_term=data.get("hpo_term","").strip()
@@ -545,6 +584,9 @@ def ai_upload():
 # ── Chat médical Claude AI ────────────────────────────────────────────────────
 @app.route("/ai/chat", methods=["POST"])
 def ai_chat():
+    ip = request.remote_addr
+    if not check_rate_limit(f"ai_chat_{ip}", max_calls=20, window=60):
+        return jsonify({"error": "Rate limit exceeded. Max 20 requests/minute."}), 429
     """Chat médical spécialisé avec Claude AI."""
     global _chat_history
     data = request.get_json()
@@ -956,6 +998,9 @@ def test_clinicians():
 
 @app.route("/clinicians/chat", methods=["POST"])
 def clinician_chat():
+    ip = request.remote_addr
+    if not check_rate_limit(f"clinician_{ip}", max_calls=10, window=60):
+        return jsonify({"error": "Rate limit exceeded. Max 10 requests/minute."}), 429
     from virtual_clinicians import get_clinician_response
     data = request.json or {}
     clinician_id = data.get("clinician_id", "")
