@@ -16,7 +16,7 @@
 <script>if('serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
 }</script><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>SenGenoScope — Plateforme d'Oncogénomique et Oncopharmacogénomique Clinique</title>
+<title id='page-title'>SenGenoScope — Plateforme d'Oncogénomique et Oncopharmacogénomique Clinique</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
 :root{
@@ -589,7 +589,7 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
       <!-- Variants -->
       <div class="tp" id="tp-variants">
         <div class="card">
-          <div class="ch"><span class="ct2" data-fr="Distribution des types de variants (ClinVar)" data-en="Variant type distribution (ClinVar)">Distribution des types de variants (ClinVar)</span><select id="varGs" onchange="ldVt(this.value)"><option value="">— Sélectionner un gène —</option></select></div>
+          <div class="ch"><span class="ct2" data-fr="Distribution des types de variants (ClinVar)" data-en="Variant type distribution (ClinVar)">Distribution des types de variants (ClinVar)</span><select id="varGs" onchange="ldVt(this.value)"><option value="" data-fr="— Sélectionner un gène —" data-en="— Select a gene —">— Sélectionner un gène —</option></select></div>
           <div class="cw"><canvas id="varCv" width="420" height="260"></canvas><canvas id="pathoCv" width="260" height="260"></canvas></div>
           <div id="varLg" style="padding:0 12px 11px;font-size:12px;color:var(--mu)"></div>
         </div>
@@ -688,7 +688,7 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
     <div class="card">
       <div class="ch"><span class="ct2" data-fr="📈 Pénétrance &amp; Risques cumulatifs par âge" data-en="📈 Penetrance &amp; Cumulative risks by age">📈 Pénétrance & Risques cumulatifs par âge</span>
         <select id="penGene" onchange="loadPenetrance(this.value)">
-          <option value="">— Sélectionner un gène —</option>
+          <option value="" data-fr="— Sélectionner un gène —" data-en="— Select a gene —">— Sélectionner un gène —</option>
         </select>
       </div>
       <div style="padding:14px" id="penetranceContent"><div class="empty" data-fr="Sélectionnez un gène (BRCA1, BRCA2, MLH1, TP53) pour afficher les données de pénétrance." data-en="Select a gene (BRCA1, BRCA2, MLH1, TP53) to display penetrance data.">Sélectionnez un gène (BRCA1, BRCA2, MLH1, TP53) pour afficher les données de pénétrance.</div></div>
@@ -729,11 +729,11 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
 
     <!-- VEP -->
     <div id="tool-vep" class="card" style="display:none">
-      <div class="ch"><span class="ct2">🎯 Prédiction d'impact — Ensembl VEP · PolyPhen-2 · SIFT · CADD</span></div>
+      <div class="ch"><span class="ct2" data-fr="🎯 Prédiction d'impact — Ensembl VEP · PolyPhen-2 · SIFT · CADD" data-en="🎯 Impact prediction — Ensembl VEP · PolyPhen-2 · SIFT · CADD">🎯 Prédiction d'impact — Ensembl VEP · PolyPhen-2 · SIFT · CADD</span></div>
       <div style="padding:14px">
         <!-- Pre-fill from online DBs -->
         <div style="background:linear-gradient(135deg,#f0f9ff,#e0f2fe);border:1px solid #bae6fd;border-radius:8px;padding:11px 13px;margin-bottom:14px">
-          <div style="font-size:12px;font-weight:700;color:var(--pr);margin-bottom:7px">🔗 Pré-remplir depuis une base de données en ligne</div>
+          <div style="font-size:12px;font-weight:700;color:var(--pr);margin-bottom:7px" data-fr="🔗 Pré-remplir depuis une base de données en ligne" data-en="🔗 Pre-fill from an online database">🔗 Pré-remplir depuis une base de données en ligne</div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
             <button class="btn bsm" style="background:#fff;border:1px solid var(--bd);font-size:11px" onclick="prefillVEP('brca1_classic')">BRCA1 c.5266dupC</button>
             <button class="btn bsm" style="background:#fff;border:1px solid var(--bd);font-size:11px" onclick="prefillVEP('brca2_miss')">BRCA2 c.9976A>T</button>
@@ -774,7 +774,7 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
       <div id="ngsSelected" style="display:none">
         <!-- ClinVar auto-fill -->
         <div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #bbf7d0;border-radius:8px;padding:10px 12px;margin-bottom:10px">
-          <div style="font-size:12px;font-weight:700;color:#16a34a;margin-bottom:6px">🔍 Auto-remplir depuis ClinVar / littérature</div>
+          <div style="font-size:12px;font-weight:700;color:#16a34a;margin-bottom:6px" data-fr="🔍 Auto-remplir depuis ClinVar / littérature" data-en="🔍 Auto-fill from ClinVar / literature">🔍 Auto-remplir depuis ClinVar / littérature</div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:7px">
             <button class="btn bsm" style="background:#fff;border:1px solid var(--bd);font-size:11px" onclick="ngsQuick('BRCA1','frameshift_variant','c.5266dupC','p.Gln1756Profs*74','0.000001')">BRCA1 c.5266dupC</button>
             <button class="btn bsm" style="background:#fff;border:1px solid var(--bd);font-size:11px" onclick="ngsQuick('BRCA2','missense_variant','c.9976A>T','p.Lys3326*','0.0003')">BRCA2 c.9976A>T</button>
@@ -829,7 +829,7 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
   <div id="sec-risk" style="display:none">
     <div class="card"><div class="ch"><span class="ct2" data-fr="🎯 Calculateur de risque héréditaire — 5 syndromes majeurs" data-en="🎯 Hereditary risk calculator — 5 major syndromes">🎯 Calculateur de risque héréditaire — 5 syndromes majeurs</span>
       <select id="syndromeSelect" onchange="loadSyndrome(this.value)" style="font-size:13px">
-        <option value="">— Sélectionner un syndrome —</option>
+        <option value="" data-fr="— Sélectionner un syndrome —" data-en="— Select a syndrome —">— Sélectionner un syndrome —</option>
       </select>
     </div>
     <div style="padding:14px">
@@ -853,18 +853,18 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
       <div class="ch">
         <span class="ct2" data-fr="🤖 Chat IA Clinique — Dr. Moustapha Gassama" data-en="🤖 Clinical AI Chat — Dr. Moustapha Gassama">🤖 Chat IA Clinique — Dr. Moustapha Gassama</span>
         <div style="display:flex;gap:6px;align-items:center">
-          <span id="aiStatusBadge" style="font-size:11px;padding:3px 9px;border-radius:12px;background:var(--s2);color:var(--mu)">Vérification…</span>
+          <span id="aiStatusBadge" style="font-size:11px;padding:3px 9px;border-radius:12px;background:var(--s2);color:var(--mu)" data-fr="Vérification…" data-en="Checking…">Vérification…</span>
           <button class="btn bgh2 bsm" onclick="resetChat()">🗑️ Effacer</button>
         </div>
       </div>
       <div style="padding:14px">
         <div style="background:linear-gradient(135deg,rgba(34,211,238,.08),rgba(124,58,237,.08));border:1px solid rgba(34,211,238,.2);border-radius:7px;padding:9px 13px;margin-bottom:10px;font-size:12px;color:rgba(255,255,255,.7)" id="chatLiveInfo">
-          🔬 <b style="color:#22d3ee">Données en temps réel</b> — PubMed · ClinVar · gnomAD r4 · OMIM enrichissent chaque réponse automatiquement.
+          🔬 <b style="color:#22d3ee" data-fr="Données en temps réel" data-en="Real-time data">Données en temps réel</b> — PubMed · ClinVar · gnomAD r4 · OMIM enrichissent chaque réponse automatiquement.
         </div>
         <div id="chatMessages" style="min-height:200px;max-height:420px;overflow-y:auto;background:var(--s2);border-radius:8px;padding:12px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px">
           <div style="font-size:13px;color:var(--mu);text-align:center;padding:20px 0">
             🧬 Bienvenue ! Posez vos questions en oncogénomique et oncopharmacogénomique clinique.<br>
-            <span style="font-size:12px">Exemples : interprétation ACMG, variant BRCA1, thérapie ciblée EGFR…</span>
+            <span style="font-size:12px" data-fr="Exemples : interprétation ACMG, variant BRCA1, thérapie ciblée EGFR…" data-en="Examples: ACMG interpretation, BRCA1 variant, EGFR targeted therapy…">Exemples : interprétation ACMG, variant BRCA1, thérapie ciblée EGFR…</span>
           </div>
         </div>
         <div style="display:flex;gap:7px">
@@ -901,7 +901,7 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
           <div class="ol" data-fr="Question spécifique (optionnel)" data-en="Specific question (optional)">Question spécifique (optionnel)</div>
           <input class="inp" id="uploadQuestion" placeholder="Ex: Y a-t-il des variants pathogènes dans BRCA1 ou BRCA2 ?"/>
         </div>
-        <button class="btn bp3" onclick="analyzeFile()" id="analyzeFileBtn" disabled>🤖 Analyser avec Claude AI</button>
+        <button class="btn bp3" onclick="analyzeFile()" id="analyzeFileBtn" disabled data-fr="🤖 Analyser avec Claude AI" data-en="🤖 Analyze with Claude AI">🤖 Analyser avec Claude AI</button>
         <div id="uploadResult" style="margin-top:14px"></div>
       </div>
     </div>
@@ -930,7 +930,7 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
           </div>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px">
-          <span style="font-size:11px;color:var(--mu);align-self:center">Accès rapide :</span>
+          <span style="font-size:11px;color:var(--mu);align-self:center" data-fr="Accès rapide :" data-en="Quick access:">Accès rapide :</span>
           <button class="qb" onclick="pharmaQuick('EGFR','L858R','erlotinib')">EGFR L858R</button>
           <button class="qb" onclick="pharmaQuick('BRCA1','','olaparib')">BRCA1 / PARP-i</button>
           <button class="qb" onclick="pharmaQuick('DPYD','','fluorouracil')">DPYD / 5-FU</button>
@@ -944,7 +944,7 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
           <button class="qb" onclick="pharmaQuick('RET','','selpercatinib')">RET / Selpercatinib</button>
           <button class="qb" onclick="pharmaQuick('NTRK1','','larotrectinib')">NTRK / Larotrectinib</button>
         </div>
-        <button class="btn bp3" onclick="runPharmaAnalysis()" id="pharmaBtn">💊 Analyser avec Claude AI</button>
+        <button class="btn bp3" onclick="runPharmaAnalysis()" id="pharmaBtn" data-fr="💊 Analyser avec Claude AI" data-en="💊 Analyze with Claude AI">💊 Analyser avec Claude AI</button>
         <div id="pharmaResult" style="margin-top:14px"></div>
       </div>
     </div>
@@ -955,7 +955,7 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
   <div id="sec-clinicians" style="display:none;overflow:hidden">
     <div class="card" style="margin-bottom:12px">
       <div class="ch">
-        <span class="ct2">🩺 Cliniciens Virtuels en Oncologie — Basés sur les bases de données internationales</span>
+        <span class="ct2" data-fr="🩺 Cliniciens Virtuels en Oncologie — Basés sur les bases de données internationales" data-en="🩺 Virtual Clinicians in Oncology — Based on international databases">🩺 Cliniciens Virtuels en Oncologie — Basés sur les bases de données internationales</span>
       </div>
       <div style="padding:12px 14px;font-size:13px;color:var(--mu);background:var(--s2);border-bottom:1px solid var(--bd);line-height:1.7">
         Chaque clinicien consulte en temps réel : <b>PubMed</b> · <b>ClinVar</b> · <b>gnomAD</b> · <b>OMIM</b> · <b>DGIdb</b> · <b>ClinicalTrials.gov</b> · guidelines <b>NCCN/ESMO/HAS</b> avant de répondre.<br>
@@ -987,9 +987,9 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
               style="width:100%;border:none;outline:none;resize:vertical;font-size:14px;font-family:inherit;background:transparent;color:var(--tx);line-height:1.6"></textarea>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;flex-wrap:wrap;gap:7px">
               <div style="display:flex;gap:6px;flex-wrap:wrap">
-                <button class="btn bgh2 bsm" onclick="fillClinicianExample(0)">BRCA1 pathogène</button>
+                <button class="btn bgh2 bsm" onclick="fillClinicianExample(0)" data-fr="BRCA1 pathogène" data-en="BRCA1 pathogenic">BRCA1 pathogène</button>
                 <button class="btn bgh2 bsm" onclick="fillClinicianExample(1)">Lynch MSI-H</button>
-                <button class="btn bgh2 bsm" onclick="fillClinicianExample(2)">EGFR muté CBNPC</button>
+                <button class="btn bgh2 bsm" onclick="fillClinicianExample(2)" data-fr="EGFR muté CBNPC" data-en="EGFR mutated NSCLC">EGFR muté CBNPC</button>
                 <button class="btn bgh2 bsm" onclick="resetClinicianChat()">🔄 Nouvelle consultation</button>
               </div>
               <button class="btn bp3" onclick="sendClinicianMessage()" id="clinicianSendBtn">
@@ -1000,7 +1000,7 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
 
           <!-- Sources consultées (affichées après réponse) -->
           <div id="clinicianSources" style="display:none;margin-top:10px;background:var(--s2);border-radius:7px;padding:10px 13px;font-size:12px;color:var(--mu);border:1px solid var(--bd)">
-            <b style="color:var(--tx)">📚 Sources consultées pour cette réponse :</b>
+            <b style="color:var(--tx)" data-fr="📚 Sources consultées pour cette réponse :" data-en="📚 Sources consulted for this response:">📚 Sources consultées pour cette réponse :</b>
             <div id="clinicianSourcesList" style="margin-top:5px;line-height:1.8"></div>
           </div>
         </div>
@@ -1126,7 +1126,7 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
       <div class="abav">🧬</div>
       <div class="abnm" data-fr="SenGenoScope" data-en="SenGenoScope">SenGenoScope</div>
       <div class="abtt" data-fr="Plateforme d'Oncogénomique et Oncopharmacogénomique Clinique" data-en="Clinical Oncogenomics and Oncopharmacogenomics Platform">Plateforme d'Oncogénomique et Oncopharmacogénomique Clinique</div>
-      <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,.8);margin-top:10px">Dr. Moustapha Gassama — Oncogénéticien médical · Public Health Data Scientist</div>
+      <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,.8);margin-top:10px" data-fr="Dr. Moustapha Gassama — Oncogénéticien médical · Public Health Data Scientist" data-en="Dr. Moustapha Gassama — Medical Oncogeneticist · Public Health Data Scientist">Dr. Moustapha Gassama — Oncogénéticien médical · Public Health Data Scientist</div>
       <div style="font-size:13px;color:rgba(255,255,255,.65);margin-top:16px;line-height:1.9;text-align:justify;border-top:1px solid rgba(255,255,255,.1);padding-top:14px;hyphens:auto;word-spacing:0.05em">
         SenGenoScope est une plateforme bioinformatique clinique dédiée à l'oncogénomique et à l'oncopharmacogénomique, avec un focus particulier sur les populations africaines et sénégalaises. Elle permet aux cliniciens et chercheurs d'analyser des variants génétiques selon les critères ACMG/AMP 2015, d'interroger simultanément les grandes bases de données internationales (PubMed, ClinVar, gnomAD v4, OMIM, COSMIC, ClinicalTrials.gov), d'évaluer les risques héréditaires de cancer, de calculer des scores polygéniques (PRS), d'interpréter des rapports NGS en langage clinique, et d'analyser les implications pharmacogénomiques des variants pour guider les décisions thérapeutiques. Le module de corrélation morphologie–génétique permet l'analyse d'images histologiques par IA pour les cancers du sein, de la prostate et les tumeurs pédiatriques. L'intégration de l'intelligence artificielle Claude permet une synthèse automatisée de la littérature scientifique et la génération de rapports cliniques structurés. Développé par le Dr. Moustapha Gassama en collaboration avec le Pr. Dial Ndiaye (UCAD, Dakar).
       </div>
@@ -1136,30 +1136,30 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
         <div class="rmit rmd">✅ Recherche PubMed sans limite d'articles</div>
         <div class="rmit rmd">✅ VEP Ensembl API (PolyPhen/SIFT/CADD)</div>
         <div class="rmit rmd">✅ Classificateur ACMG 2015 complet</div>
-        <div class="rmit rmd">✅ Score polygénique PRS (5 cancers)</div>
+        <div class="rmit rmd" data-fr="✅ Score polygénique PRS (5 cancers)" data-en="✅ Polygenic Risk Score PRS (5 cancers)">✅ Score polygénique PRS (5 cancers)</div>
         <div class="rmit rmd">✅ Mutations fondatrices (6 populations)</div>
-        <div class="rmit rmd">✅ Pénétrance par âge (BRCA/Lynch/TP53)</div>
-        <div class="rmit rmd">✅ Interpréteur NGS en langage clinique</div>
+        <div class="rmit rmd" data-fr="✅ Pénétrance par âge (BRCA/Lynch/TP53)" data-en="✅ Penetrance by age (BRCA/Lynch/TP53)">✅ Pénétrance par âge (BRCA/Lynch/TP53)</div>
+        <div class="rmit rmd" data-fr="✅ Interpréteur NGS en langage clinique" data-en="✅ NGS Interpreter in clinical language">✅ Interpréteur NGS en langage clinique</div>
         <div class="rmit rmd">✅ Comparaison guidelines ACMG/ENIGMA/NCCN</div>
         <div class="rmit rmd">✅ gnomAD r4 + DGIdb + ClinicalTrials.gov</div>
         <div class="rmit rmd">✅ Export CSV + PDF enrichi</div>
       </div>
-      <div class="rmc"><div class="rmph rmp2">🤖 IA Clinique</div><div class="rmti">Claude AI intégré</div>
-        <div class="rmit rmd">✅ Chat IA oncogénomique spécialisé</div>
+      <div class="rmc"><div class="rmph rmp2">🤖 IA Clinique</div><div class="rmti" data-fr="Claude AI intégré" data-en="Integrated Claude AI">Claude AI intégré</div>
+        <div class="rmit rmd" data-fr="✅ Chat IA oncogénomique spécialisé" data-en="✅ Specialized oncogenomics AI chat">✅ Chat IA oncogénomique spécialisé</div>
         <div class="rmit rmd">✅ Analyse fichiers VCF/CSV/FASTA par IA</div>
-        <div class="rmit rmd">✅ Pharmacogénomique IA (CPIC/DPWG/FDA)</div>
-        <div class="rmit rmd">✅ Rapport ACMG structuré par IA</div>
-        <div class="rmit rmd">✅ Synthèse PubMed intelligente</div>
-        <div class="rmit rmd">✅ Thérapies ciblées par gène/variant</div>
+        <div class="rmit rmd" data-fr="✅ Pharmacogénomique IA (CPIC/DPWG/FDA)" data-en="✅ AI Pharmacogenomics (CPIC/DPWG/FDA)">✅ Pharmacogénomique IA (CPIC/DPWG/FDA)</div>
+        <div class="rmit rmd" data-fr="✅ Rapport ACMG structuré par IA" data-en="✅ AI-structured ACMG report">✅ Rapport ACMG structuré par IA</div>
+        <div class="rmit rmd" data-fr="✅ Synthèse PubMed intelligente" data-en="✅ Intelligent PubMed synthesis">✅ Synthèse PubMed intelligente</div>
+        <div class="rmit rmd" data-fr="✅ Thérapies ciblées par gène/variant" data-en="✅ Targeted therapies by gene/variant">✅ Thérapies ciblées par gène/variant</div>
         <div class="rmit rms">🔜 Batch annotation VCF</div>
-        <div class="rmit rms">🔜 Dossiers patients sécurisés</div>
+        <div class="rmit rms" data-fr="🔜 Dossiers patients sécurisés" data-en="🔜 Secure patient records">🔜 Dossiers patients sécurisés</div>
       </div>
-      <div class="rmc"><div class="rmph rmp3">🚀 Phase 3</div><div class="rmti">IA & Interopérabilité</div>
+      <div class="rmc"><div class="rmph rmp3">🚀 Phase 3</div><div class="rmti" data-fr="IA & Interopérabilité" data-en="AI & Interoperability">IA & Interopérabilité</div>
         <div class="rmit rmf">🚀 Classification ACMG auto par IA</div>
-        <div class="rmit rmf">🚀 Prédiction VUS → Pathogène (ML)</div>
-        <div class="rmit rmf">🚀 Analyses de cohortes africaines</div>
-        <div class="rmit rmf">🚀 API FHIR pour DMP/EHR</div>
-        <div class="rmit rmf">🚀 GWAS Catalog PRS temps réel</div>
+        <div class="rmit rmf" data-fr="🚀 Prédiction VUS → Pathogène (ML)" data-en="🚀 VUS → Pathogenic prediction (ML)">🚀 Prédiction VUS → Pathogène (ML)</div>
+        <div class="rmit rmf" data-fr="🚀 Analyses de cohortes africaines" data-en="🚀 African cohort analyses">🚀 Analyses de cohortes africaines</div>
+        <div class="rmit rmf" data-fr="🚀 API FHIR pour DMP/EHR" data-en="🚀 FHIR API for EHR/DMP">🚀 API FHIR pour DMP/EHR</div>
+        <div class="rmit rmf" data-fr="🚀 GWAS Catalog PRS temps réel" data-en="🚀 Real-time GWAS Catalog PRS">🚀 GWAS Catalog PRS temps réel</div>
       </div>
     </div>
   </div>
@@ -2340,6 +2340,14 @@ function aiFetch(url, opts={}) {
 
 // ══ INIT ══════════════════════════════════════════════════════════════════
 setLang(lang);
+// Init boutons topbar selon langue sauvegardée
+(function(){
+  const l = localStorage.getItem('sgs_lang') || 'fr';
+  const tbFr = document.getElementById('topbar-btn-fr');
+  const tbEn = document.getElementById('topbar-btn-en');
+  if(tbFr){ tbFr.style.background = l==='fr' ? 'var(--pr)' : 'var(--s2)'; tbFr.style.color = l==='fr' ? '#fff' : 'var(--mu)'; }
+  if(tbEn){ tbEn.style.background = l==='en' ? 'var(--pr)' : 'var(--s2)'; tbEn.style.color = l==='en' ? '#fff' : 'var(--mu)'; }
+})();
 renderHist();
 updateApiKeyBtn();
 (async()=>{
@@ -2855,7 +2863,7 @@ EXAMENS COMPLÉMENTAIRES
 ${r.examens_complementaires}
 
 ${'='.repeat(55)}
-Usage clinique confidentiel · SenGenoScope
+<span data-fr="Usage clinique confidentiel · SenGenoScope" data-en="Confidential clinical use · SenGenoScope">Usage clinique confidentiel · SenGenoScope</span>
 Dr. Moustapha Gassama`;
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([txt],{type:'text/plain'}));
