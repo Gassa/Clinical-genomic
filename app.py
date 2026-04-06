@@ -790,3 +790,71 @@ def test_route():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
+
+@app.route('/morpho_analyze', methods=['POST'])
+def morpho_analyze():
+    """Route backend pour analyse morpho-génétique via Claude AI."""
+    import base64 as b64
+    data = request.get_json() or {}
+    cancer_type = data.get('cancer_type', 'sein')
+    sample = data.get('sample', 'Biopsie core-needle')
+    stain = data.get('stain', 'HE')
+    context = data.get('context', '')
+    image_b64 = data.get('image_b64', '')
+    image_type = data.get('image_type', 'image/jpeg')
+
+    LABELS = {
+        'sein': 'Cancer du sein',
+        'prostate': 'Cancer de la prostate',
+        'pediatrique': 'Cancers pédiatriques'
+    }
+    label = LABELS.get(cancer_type, cancer_type)
+
+    prompt = f"""Tu es un expert en anatomopathologie oncologique spécialisé dans les populations africaines subsahariennes.
+
+Cancer analysé: {label}
+Prélèvement: {sample} | Coloration: {stain}
+{f'Contexte clinique: {context}' if context else ''}
+{f'Une image histologique est jointe.' if image_b64 else 'Génère une analyse typique pour ce cancer dans les populations africaines.'}
+
+Réponds UNIQUEMENT en JSON valide (sans balises markdown) :
+{{
+  "type_tumoral": "...",
+  "grade": "...",
+  "stade_probable": "...",
+  "recepteurs": "...",
+  "morpho_description": "Description morphologique détaillée (3-4 phrases)",
+  "mutations_probables": ["GENE1", "GENE2"],
+  "niveau_confiance": "Élevé|Modéré|Faible",
+  "guidelines": "...",
+  "contexte_africain": "Spécificités épidémiologiques et génétiques populations africaines (2-3 phrases)",
+  "examens_complementaires": "..."
+}}"""
+
+    if not CLAUDE_AVAILABLE:
+        return jsonify({'error': 'Claude AI non configuré — clé API manquante'})
+
+    try:
+        import anthropic
+        client = anthropic.Anthropic(api_key=os.environ.get('ANTHROPIC_API_KEY',''))
+
+        content = []
+        if image_b64:
+            content.append({
+                'type': 'image',
+                'source': {'type': 'base64', 'media_type': image_type, 'data': image_b64}
+            })
+        content.append({'type': 'text', 'text': prompt})
+
+        resp = client.messages.create(
+            model='claude-sonnet-4-20250514',
+            max_tokens=1000,
+            messages=[{'role': 'user', 'content': content}]
+        )
+        text = resp.content[0].text.strip().replace('```json','').replace('```','').strip()
+        import json as _json
+        parsed = _json.loads(text)
+        return jsonify(parsed)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
