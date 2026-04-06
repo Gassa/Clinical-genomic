@@ -1,8 +1,3 @@
-
-@app.route("/")
-def index():
-    return render_template("landing.html")
-
 """
 app.py — SenGenoScope v1.0
 Flask backend complet — sans clé API Claude requise
@@ -70,6 +65,10 @@ def service_worker():
 
 @app.route("/landing")
 def landing():
+    return render_template("landing.html")
+
+@app.route("/")
+def landing_page():
     return render_template("landing.html")
 
 @app.route("/app")
