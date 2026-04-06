@@ -77,18 +77,24 @@ def init_db():
 
 def log_login(user_id, name, email, ip):
     """Enregistre chaque connexion dans login_logs et met à jour last_login."""
-    import logging
     logging.info(f"[LOGIN] {name} <{email}> depuis {ip}")
     try:
-        conn = sqlite3.connect(DB_PATH)
-        conn.execute(
-            "INSERT INTO login_logs (user_id, name, email, ip) VALUES (?,?,?,?)",
-            (user_id, name, email, ip)
-        )
-        conn.execute(
-            "UPDATE users SET last_login=CURRENT_TIMESTAMP WHERE id=?",
-            (user_id,)
-        )
+        conn, db_type = get_conn()
+        if db_type == "pg":
+            cur = conn.cursor()
+            cur.execute(
+                "INSERT INTO login_logs (user_id, name, email, ip) VALUES (%s,%s,%s,%s)",
+                (user_id, name, email, ip)
+            )
+            cur.execute("UPDATE users SET last_login=NOW() WHERE id=%s", (user_id,))
+        else:
+            conn.execute(
+                "INSERT INTO login_logs (user_id, name, email, ip) VALUES (?,?,?,?)",
+                (user_id, name, email, ip)
+            )
+            conn.execute(
+                "UPDATE users SET last_login=CURRENT_TIMESTAMP WHERE id=?", (user_id,)
+            )
         conn.commit()
         conn.close()
     except Exception as e:
@@ -99,27 +105,46 @@ def hash_password(pwd):
 
 def create_user(name, institution, email, password):
     try:
-        conn = sqlite3.connect(DB_PATH)
-        conn.execute(
-            "INSERT INTO users (name, institution, email, password_hash) VALUES (?,?,?,?)",
-            (name, institution, email, hash_password(password))
-        )
+        conn, db_type = get_conn()
+        ph = hash_password(password)
+        if db_type == "pg":
+            cur = conn.cursor()
+            cur.execute(
+                "INSERT INTO users (name, institution, email, password_hash) VALUES (%s,%s,%s,%s)",
+                (name, institution, email, ph)
+            )
+        else:
+            conn.execute(
+                "INSERT INTO users (name, institution, email, password_hash) VALUES (?,?,?,?)",
+                (name, institution, email, ph)
+            )
         conn.commit()
         conn.close()
+        logging.info(f"[REGISTER] Nouvel utilisateur: {name} <{email}>")
         return True, None
-    except sqlite3.IntegrityError:
-        return False, "This email is already registered."
     except Exception as e:
-        return False, str(e)
+        err = str(e)
+        if "unique" in err.lower() or "duplicate" in err.lower():
+            return False, "This email is already registered."
+        return False, err
 
 def verify_user(email, password):
-    conn = sqlite3.connect(DB_PATH)
-    row = conn.execute(
-        "SELECT id, name, institution FROM users WHERE email=? AND password_hash=?",
-        (email, hash_password(password))
-    ).fetchone()
+    conn, db_type = get_conn()
+    ph = hash_password(password)
+    if db_type == "pg":
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT id, name, institution FROM users WHERE email=%s AND password_hash=%s",
+            (email, ph)
+        )
+        row = cur.fetchone()
+    else:
+        row = conn.execute(
+            "SELECT id, name, institution FROM users WHERE email=? AND password_hash=?",
+            (email, ph)
+        ).fetchone()
     conn.close()
-    return row  # (id, name, institution) ou None
+    return row
 
 init_db()
 app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10 MB max
@@ -985,34 +1010,39 @@ def admin_logout():
 def admin_dashboard():
     import sqlite3 as _sq
     from datetime import datetime, timedelta
-    conn = _sq.connect(DB_PATH)
-    conn.row_factory = _sq.Row
-
-    users = conn.execute(
-        "SELECT id, name, institution, email, created_at, last_login FROM users ORDER BY created_at DESC"
-    ).fetchall()
-
-    today = datetime.now().strftime("%Y-%m-%d")
-    week_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+    conn, db_type = get_conn()
+    if db_type == "pg":
+        import psycopg2.extras
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute("SELECT id, name, institution, email, created_at, last_login FROM users ORDER BY created_at DESC")
+        users = cur.fetchall()
+        cur.execute("SELECT COUNT(*) as c FROM users WHERE DATE(created_at)=CURRENT_DATE")
+        new_today = cur.fetchone()["c"]
+        cur.execute("SELECT COUNT(*) as c FROM login_logs WHERE DATE(login_at)=CURRENT_DATE")
+        logins_today = cur.fetchone()["c"]
+        cur.execute("SELECT COUNT(*) as c FROM login_logs WHERE login_at >= NOW() - INTERVAL '7 days'")
+        logins_week = cur.fetchone()["c"]
+        cur.execute("SELECT name, email, ip, login_at FROM login_logs ORDER BY login_at DESC LIMIT 50")
+        logs = cur.fetchall()
+    else:
+        import sqlite3 as _sq2
+        conn2 = _sq2.connect(DB_PATH)
+        conn2.row_factory = _sq2.Row
+        users = conn2.execute("SELECT id, name, institution, email, created_at, last_login FROM users ORDER BY created_at DESC").fetchall()
+        today = datetime.now().strftime("%Y-%m-%d")
+        week_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+        new_today = conn2.execute("SELECT COUNT(*) FROM users WHERE DATE(created_at)=?", (today,)).fetchone()[0]
+        logins_today = conn2.execute("SELECT COUNT(*) FROM login_logs WHERE DATE(login_at)=?", (today,)).fetchone()[0]
+        logins_week = conn2.execute("SELECT COUNT(*) FROM login_logs WHERE DATE(login_at)>=?", (week_ago,)).fetchone()[0]
+        logs = conn2.execute("SELECT name, email, ip, login_at FROM login_logs ORDER BY login_at DESC LIMIT 50").fetchall()
+        conn2.close()
 
     stats = {
         "total_users": len(users),
-        "new_today": conn.execute(
-            "SELECT COUNT(*) FROM users WHERE DATE(created_at)=?", (today,)
-        ).fetchone()[0],
-        "logins_today": conn.execute(
-            "SELECT COUNT(*) FROM login_logs WHERE DATE(login_at)=?", (today,)
-        ).fetchone()[0],
-        "logins_week": conn.execute(
-            "SELECT COUNT(*) FROM login_logs WHERE DATE(login_at)>=?", (week_ago,)
-        ).fetchone()[0],
+        "new_today": new_today,
+        "logins_today": logins_today,
+        "logins_week": logins_week,
     }
-
-    logs = conn.execute(
-        "SELECT name, email, ip, login_at FROM login_logs ORDER BY login_at DESC LIMIT 50"
-    ).fetchall()
-
-    conn.close()
     return render_template("admin.html", users=users, stats=stats, logs=logs)
 
 @app.route('/morpho_analyze', methods=['POST'])
