@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<meta name="google" content="notranslate">
+<title>SenGenoScope — Admin</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f0f4f8;color:#1a2332;min-height:100vh}
+.topbar{background:#0c6e9c;color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
+.topbar h1{font-size:16px;font-weight:700}
+.topbar a{color:rgba(255,255,255,.8);text-decoration:none;font-size:13px}
+.container{max-width:1100px;margin:0 auto;padding:24px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:28px}
+.stat{background:#fff;border-radius:12px;padding:20px 24px;border:1px solid #e2e8f0}
+.stat-value{font-size:32px;font-weight:800;color:#0c6e9c}
+.stat-label{font-size:13px;color:#6b7a8d;margin-top:4px}
+.section{background:#fff;border-radius:12px;padding:20px 24px;margin-bottom:20px;border:1px solid #e2e8f0}
+.section h2{font-size:15px;font-weight:700;margin-bottom:16px;color:#1a2332}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:8px 12px;background:#f8fafc;color:#6b7a8d;font-weight:600;border-bottom:1px solid #e2e8f0}
+td{padding:9px 12px;border-bottom:1px solid #f0f4f8;color:#1a2332}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#f8fafc}
+.badge{display:inline-block;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:600}
+.badge-new{background:#dcfce7;color:#15803d}
+.badge-active{background:#dbeafe;color:#1d4ed8}
+.logout{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);color:#fff;padding:6px 14px;border-radius:7px;text-decoration:none;font-size:13px;font-weight:600}
+.logout:hover{background:rgba(255,255,255,.3)}
+.refresh{background:#0c6e9c;color:#fff;border:none;padding:7px 14px;border-radius:7px;font-size:13px;cursor:pointer;font-weight:600}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h1>🧬 SenGenoScope — Admin Dashboard</h1>
+  <div style="display:flex;gap:12px;align-items:center">
+    <span style="font-size:13px;opacity:.8">Dr. Moustapha Gassama</span>
+    <a href="/admin/logout" class="logout">Sign out</a>
+  </div>
+</div>
+
+<div class="container">
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-value">{{ stats.total_users }}</div>
+      <div class="stat-label">Total users</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">{{ stats.new_today }}</div>
+      <div class="stat-label">New today</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">{{ stats.logins_today }}</div>
+      <div class="stat-label">Logins today</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">{{ stats.logins_week }}</div>
+      <div class="stat-label">Logins this week</div>
+    </div>
+  </div>
+
+  <!-- Users table -->
+  <div class="section">
+    <h2>👥 Registered users ({{ users|length }})</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Name</th>
+          <th>Institution</th>
+          <th>Email</th>
+          <th>Registered</th>
+          <th>Last login</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td>{{ u.id }}</td>
+          <td><strong>{{ u.name }}</strong></td>
+          <td style="color:#6b7a8d">{{ u.institution or '—' }}</td>
+          <td style="color:#0c6e9c">{{ u.email }}</td>
+          <td>{{ u.created_at[:10] }}</td>
+          <td>{{ u.last_login or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Login logs -->
+  <div class="section">
+    <h2>📋 Recent connections (last 50)</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Date & time</th>
+          <th>Name</th>
+          <th>Email</th>
+          <th>IP address</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td style="color:#6b7a8d;font-family:monospace">{{ log.login_at }}</td>
+          <td><strong>{{ log.name }}</strong></td>
+          <td style="color:#0c6e9c">{{ log.email }}</td>
+          <td style="font-family:monospace;color:#9aa3af">{{ log.ip or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+</body>
+</html>

@@ -60,10 +60,39 @@ def init_db():
         institution TEXT DEFAULT '',
         email TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        last_login TIMESTAMP
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS login_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        name TEXT,
+        email TEXT,
+        ip TEXT,
+        login_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""")
     conn.commit()
     conn.close()
+
+
+def log_login(user_id, name, email, ip):
+    """Enregistre chaque connexion dans login_logs et met à jour last_login."""
+    import logging
+    logging.info(f"[LOGIN] {name} <{email}> depuis {ip}")
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute(
+            "INSERT INTO login_logs (user_id, name, email, ip) VALUES (?,?,?,?)",
+            (user_id, name, email, ip)
+        )
+        conn.execute(
+            "UPDATE users SET last_login=CURRENT_TIMESTAMP WHERE id=?",
+            (user_id,)
+        )
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        logging.error(f"[LOGIN LOG ERROR] {e}")
 
 def hash_password(pwd):
     return hashlib.sha256(pwd.encode()).hexdigest()
@@ -160,6 +189,8 @@ def login_page():
                 session["user_name"] = user[1]
                 session["user_institution"] = user[2]
                 session.permanent = True
+                ip = request.headers.get("X-Forwarded-For", request.remote_addr or "unknown")
+                log_login(user[0], user[1], email, ip)
                 return redirect(url_for("app_main"))
             else:
                 error = "❌ Incorrect email or password."
@@ -920,6 +951,69 @@ def users_count():
         return jsonify({"count": count})
     except:
         return jsonify({"count": 0})
+
+
+# ── Admin Dashboard ──────────────────────────────────────────────────────────
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin-sgs-2026")
+
+def admin_required(f):
+    from functools import wraps
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get("admin_authenticated"):
+            return redirect("/admin/login")
+        return f(*args, **kwargs)
+    return decorated
+
+@app.route("/admin/login", methods=["GET", "POST"])
+def admin_login():
+    error = None
+    if request.method == "POST":
+        if request.form.get("password") == ADMIN_PASSWORD:
+            session["admin_authenticated"] = True
+            return redirect("/admin")
+        error = "Incorrect admin password."
+    return render_template("admin_login.html", error=error)
+
+@app.route("/admin/logout")
+def admin_logout():
+    session.pop("admin_authenticated", None)
+    return redirect("/admin/login")
+
+@app.route("/admin")
+@admin_required
+def admin_dashboard():
+    import sqlite3 as _sq
+    from datetime import datetime, timedelta
+    conn = _sq.connect(DB_PATH)
+    conn.row_factory = _sq.Row
+
+    users = conn.execute(
+        "SELECT id, name, institution, email, created_at, last_login FROM users ORDER BY created_at DESC"
+    ).fetchall()
+
+    today = datetime.now().strftime("%Y-%m-%d")
+    week_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+
+    stats = {
+        "total_users": len(users),
+        "new_today": conn.execute(
+            "SELECT COUNT(*) FROM users WHERE DATE(created_at)=?", (today,)
+        ).fetchone()[0],
+        "logins_today": conn.execute(
+            "SELECT COUNT(*) FROM login_logs WHERE DATE(login_at)=?", (today,)
+        ).fetchone()[0],
+        "logins_week": conn.execute(
+            "SELECT COUNT(*) FROM login_logs WHERE DATE(login_at)>=?", (week_ago,)
+        ).fetchone()[0],
+    }
+
+    logs = conn.execute(
+        "SELECT name, email, ip, login_at FROM login_logs ORDER BY login_at DESC LIMIT 50"
+    ).fetchall()
+
+    conn.close()
+    return render_template("admin.html", users=users, stats=stats, logs=logs)
 
 @app.route('/morpho_analyze', methods=['POST'])
 def morpho_analyze():

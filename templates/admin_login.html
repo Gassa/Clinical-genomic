@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Admin — SenGenoScope</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,sans-serif;background:#0c6e9c;min-height:100vh;display:flex;align-items:center;justify-content:center}
+.card{background:#fff;border-radius:16px;padding:40px;width:100%;max-width:360px;box-shadow:0 20px 50px rgba(0,0,0,.2)}
+h1{font-size:20px;font-weight:700;margin-bottom:6px;text-align:center}
+.sub{font-size:13px;color:#6b7a8d;text-align:center;margin-bottom:24px}
+label{font-size:13px;font-weight:600;color:#1a2332;display:block;margin-bottom:5px}
+input{width:100%;padding:11px 14px;border:1.5px solid #dde3ea;border-radius:9px;font-size:14px;font-family:inherit;outline:none;margin-bottom:14px}
+input:focus{border-color:#0c6e9c}
+.btn{width:100%;padding:12px;background:#0c6e9c;color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+.error{background:#fee2e2;color:#b91c1c;border-radius:8px;padding:9px 13px;font-size:13px;margin-bottom:14px}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>🔐 Admin Access</h1>
+  <p class="sub">SenGenoScope — Dr. Moustapha Gassama</p>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <form method="POST">
+    <label>Admin password</label>
+    <input type="password" name="password" autofocus placeholder="Admin password"/>
+    <button type="submit" class="btn">Access dashboard</button>
+  </form>
+</div>
+</body>
+</html>
