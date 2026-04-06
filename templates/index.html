@@ -572,6 +572,9 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
       <span class="bg2 bv" data-fr="🧪 18 modules" data-en="🧪 18 modules">🧪 18 modules</span>
       <button class="btn bpu2 bsm" id="pdfBtn" onclick="expPDF()" style="display:none" data-fr="📄 PDF" data-en="📄 PDF">📄 PDF</button>
       <button class="btn bt2 bsm" id="csvBtn" onclick="expCSV()" style="display:none" data-fr="📊 CSV" data-en="📊 CSV">📊 CSV</button>
+      <button id="themeToggleBtn" onclick="toggleTheme()"
+        style="padding:4px 9px;border-radius:6px;border:1px solid var(--bd);background:var(--s2);color:var(--tx);font-size:13px;cursor:pointer"
+        title="Dark/Light mode">🌙</button>
       <button class="btn bsm" id="apiKeyBtn" onclick="openApiSettings()" style="background:rgba(124,58,237,.15);color:#a78bfa;border:1px solid rgba(124,58,237,.3);font-size:11px" title="Configurer votre clé API Claude">⚙️ <span data-fr="Clé API" data-en="API Key">Clé API</span></button>
       
     </div>
