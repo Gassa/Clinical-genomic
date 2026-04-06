@@ -2411,7 +2411,7 @@ function appendClinicianMsg(role, content) {
   div.style.cssText = `margin-bottom:16px;display:flex;gap:10px;${isUser ? 'flex-direction:row-reverse' : ''}`;
   div.innerHTML = `
     <div style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;background:${isUser ? 'var(--pr)' : 'var(--s2)'}">
-      ${isUser ? '👤' : (activeClinician ? activeClinician.avatar : '🩺')}
+      ${isUser ? '👤' : (activeClinician ? activeClinician.icon : '🩺')}
     </div>
     <div style="max-width:80%;background:${isUser ? 'var(--pr)' : 'var(--sf)'};color:${isUser ? '#fff' : 'var(--tx)'};padding:12px 16px;border-radius:${isUser ? '16px 4px 16px 16px' : '4px 16px 16px 16px'};font-size:14px;line-height:1.6;border:1px solid ${isUser ? 'transparent' : 'var(--bd)'};white-space:pre-wrap">${content}</div>
   `;
