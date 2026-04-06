@@ -58,8 +58,18 @@ USE_POSTGRES = bool(DATABASE_URL)
 def get_conn():
     if USE_POSTGRES:
         import psycopg2
-        conn = psycopg2.connect(DATABASE_URL, sslmode="require")
-        return conn, "pg"
+        try:
+            conn = psycopg2.connect(
+                DATABASE_URL,
+                sslmode="require",
+                connect_timeout=10
+            )
+            return conn, "pg"
+        except Exception as e:
+            logging.error(f"[DB] PostgreSQL indisponible: {e} — fallback SQLite")
+            conn = sqlite3.connect(DB_PATH)
+            conn.row_factory = sqlite3.Row
+            return conn, "sqlite"
     else:
         conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row
