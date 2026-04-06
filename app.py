@@ -249,7 +249,6 @@ def landing_page():
     return render_template("landing.html")
 
 @app.route("/app")
-@login_required
 def app_main():
     return render_template("index.html")
 
