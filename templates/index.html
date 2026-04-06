@@ -457,10 +457,14 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
     <div class="tr2">
       <span class="bg2 bc" data-fr="⚕ Usage Clinique" data-en="⚕ Clinical Use">⚕ Usage Clinique</span>
       <span class="bg2 bp2">✅ v1.0</span>
-      <span class="bg2 bv" data-fr="🧪 15 modules" data-en="🧪 15 modules">🧪 15 modules</span>
+      <span class="bg2 bv" data-fr="🧪 16 modules" data-en="🧪 16 modules">🧪 16 modules</span>
       <button class="btn bpu2 bsm" id="pdfBtn" onclick="expPDF()" style="display:none" data-fr="📄 PDF" data-en="📄 PDF">📄 PDF</button>
       <button class="btn bt2 bsm" id="csvBtn" onclick="expCSV()" style="display:none" data-fr="📊 CSV" data-en="📊 CSV">📊 CSV</button>
       <button class="btn bsm" id="apiKeyBtn" onclick="openApiSettings()" style="background:rgba(124,58,237,.15);color:#a78bfa;border:1px solid rgba(124,58,237,.3);font-size:11px" title="Configurer votre clé API Claude">⚙️ <span data-fr="Clé API" data-en="API Key">Clé API</span></button>
+      <div style="display:flex;gap:4px;margin-left:6px;border-left:1px solid var(--bd);padding-left:8px">
+        <button id="topbar-btn-fr" onclick="setLang('fr')" style="padding:4px 9px;border-radius:6px;border:1px solid var(--bd);background:var(--pr);color:#fff;font-size:11px;font-weight:700;cursor:pointer">🇫🇷 FR</button>
+        <button id="topbar-btn-en" onclick="setLang('en')" style="padding:4px 9px;border-radius:6px;border:1px solid var(--bd);background:var(--s2);color:var(--mu);font-size:11px;font-weight:700;cursor:pointer">🇬🇧 EN</button>
+      </div>
     </div>
   </div>
 
@@ -1015,19 +1019,19 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
   <!-- ══ MORPHO-GÉNÉTIQUE IA ══════════════════════════════════════════════ -->
   <div id="sec-morpho" style="display:none">
     <div style="padding:14px 16px;border-bottom:1px solid var(--bd)">
-      <div style="font-size:15px;font-weight:700;color:var(--tx);margin-bottom:4px">🔬 Corrélation Morphologie–Génétique</div>
+      <div style="font-size:15px;font-weight:700;color:var(--tx);margin-bottom:4px" data-fr="🔬 Corrélation Morphologie–Génétique" data-en="🔬 Morphology–Genetics Correlation">🔬 Corrélation Morphologie–Génétique</div>
       <div style="font-size:12px;color:var(--mu);line-height:1.6">
-        Upload d'image histologique (HE, IHC, FISH) → Analyse IA : description morphologique, mutations probables, guidelines, contexte populations africaines.
-        <br>🔒 Usage clinique confidentiel — validation anatomopathologiste requise.
+        <span data-fr="Upload d'image histologique (HE, IHC, FISH) → Analyse IA : description morphologique, mutations probables, guidelines, contexte populations africaines." data-en="Upload histological image (HE, IHC, FISH) → AI analysis: morphological description, probable mutations, guidelines, African population context.">Upload d'image histologique (HE, IHC, FISH) → Analyse IA : description morphologique, mutations probables, guidelines, contexte populations africaines.</span>
+        <br><span data-fr="🔒 Usage clinique confidentiel — validation anatomopathologiste requise." data-en="🔒 Confidential clinical use — pathologist validation required.">🔒 Usage clinique confidentiel — validation anatomopathologiste requise.</span>
       </div>
     </div>
 
     <div style="padding:14px">
       <!-- Onglets cancers -->
       <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap" id="morphoTabs">
-        <button class="btn bp3" style="font-size:12px" onclick="setMorphoTab('sein',this)">🎀 Cancer du sein</button>
-        <button class="btn" style="font-size:12px;background:var(--s2);color:var(--mu)" onclick="setMorphoTab('prostate',this)">🔵 Cancer de la prostate</button>
-        <button class="btn" style="font-size:12px;background:var(--s2);color:var(--mu)" onclick="setMorphoTab('pediatrique',this)">🟡 Cancers pédiatriques</button>
+        <button class="btn bp3" style="font-size:12px" onclick="setMorphoTab('sein',this)" data-fr="🎀 Cancer du sein" data-en="🎀 Breast Cancer">🎀 Cancer du sein</button>
+        <button class="btn" style="font-size:12px;background:var(--s2);color:var(--mu)" onclick="setMorphoTab('prostate',this)" data-fr="🔵 Cancer de la prostate" data-en="🔵 Prostate Cancer">🔵 Cancer de la prostate</button>
+        <button class="btn" style="font-size:12px;background:var(--s2);color:var(--mu)" onclick="setMorphoTab('pediatrique',this)" data-fr="🟡 Cancers pédiatriques" data-en="🟡 Pediatric Cancers">🟡 Cancers pédiatriques</button>
       </div>
 
       <!-- Zone upload -->
@@ -1036,8 +1040,8 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
         onmouseover="this.style.borderColor='var(--pr)'" onmouseout="this.style.borderColor='var(--bd)'">
         <input type="file" id="morphoFile" accept="image/*" style="display:none" onchange="morphoHandleFile(event)">
         <div style="font-size:28px;margin-bottom:8px">🔬</div>
-        <div style="font-size:14px;font-weight:700;color:var(--tx)">Déposer une image histologique</div>
-        <div style="font-size:12px;color:var(--mu);margin-top:4px">HE · IHC · FISH — JPG, PNG, TIFF</div>
+        <div style="font-size:14px;font-weight:700;color:var(--tx)" data-fr="Déposer une image histologique" data-en="Drop a histological image">Déposer une image histologique</div>
+        <div style="font-size:12px;color:var(--mu);margin-top:4px" data-fr="HE · IHC · FISH — JPG, PNG, TIFF" data-en="HE · IHC · FISH — JPG, PNG, TIFF">HE · IHC · FISH — JPG, PNG, TIFF</div>
       </div>
 
       <!-- Preview + contexte -->
@@ -1047,24 +1051,24 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
           <div id="morphoImgMeta" style="padding:6px 10px;background:var(--s2);font-size:11px;color:var(--mu)"></div>
         </div>
         <div style="flex:1;min-width:200px">
-          <label style="font-size:11px;color:var(--mu);display:block;margin-bottom:3px">Type de prélèvement</label>
+          <label style="font-size:11px;color:var(--mu);display:block;margin-bottom:3px" data-fr="Type de prélèvement" data-en="Sample type">Type de prélèvement</label>
           <select id="morphoSample" style="width:100%;margin-bottom:8px;padding:7px 10px;border-radius:7px;border:1px solid var(--bd);background:var(--s2);color:var(--tx);font-size:13px">
             <option>Biopsie core-needle</option>
             <option>Pièce opératoire</option>
             <option>Cytoponction</option>
             <option>Biopsie liquide</option>
           </select>
-          <label style="font-size:11px;color:var(--mu);display:block;margin-bottom:3px">Coloration / technique</label>
+          <label style="font-size:11px;color:var(--mu);display:block;margin-bottom:3px" data-fr="Coloration / technique" data-en="Staining / technique">Coloration / technique</label>
           <select id="morphoStain" style="width:100%;margin-bottom:8px;padding:7px 10px;border-radius:7px;border:1px solid var(--bd);background:var(--s2);color:var(--tx);font-size:13px">
             <option>Hématoxyline-Éosine (HE)</option>
             <option>Immunohistochimie (IHC)</option>
             <option>FISH / CISH</option>
             <option>HE + IHC combinée</option>
           </select>
-          <label style="font-size:11px;color:var(--mu);display:block;margin-bottom:3px">Contexte clinique (optionnel)</label>
-          <textarea id="morphoCtx" rows="3" placeholder="Ex: Femme 45 ans, masse 2cm, gg sentinelle positif..."
+          <label style="font-size:11px;color:var(--mu);display:block;margin-bottom:3px" data-fr="Contexte clinique (optionnel)" data-en="Clinical context (optional)">Contexte clinique (optionnel)</label>
+          <textarea id="morphoCtx" rows="3" placeholder="Ex: Femme 45 ans, masse 2cm, gg sentinelle positif..." data-ph-fr="Ex: Femme 45 ans, masse 2cm, gg sentinelle positif..." data-ph-en="Ex: 45-year-old woman, 2cm mass, sentinel node positive..."
             style="width:100%;padding:7px 10px;border-radius:7px;border:1px solid var(--bd);background:var(--s2);color:var(--tx);font-size:12px;resize:none;font-family:inherit;margin-bottom:8px"></textarea>
-          <button class="btn bp3" style="width:100%" id="morphoAnalyzeBtn" onclick="morphoAnalyze()">🧬 Analyser avec Claude AI</button>
+          <button class="btn bp3" style="width:100%" id="morphoAnalyzeBtn" onclick="morphoAnalyze()" data-fr="🧬 Analyser avec Claude AI" data-en="🧬 Analyze with Claude AI">🧬 Analyser avec Claude AI</button>
         </div>
       </div>
 
@@ -1083,32 +1087,32 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
 
         <!-- Mutations -->
         <div style="margin-bottom:12px">
-          <div style="font-size:11px;color:var(--mu);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Mutations probables</div>
+          <div style="font-size:11px;color:var(--mu);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px" data-fr="Mutations probables" data-en="Probable mutations">Mutations probables</div>
           <div id="morphoMuts" style="display:flex;flex-wrap:wrap;gap:6px"></div>
         </div>
 
         <!-- Description morpho -->
         <div style="margin-bottom:10px">
-          <div style="font-size:11px;color:var(--mu);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Description morphologique</div>
+          <div style="font-size:11px;color:var(--mu);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px" data-fr="Description morphologique" data-en="Morphological description">Description morphologique</div>
           <div id="morphoDesc" style="background:var(--s2);border-radius:7px;padding:10px 12px;font-size:12px;line-height:1.7;color:var(--tx);border:1px solid var(--bd)"></div>
         </div>
 
         <!-- Guidelines -->
         <div style="margin-bottom:10px">
-          <div style="font-size:11px;color:var(--mu);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Guidelines recommandées</div>
+          <div style="font-size:11px;color:var(--mu);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px" data-fr="Guidelines recommandées" data-en="Recommended guidelines">Guidelines recommandées</div>
           <div id="morphoGuide" style="background:var(--s2);border-radius:7px;padding:10px 12px;font-size:12px;line-height:1.7;color:var(--tx);border:1px solid var(--bd)"></div>
         </div>
 
         <!-- Contexte africain -->
         <div style="margin-bottom:12px">
-          <div style="font-size:11px;color:var(--mu);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">🌍 Pertinence populations africaines</div>
+          <div style="font-size:11px;color:var(--mu);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px" data-fr="🌍 Pertinence populations africaines" data-en="🌍 African populations relevance">🌍 Pertinence populations africaines</div>
           <div id="morphoAfrica" style="background:var(--s2);border-radius:7px;padding:10px 12px;font-size:12px;line-height:1.7;color:var(--tx);border:1px solid var(--bd);border-left:3px solid var(--pr)"></div>
         </div>
 
         <!-- Boutons export -->
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn" style="font-size:12px;background:var(--s2);color:var(--mu)" onclick="morphoExport()">📄 Exporter rapport</button>
-          <button class="btn bp3" style="font-size:12px" onclick="morphoToClinician()">🩺 Envoyer au clinicien virtuel</button>
+          <button class="btn" style="font-size:12px;background:var(--s2);color:var(--mu)" onclick="morphoExport()" data-fr="📄 Exporter rapport" data-en="📄 Export report">📄 Exporter rapport</button>
+          <button class="btn bp3" style="font-size:12px" onclick="morphoToClinician()" data-fr="🩺 Envoyer au clinicien virtuel" data-en="🩺 Send to virtual clinician">🩺 Envoyer au clinicien virtuel</button>
         </div>
         <div style="margin-top:10px;font-size:11px;color:var(--mu);padding:6px 10px;border-left:2px solid var(--bd);line-height:1.5">
           Outil d'aide à la décision — validation anatomopathologiste requise. Usage clinique confidentiel · Dr. Moustapha Gassama · SenGenoScope
@@ -1262,6 +1266,11 @@ function setLang(l){
   localStorage.setItem('sgs_lang',l);
   document.getElementById('btn-fr').classList.toggle('active',l==='fr');
   document.getElementById('btn-en').classList.toggle('active',l==='en');
+  // Synchroniser les boutons de la topbar
+  const tbFr = document.getElementById('topbar-btn-fr');
+  const tbEn = document.getElementById('topbar-btn-en');
+  if(tbFr){ tbFr.style.background = l==='fr' ? 'var(--pr)' : 'var(--s2)'; tbFr.style.color = l==='fr' ? '#fff' : 'var(--mu)'; }
+  if(tbEn){ tbEn.style.background = l==='en' ? 'var(--pr)' : 'var(--s2)'; tbEn.style.color = l==='en' ? '#fff' : 'var(--mu)'; }
   document.getElementById('html-root').lang=l;
 
   // Translate elements with data-fr / data-en (skip buttons to preserve onclick)
