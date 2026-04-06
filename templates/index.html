@@ -2,6 +2,8 @@
 <html lang="fr" id="html-root">
 <head>
 <meta charset="UTF-8"/>
+<meta name="google" content="notranslate">
+<meta http-equiv="Content-Language" content="en">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'><text y='32' font-size='32'>🧬</text></svg>">
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#0c6e9c">
@@ -360,6 +362,11 @@ var _pendingCalls = [];
 function qs(q){ _pendingCalls.push(['qs', q]); }
 function showSec(n, b){ _pendingCalls.push(['showSec', n, b]); }
 function openApiSettings(){ _pendingCalls.push(['openApiSettings']); }
+
+function updateLangToggle() {
+  const t = document.getElementById('langToggle');
+  if (t) t.innerHTML = lang === 'en' ? '🇫🇷 FR' : '🇬🇧 EN';
+}
 function setLang(l){ _pendingCalls.push(['setLang', l]); }
 </script>
 </head>
@@ -438,10 +445,7 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
     <button class="ni" onclick="openDB('has')"><span class="ni-i">🇫🇷</span><span data-fr="HAS — Recommandations FR" data-en="HAS — French Guidelines">HAS France</span></button>
     <button class="ni" onclick="showSec('litimport',this)"><span class="ni-i">📥</span><span data-fr="Importer littérature" data-en="Import Literature">Importer littérature</span></button>
   </nav>
-  <div class="lr">
-    <button class="lb active" id="btn-fr" onclick="setLang('fr')">🇫🇷 FR</button>
-    <button class="lb" id="btn-en" onclick="setLang('en')">🇬🇧 EN</button>
-  </div>
+  
   <a class="cowork-btn" href="https://claude.ai" target="_blank" rel="noopener">
     <span style="font-size:16px">🤖</span>
     <span>Claude Cowork</span>
@@ -461,10 +465,7 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
       <button class="btn bpu2 bsm" id="pdfBtn" onclick="expPDF()" style="display:none" data-fr="📄 PDF" data-en="📄 PDF">📄 PDF</button>
       <button class="btn bt2 bsm" id="csvBtn" onclick="expCSV()" style="display:none" data-fr="📊 CSV" data-en="📊 CSV">📊 CSV</button>
       <button class="btn bsm" id="apiKeyBtn" onclick="openApiSettings()" style="background:rgba(124,58,237,.15);color:#a78bfa;border:1px solid rgba(124,58,237,.3);font-size:11px" title="Configurer votre clé API Claude">⚙️ <span data-fr="Clé API" data-en="API Key">Clé API</span></button>
-      <div style="display:flex;gap:4px;margin-left:6px;border-left:1px solid var(--bd);padding-left:8px">
-        <button id="topbar-btn-fr" onclick="setLang('fr')" style="padding:4px 9px;border-radius:6px;border:1px solid var(--bd);background:var(--pr);color:#fff;font-size:11px;font-weight:700;cursor:pointer">🇫🇷 FR</button>
-        <button id="topbar-btn-en" onclick="setLang('en')" style="padding:4px 9px;border-radius:6px;border:1px solid var(--bd);background:var(--s2);color:var(--mu);font-size:11px;font-weight:700;cursor:pointer">🇬🇧 EN</button>
-      </div>
+      
     </div>
   </div>
 
@@ -1259,8 +1260,13 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
 function openDB(n){const DB={pubmed:'https://pubmed.ncbi.nlm.nih.gov/',clinvar:'https://www.ncbi.nlm.nih.gov/clinvar/',omim:'https://omim.org/',cosmic:'https://cancer.sanger.ac.uk/cosmic',gnomad:'https://gnomad.broadinstitute.org/',orphanet:'https://www.orpha.net/',hgmd:'https://www.hgmd.cf.ac.uk/',varsome:'https://varsome.com/',franklin:'https://franklin.genoox.com/',dgidb:'https://dgidb.org/',clinicaltrials:'https://clinicaltrials.gov/',decipher:'https://www.deciphergenomics.org/',insight:'https://www.insight-group.org/',enigma:'https://enigmaconsortium.org/',hpo:'https://hpo.jax.org/',lovd:'https://www.lovd.nl/',uniprot:'https://www.uniprot.org/',gtex:'https://gtexportal.org/home/',gencc:'https://thegencc.org/',spliceai:'https://spliceailookup.broadinstitute.org/',alphamissense:'https://alphamissense.hegelab.org/',scholar:'https://scholar.google.com/',europepmc:'https://europepmc.org/',crossref:'https://www.crossref.org/',oncokb:'https://www.oncokb.org/',civic:'https://civicdb.org/',cbioportal:'https://www.cbioportal.org/',iarctp53:'https://tp53.isb-cgc.org/',pharmgkb:'https://www.pharmgkb.org/',cpic:'https://cpicpgx.org/',drugbank:'https://go.drugbank.com/',h3africa:'https://h3africa.org/',awiGen:'https://gnomad.broadinstitute.org/',alphafold:'https://alphafold.ebi.ac.uk/',string:'https://string-db.org/',mavedb:'https://mavedb.org/',esmo:'https://www.esmo.org/guidelines',nccn:'https://www.nccn.org/guidelines/',has:'https://www.has-sante.fr/',dbsnp:'https://www.ncbi.nlm.nih.gov/snp/',nord:'https://rarediseases.org/',pdb:'https://www.rcsb.org/'};if(DB[n])window.open(DB[n],'_blank');}
 
 // ══ LANG ══════════════════════════════════════════════════════════════════
-let lang=localStorage.getItem('sgs_lang')||'fr';
+let lang=localStorage.getItem('sgs_lang')||'en';
 
+
+function updateLangToggle() {
+  const t = document.getElementById('langToggle');
+  if (t) t.innerHTML = lang === 'en' ? '🇫🇷 FR' : '🇬🇧 EN';
+}
 function setLang(l){
   lang=l;
   localStorage.setItem('sgs_lang',l);
@@ -1291,6 +1297,7 @@ function setLang(l){
 
   renderBk();
   renderHist();
+  updateLangToggle();
 }
 
 // ══ HISTORY ═══════════════════════════════════════════════════════════════
