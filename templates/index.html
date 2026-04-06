@@ -1256,6 +1256,10 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
 </div><!-- /shell -->
 
 <script>
+// ══ VARIABLES CLINICIENS
+let activeClinician = null;
+let clinicianHistory = [];
+
 // ══ FONCTIONS GLOBALES (disponibles immediatement) ════════════════════════
 function openDB(n){const DB={pubmed:'https://pubmed.ncbi.nlm.nih.gov/',clinvar:'https://www.ncbi.nlm.nih.gov/clinvar/',omim:'https://omim.org/',cosmic:'https://cancer.sanger.ac.uk/cosmic',gnomad:'https://gnomad.broadinstitute.org/',orphanet:'https://www.orpha.net/',hgmd:'https://www.hgmd.cf.ac.uk/',varsome:'https://varsome.com/',franklin:'https://franklin.genoox.com/',dgidb:'https://dgidb.org/',clinicaltrials:'https://clinicaltrials.gov/',decipher:'https://www.deciphergenomics.org/',insight:'https://www.insight-group.org/',enigma:'https://enigmaconsortium.org/',hpo:'https://hpo.jax.org/',lovd:'https://www.lovd.nl/',uniprot:'https://www.uniprot.org/',gtex:'https://gtexportal.org/home/',gencc:'https://thegencc.org/',spliceai:'https://spliceailookup.broadinstitute.org/',alphamissense:'https://alphamissense.hegelab.org/',scholar:'https://scholar.google.com/',europepmc:'https://europepmc.org/',crossref:'https://www.crossref.org/',oncokb:'https://www.oncokb.org/',civic:'https://civicdb.org/',cbioportal:'https://www.cbioportal.org/',iarctp53:'https://tp53.isb-cgc.org/',pharmgkb:'https://www.pharmgkb.org/',cpic:'https://cpicpgx.org/',drugbank:'https://go.drugbank.com/',h3africa:'https://h3africa.org/',awiGen:'https://gnomad.broadinstitute.org/',alphafold:'https://alphafold.ebi.ac.uk/',string:'https://string-db.org/',mavedb:'https://mavedb.org/',esmo:'https://www.esmo.org/guidelines',nccn:'https://www.nccn.org/guidelines/',has:'https://www.has-sante.fr/',dbsnp:'https://www.ncbi.nlm.nih.gov/snp/',nord:'https://rarediseases.org/',pdb:'https://www.rcsb.org/'};if(DB[n])window.open(DB[n],'_blank');}
 
@@ -2376,9 +2380,6 @@ updateApiKeyBtn();
 })();
 
 // ══ CLINICIENS VIRTUELS ═══════════════════════════════════════════════════
-let activeClinician = null;
-let clinicianHistory = [];
-
 // ══ CLINICIENS VIRTUELS ══════════════════════════════════════════════════════
 
 const CLINICIAN_EXAMPLES = [
