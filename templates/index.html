@@ -3873,7 +3873,8 @@ function toggleTheme() {
 const RARE_DB = [
   // ── SARCOMES ──────────────────────────────────────────────
   {
-    id:'ewing', cat:'sarcome',
+    id:'ewing',
+    pubmed:'Ewing+sarcoma+EWSR1+FLI1', cat:'sarcome',
     name:'Sarcome d\'Ewing', emoji:'🦴',
     gene:'EWSR1-FLI1', fusion:'t(11;22)(q24;q12)',
     mutations:['EWSR1-FLI1 (85%)','EWSR1-ERG (10%)','CDKN2A del'],
@@ -3900,7 +3901,8 @@ const RARE_DB = [
     ]
   },
   {
-    id:'osteo', cat:'sarcome',
+    id:'osteo',
+    pubmed:'Osteosarcoma+TP53+RB1+pediatric', cat:'sarcome',
     name:'Ostéosarcome', emoji:'🦴',
     gene:'TP53 / RB1',
     mutations:['TP53 (50%)','RB1 (40%)','DLG2 (17%)','ATRX (15%)','CDKN2A del'],
@@ -3938,7 +3940,8 @@ const RARE_DB = [
   },
   // ── TNE ───────────────────────────────────────────────────
   {
-    id:'tne_pancreas', cat:'tne',
+    id:'tne_pancreas',
+    pubmed:'Pancreatic+neuroendocrine+tumor+MEN1+DAXX', cat:'tne',
     name:'TNE Pancréatique (pNET)', emoji:'🔵',
     gene:'MEN1 / DAXX / ATRX',
     mutations:['MEN1 (44%)','DAXX (25%)','ATRX (18%)','mTOR pathway (15%)'],
@@ -3951,7 +3954,8 @@ const RARE_DB = [
     ]
   },
   {
-    id:'tne_pulmonaire', cat:'tne',
+    id:'tne_pulmonaire',
+    pubmed:'Pulmonary+Carcinoid+NET+MEN1', cat:'tne',
     name:'TNE Pulmonaire (Carcinoïde)', emoji:'🫁',
     gene:'MEN1 / CDKN1B',
     mutations:['MEN1 (35%)','CDKN1B (8%)','EIF1AX','TP53 (LCNEC)'],
@@ -3975,7 +3979,8 @@ const RARE_DB = [
   },
   // ── SPÉCIFIQUES AFRIQUE ───────────────────────────────────
   {
-    id:'burkitt', cat:'afrique',
+    id:'burkitt',
+    pubmed:'Burkitt+lymphoma+Africa+MYC', cat:'afrique',
     name:'Lymphome de Burkitt (Endémique)', emoji:'🌍',
     gene:'MYC',
     mutations:['t(8;14)(q24;q32) MYC-IGH (80%)','t(2;8) MYC-IGK (15%)','TP53 (30%)','EBV+ (100% forme endémique)'],
@@ -3989,7 +3994,8 @@ const RARE_DB = [
     ]
   },
   {
-    id:'kaposi', cat:'afrique',
+    id:'kaposi',
+    pubmed:'Kaposi+Sarcoma+Africa+HIV+HHV8', cat:'afrique',
     name:'Sarcome de Kaposi (Africain/VIH)', emoji:'🌍',
     gene:'HHV-8 / TP53',
     mutations:['HHV-8 (100%)','VIH-associé dominant','Forme endémique (sans VIH)'],
@@ -4002,7 +4008,8 @@ const RARE_DB = [
     ]
   },
   {
-    id:'wilms', cat:'pediatrique',
+    id:'wilms',
+    pubmed:'Wilms+tumor+WT1+pediatric+nephroblastoma', cat:'pediatrique',
     name:'Tumeur de Wilms (Néphroblastome)', emoji:'🟡',
     gene:'WT1 / CTNNB1 / WTX',
     mutations:['WT1 (10-15%)','CTNNB1 (15%)','WTX (15-20%)','SIX1/2 (18%)','DROSHA/DGCR8 (15%)'],
@@ -4011,7 +4018,7 @@ const RARE_DB = [
     treatment:'Chimiothérapie préopératoire (SIOP) · Néphrectomie · AV ± doxorubicine',
     african:'2ème cancer pédiatrique le plus fréquent en Afrique subsaharienne. Présentation tardive (abdomen volumineux, HTA). Survie 90% (pays HIC) vs 60% (Afrique) → diagnostic précoce crucial.',
     color:'#d97706', links:[
-      {name:'SIOP Wilms', url:'https://www.siope.eu/siop-europe-working-groups/renal-tumours/'},
+      {name:'SIOP Wilms', url:'https://www.siope.eu/working-groups-taskforces/disease-groups/'},
     ]
   },
 ];
@@ -4096,12 +4103,12 @@ function renderRareTumors(list) {
         ${t.links && t.links.length ? `
         <div style="display:flex;gap:6px;flex-wrap:wrap">
           ${t.links.map(l => `<a href="${l.url}" target="_blank" style="font-size:11px;color:${t.color};text-decoration:none;padding:3px 8px;border:1px solid ${t.color}40;border-radius:5px">↗ ${l.name}</a>`).join('')}
-          <a href="https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(t.name)}" target="_blank"
+          <a href="https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(t.pubmed||t.name)}" target="_blank"
              style="font-size:11px;color:var(--mu);text-decoration:none;padding:3px 8px;border:1px solid var(--bd);border-radius:5px">
             📚 PubMed
           </a>
         </div>` : `
-        <a href="https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(t.name)}" target="_blank"
+        <a href="https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(t.pubmed||t.name)}" target="_blank"
            style="font-size:11px;color:var(--mu);text-decoration:none;padding:3px 8px;border:1px solid var(--bd);border-radius:5px">
           📚 PubMed
         </a>`}
