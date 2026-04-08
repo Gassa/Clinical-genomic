@@ -4,6 +4,9 @@ Flask backend complet — sans clé API Claude requise
 """
 import logging
 from flask import Flask, render_template, request, jsonify, send_file, Response, session, redirect, url_for
+
+# CORS — autoriser seulement le domaine de production
+from flask_cors import CORS
 import os, secrets, logging
 from pubmed import search_pubmed, fetch_articles
 try:
@@ -47,6 +50,7 @@ from datetime import timedelta
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
+CORS(app, origins=['https://clinical-genomic.onrender.com'])
 app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(32))
 app.permanent_session_lifetime = timedelta(days=30)
 
