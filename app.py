@@ -557,9 +557,9 @@ def ai_status():
 def ai_upload():
     """
     Upload d'un fichier génomique (VCF, CSV, TXT, PDF, FASTA)
-    user_api_key = request.headers.get("X-User-Api-Key", "").strip()
     et analyse intelligente par Claude AI.
     """
+    user_api_key = request.headers.get("X-User-Api-Key", "").strip()
     if 'file' not in request.files:
         return jsonify({"error": "Aucun fichier envoyé"}), 400
 
@@ -581,7 +581,7 @@ def ai_upload():
         if ext == 'pdf':
             # PDF → base64
             b64_content = base64.b64encode(file_content).decode('utf-8')
-            result = analyze_uploaded_file(filename, b64_content, "pdf_b64", question)
+            result = analyze_uploaded_file(filename, b64_content, "pdf_b64", question, user_api_key=user_api_key)
         else:
             # Fichier texte
             try:
@@ -589,7 +589,7 @@ def ai_upload():
             except UnicodeDecodeError:
                 content = file_content.decode('latin-1', errors='replace')
 
-            result = analyze_uploaded_file(filename, content, ext, question)
+            result = analyze_uploaded_file(filename, content, ext, question, user_api_key=user_api_key)
 
         return jsonify(result)
 
@@ -968,7 +968,7 @@ def ai_pharmacogenomics():
     drug = data.get("drug", "").strip()
     if not gene:
         return jsonify({"error": "Gène requis"}), 400
-    result = pharmacogenomics_analysis(gene, variant, drug)
+    result = pharmacogenomics_analysis(gene, variant, drug, user_api_key=user_api_key)
     return jsonify(result)
 
 
