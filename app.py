@@ -1104,7 +1104,22 @@ def admin_logs():
     
     logs = conn.execute("""
         SELECT login_at, name, email, ip, user_agent 
-        FROM login_logs ORDER BY login_at DESC LIMIT 100
+        FROM login_logs 
+        WHERE login_at >= datetime('now', '-48 hours')
+        ORDER BY login_at DESC
+    """).fetchall()
+    
+    logs_all = conn.execute("""
+        SELECT COUNT(*) FROM login_logs
+    """).fetchone()[0]
+    
+    # Stats par utilisateur sur 48h
+    stats_48h = conn.execute("""
+        SELECT name, email, COUNT(*) as nb_connexions, MAX(login_at) as derniere
+        FROM login_logs 
+        WHERE login_at >= datetime('now', '-48 hours')
+        GROUP BY email
+        ORDER BY nb_connexions DESC
     """).fetchall()
     
     users = conn.execute("""
@@ -1113,7 +1128,11 @@ def admin_logs():
     """).fetchall()
     conn.close()
     
-    rows_logs = "".join(f"""<tr>
+    rows_stats = "".join(f"""<tr>
+        <td><b>{s[0]}</b></td><td>{s[1]}</td>
+        <td style='text-align:center'><b>{s[2]}</b></td><td>{s[3]}</td>
+    </tr>""" for s in stats_48h)
+        rows_logs = "".join(f"""<tr>
         <td>{r[0]}</td><td><b>{r[1]}</b></td><td>{r[2]}</td>
         <td>{r[3]}</td><td style='font-size:11px;color:#666'>{(r[4] or '')[:80]}</td>
     </tr>""" for r in logs)
@@ -1134,9 +1153,13 @@ def admin_logs():
         .badge{{background:#0e7490;padding:2px 8px;border-radius:10px;font-size:11px}}
     </style></head><body>
     <h2>🧬 SenGenoScope — Admin Dashboard</h2>
-    <p>👥 <b>{len(users)}</b> utilisateurs · 🔑 <b>{len(logs)}</b> connexions enregistrées</p>
+    <p>👥 <b>{len(users)}</b> utilisateurs inscrits · 🔑 <b>{len(logs)}</b> connexions dans les 48h · 📊 <b>{logs_all}</b> total</p>
     
-    <h3>🔑 Dernières connexions</h3>
+    <h3>⚡ Activité dernières 48h — par utilisateur</h3>
+    <table><tr><th>Nom</th><th>Email</th><th>Connexions</th><th>Dernière activité</th></tr>
+    {rows_stats}</table>
+    
+    <h3>🔑 Connexions détaillées (48h)</h3>
     <table><tr><th>Date/Heure</th><th>Nom</th><th>Email</th><th>IP</th><th>Navigateur</th></tr>
     {rows_logs}</table>
     
