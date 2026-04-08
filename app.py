@@ -93,13 +93,14 @@ def init_db():
         name TEXT,
         email TEXT,
         ip TEXT,
+        user_agent TEXT,
         login_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""")
     conn.commit()
     conn.close()
 
 
-def log_login(user_id, name, email, ip):
+def log_login(user_id, name, email, ip, user_agent=''):
     """Enregistre chaque connexion dans login_logs et met à jour last_login."""
     logging.info(f"[LOGIN] {name} <{email}> depuis {ip}")
     try:
