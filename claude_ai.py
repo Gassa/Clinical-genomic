@@ -66,7 +66,7 @@ def check_api_status() -> dict:
         return {"configured": False, "error": "ANTHROPIC_API_KEY non définie", "fix": "Configurer sur Render Dashboard → Environment"}
     if not api_key.startswith("sk-ant-"):
         return {"configured": False, "error": "Format de clé invalide"}
-    return {"configured": True, "model": "claude-sonnet-4-6", "key_prefix": api_key[:16] + "..."}
+    return {"configured": True, "model": "claude-haiku-4-5-20251001", "key_prefix": api_key[:16] + "..."}
 
 
 # ── Fetch live data from scientific databases ─────────────────────────────────
@@ -178,7 +178,7 @@ def clinical_chat(messages_history: list, user_message: str, context: dict = Non
         formatted.append({"role": "user", "content": user_message})
 
         response = client.messages.create(
-            model="claude-sonnet-4-6",
+            model="claude-haiku-4-5-20251001",
             max_tokens=2000,
             system=system,
             messages=formatted
@@ -242,7 +242,7 @@ FICHIER: {filename}
 """
 
         response = client.messages.create(
-            model="claude-sonnet-4-6", max_tokens=4000, system=SYSTEM_GENOMICS,
+            model="claude-haiku-4-5-20251001", max_tokens=4000, system=SYSTEM_GENOMICS,
             messages=[{"role": "user", "content": prompt}]
         )
         return {
@@ -279,7 +279,7 @@ ARTICLES ({len(articles)} total):
 ## 7. Recommandations pratiques
 """
         response = client.messages.create(
-            model="claude-sonnet-4-6", max_tokens=3000, system=SYSTEM_GENOMICS,
+            model="claude-haiku-4-5-20251001", max_tokens=3000, system=SYSTEM_GENOMICS,
             messages=[{"role": "user", "content": prompt}]
         )
         return {"success": True, "synthesis": response.content[0].text,
@@ -322,7 +322,7 @@ VARIANT: {json.dumps(variant_data, indent=2, ensure_ascii=False)}
 *SenGenoScope v1.0 — Dr. Moustapha Gassama — À valider par un médecin généticien*
 """
         response = client.messages.create(
-            model="claude-sonnet-4-6", max_tokens=4000, system=SYSTEM_GENOMICS,
+            model="claude-haiku-4-5-20251001", max_tokens=4000, system=SYSTEM_GENOMICS,
             messages=[{"role": "user", "content": prompt}]
         )
         return {"success": True, "report": response.content[0].text}
@@ -370,7 +370,7 @@ JSON:
 }}"""
 
         response = client.messages.create(
-            model="claude-sonnet-4-6", max_tokens=800, system=SYSTEM_GENOMICS,
+            model="claude-haiku-4-5-20251001", max_tokens=800, system=SYSTEM_GENOMICS,
             messages=[{"role": "user", "content": prompt}]
         )
         text = response.content[0].text.strip()
@@ -413,7 +413,7 @@ Gène: {gene}
 ## 5. Recommandations pratiques avec PMIDs
 """
         response = client.messages.create(
-            model="claude-sonnet-4-6", max_tokens=2500, system=SYSTEM_GENOMICS,
+            model="claude-haiku-4-5-20251001", max_tokens=2500, system=SYSTEM_GENOMICS,
             messages=[{"role": "user", "content": prompt}]
         )
         return {

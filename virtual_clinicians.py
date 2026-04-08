@@ -535,7 +535,7 @@ Cite les PMIDs, NCT et données ClinVar dans ta réponse.
             return {"success": False, "error": "Aucun message utilisateur fourni"}
 
         response = client.messages.create(
-            model="claude-sonnet-4-20250514",
+            model="claude-haiku-4-5-20251001",
             max_tokens=2000,
             system=system_prompt,
             messages=api_messages
@@ -547,7 +547,7 @@ Cite les PMIDs, NCT et données ClinVar dans ta réponse.
             "clinician": clinician["name"],
             "specialty": clinician["specialty"],
             "sources_consulted": sources_consulted,
-            "model": "claude-sonnet-4-20250514"
+            "model": "claude-haiku-4-5-20251001"
         }
 
     except anthropic.AuthenticationError:
