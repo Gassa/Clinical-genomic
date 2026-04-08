@@ -497,6 +497,9 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
     <button class="ni" onclick="showSec('ai_chat',this)"><span class="ni-i">🤖</span><span data-fr="Chat IA Clinique" data-en="Clinical AI Chat">Chat IA Clinique</span></button>
     <button class="ni" onclick="showSec('ai_upload',this)"><span class="ni-i">📁</span><span data-fr="Analyse fichier IA" data-en="AI File Analysis">Analyse fichier IA</span></button>
     <button class="ni" onclick="showSec('ai_pharma',this)"><span class="ni-i">💊</span><span data-fr="Pharmacogénomique IA" data-en="AI Pharmacogenomics">Pharmacogénomique IA</span></button>
+    <button class="ni" onclick="showSec('tmb_msi',this)"><span class="ni-i">📊</span><span data-fr="TMB · MSI · Signatures" data-en="TMB · MSI · Signatures">TMB · MSI · Signatures</span></button>
+    <button class="ni" onclick="showSec('drug_interactions',this)"><span class="ni-i">⚗️</span><span data-fr="Interactions CPIC" data-en="CPIC Interactions">Interactions CPIC</span></button>
+    <button class="ni" onclick="showSec('esmo_decision',this)"><span class="ni-i">🌲</span><span data-fr="Arbre ESMO" data-en="ESMO Decision Tree">Arbre ESMO</span></button>
     <button class="ni" onclick="showSec('clinicians',this)"><span class="ni-i">🩺</span><span data-fr="Cliniciens Virtuels" data-en="Virtual Clinicians">Cliniciens Virtuels</span></button>
     <button class="ni" onclick="showSec('morpho',this)"><span class="ni-i">🔬</span><span data-fr="Morpho-Génétique IA" data-en="Morpho-Genetic AI">Morpho-Génétique IA</span></button>
     <button class="ni" onclick="showSec('rare',this)"><span class="ni-i">🧩</span><span data-fr="Tumeurs rares" data-en="Rare Tumors">Tumeurs rares</span></button>
@@ -514,6 +517,12 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
     <button class="ni" onclick="openDB('franklin')"><span class="ni-i">⚡</span>Franklin (Genoox)</button>
     <button class="ni" onclick="openDB('dgidb')"><span class="ni-i">💊</span>DGIdb</button>
     <button class="ni" onclick="openDB('clinicaltrials')"><span class="ni-i">🔬</span>ClinicalTrials.gov</button>
+    <button class="ni" onclick="window.open('https://civicdb.org/','_blank')"><span class="ni-i">⚡</span>CIViC — Variants Cancer</button>
+    <button class="ni" onclick="window.open('https://www.oncokb.org/','_blank')"><span class="ni-i">🎯</span>OncoKB — MSK</button>
+    <button class="ni" onclick="window.open('https://www.lovd.nl/','_blank')"><span class="ni-i">🧬</span>LOVD — Variants héréditaires</button>
+    <button class="ni" onclick="window.open('https://spliceailookup.broadinstitute.org/','_blank')"><span class="ni-i">✂️</span>SpliceAI — Épissage</button>
+    <button class="ni" onclick="window.open('https://www.ncbi.nlm.nih.gov/clinvar/','_blank')"><span class="ni-i">📊</span>ClinGen — Dosage CNV</button>
+    <button class="ni" onclick="window.open('https://alphamissense.hegelab.org/','_blank')"><span class="ni-i">🤖</span>AlphaMissense</button>
     <button class="ni" onclick="openDB('decipher')"><span class="ni-i">🔭</span>DECIPHER</button>
     <button class="ni" onclick="openDB('insight')"><span class="ni-i">🔗</span>InSiGHT</button>
     <button class="ni" onclick="openDB('enigma')"><span class="ni-i">🧩</span>ENIGMA</button>
@@ -557,6 +566,133 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
   </a>
   <div class="sf3">SenGenoScope v1.0 · 2026<br>Usage clinique confidentiel<br><span class="sf3-name">Moustapha Gassama</span></div>
 </aside>
+
+
+<!-- ══ TMB / MSI / SIGNATURES MUTATIONNELLES ════════════════════════════ -->
+<div id="sec-tmb_msi" style="display:none">
+  <div class="card">
+    <div class="ch"><span class="ct2">📊 TMB · MSI · Signatures Mutationnelles</span></div>
+    <div class="cb">
+      <div style="background:var(--s2);border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px;color:var(--mu)">
+        ℹ️ Entrez les valeurs de votre rapport NGS tumoral. Le calcul suit les guidelines ESMO/ASCO 2022.
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
+        <div class="og">
+          <div class="ol">TMB (mut/Mb)</div>
+          <input class="inp" id="tmbValue" type="number" placeholder="Ex: 12.5" min="0">
+          <div style="font-size:11px;color:var(--mu);margin-top:4px">Seuil élevé: ≥10 mut/Mb (ESMO)</div>
+        </div>
+        <div class="og">
+          <div class="ol">MSI Status</div>
+          <select class="inp" id="msiStatus">
+            <option value="">-- Sélectionner --</option>
+            <option value="MSS">MSS — Microsatellite Stable</option>
+            <option value="MSI-L">MSI-L — Instabilité faible</option>
+            <option value="MSI-H">MSI-H — Instabilité élevée</option>
+          </select>
+        </div>
+        <div class="og">
+          <div class="ol">Type tumoral</div>
+          <input class="inp" id="tmbTumorType" placeholder="Ex: Colorectal, NSCLC...">
+        </div>
+      </div>
+      <div class="og" style="margin-bottom:12px">
+        <div class="ol">Signatures mutationnelles détectées (optionnel)</div>
+        <input class="inp" id="mutSigs" placeholder="Ex: SBS1, SBS5, SBS13 (COSMIC v3.3)">
+      </div>
+      <button class="btn bp3" onclick="analyzeTMB()">📊 Interpréter TMB/MSI/Signatures</button>
+      <div id="tmbResult" style="margin-top:14px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ INTERACTIONS CPIC ════════════════════════════════════════════════ -->
+<div id="sec-drug_interactions" style="display:none">
+  <div class="card">
+    <div class="ch"><span class="ct2">⚗️ Interactions Médicamenteuses — CPIC Guidelines</span></div>
+    <div class="cb">
+      <div style="background:var(--s2);border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px;color:var(--mu)">
+        ℹ️ Vérification des interactions pharmacogénomiques selon CPIC (Clinical Pharmacogenomics Implementation Consortium) — Niveau A et B uniquement.
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        <div class="og">
+          <div class="ol">Gène / Phénotype métabolique</div>
+          <select class="inp" id="cpicGene">
+            <option value="">-- Sélectionner --</option>
+            <option value="CYP2D6_PM">CYP2D6 — Métaboliseur lent (PM)</option>
+            <option value="CYP2D6_UM">CYP2D6 — Métaboliseur ultra-rapide (UM)</option>
+            <option value="CYP2C19_PM">CYP2C19 — Métaboliseur lent (PM)</option>
+            <option value="CYP2C19_RM">CYP2C19 — Métaboliseur rapide (RM)</option>
+            <option value="DPYD_def">DPYD — Déficit (risque 5-FU)</option>
+            <option value="TPMT_def">TPMT — Déficit (risque thiopurines)</option>
+            <option value="UGT1A1_28">UGT1A1*28 — Risque irinotécan</option>
+            <option value="SLCO1B1_def">SLCO1B1 — Risque statines/myopathie</option>
+            <option value="G6PD_def">G6PD — Déficit (risque hémolytiques)</option>
+          </select>
+        </div>
+        <div class="og">
+          <div class="ol">Médicament(s) envisagé(s)</div>
+          <input class="inp" id="cpicDrug" placeholder="Ex: Tamoxifène, Irinotecan, 5-FU...">
+        </div>
+      </div>
+      <button class="btn bp3" onclick="analyzeCPIC()">⚗️ Vérifier interactions CPIC</button>
+      <div id="cpicResult" style="margin-top:14px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ARBRE DÉCISIONNEL ESMO ════════════════════════════════════════════ -->
+<div id="sec-esmo_decision" style="display:none">
+  <div class="card">
+    <div class="ch"><span class="ct2">🌲 Arbre Décisionnel ESMO — Thérapie selon Profil Moléculaire</span></div>
+    <div class="cb">
+      <div style="background:var(--s2);border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px;color:var(--mu)">
+        ℹ️ Algorithme thérapeutique basé sur les guidelines ESMO 2023-2024. Résultat à valider en RCP multidisciplinaire.
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div class="og">
+          <div class="ol">Type tumoral</div>
+          <select class="inp" id="esmoTumor">
+            <option value="">-- Sélectionner --</option>
+            <option value="NSCLC">NSCLC — Cancer du poumon non à petites cellules</option>
+            <option value="breast_HR">Cancer du sein HR+ HER2-</option>
+            <option value="breast_HER2">Cancer du sein HER2+</option>
+            <option value="breast_TNBC">Cancer du sein triple négatif</option>
+            <option value="colorectal">Cancer colorectal</option>
+            <option value="prostate">Cancer de la prostate</option>
+            <option value="ovarian">Cancer de l'ovaire</option>
+            <option value="melanoma">Mélanome</option>
+            <option value="pancreas">Cancer du pancréas</option>
+          </select>
+        </div>
+        <div class="og">
+          <div class="ol">Stade</div>
+          <select class="inp" id="esmoStage">
+            <option value="">-- Sélectionner --</option>
+            <option value="I-II">Stade I-II (localisé)</option>
+            <option value="III">Stade III (localement avancé)</option>
+            <option value="IV">Stade IV (métastatique)</option>
+          </select>
+        </div>
+      </div>
+      <div class="og" style="margin-bottom:12px">
+        <div class="ol">Variants/Biomarqueurs identifiés</div>
+        <input class="inp" id="esmoBiomarkers" placeholder="Ex: EGFR L858R, BRCA1 pathogène, MSI-H, TMB-H, PDL1 80%...">
+      </div>
+      <div class="og" style="margin-bottom:12px">
+        <div class="ol">Ligne de traitement</div>
+        <select class="inp" id="esmoLine">
+          <option value="1L">1ère ligne</option>
+          <option value="2L">2ème ligne</option>
+          <option value="3L+">3ème ligne et au-delà</option>
+          <option value="adjuvant">Adjuvant / Néoadjuvant</option>
+        </select>
+      </div>
+      <button class="btn bp3" onclick="analyzeESMO()">🌲 Générer arbre décisionnel ESMO</button>
+      <div id="esmoResult" style="margin-top:14px"></div>
+    </div>
+  </div>
+</div>
 
 <!-- MAIN -->
 <div class="main">
@@ -820,7 +956,7 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
       <div class="tc" onclick="showTool('vep')">
         <div class="tci">🎯</div>
         <div class="tcn" data-fr="Prédiction d'impact fonctionnel (VEP Ensembl)" data-en="Functional impact prediction (Ensembl VEP)">Prédiction d'impact fonctionnel (VEP Ensembl)</div>
-        <div class="tcd" data-fr="PolyPhen-2, SIFT, CADD via API Ensembl REST correctement configurée. Score composite + tous les transcripts + références scientifiques." data-en="PolyPhen-2, SIFT, CADD via correctly configured Ensembl REST API. Composite score + all transcripts + scientific references.">PolyPhen-2, SIFT, CADD via API Ensembl REST correctement configurée. Score composite + tous les transcripts + références scientifiques.</div>
+        <div class="tcd" data-fr="PolyPhen-2, SIFT, CADD, REVEL, BayesDel via API Ensembl REST. Score composite + tous les transcripts + références scientifiques. REVEL ≥0.75 = pathogène probable (PP3 fort). BayesDel ≥0.13 = pathogène (PP3)." data-en="PolyPhen-2, SIFT, CADD via correctly configured Ensembl REST API. Composite score + all transcripts + scientific references.">PolyPhen-2, SIFT, CADD, REVEL, BayesDel via API Ensembl REST. Score composite + tous les transcripts + références scientifiques. REVEL ≥0.75 = pathogène probable (PP3 fort). BayesDel ≥0.13 = pathogène (PP3).</div>
       </div>
     </div>
 
