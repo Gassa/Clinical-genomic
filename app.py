@@ -1132,7 +1132,7 @@ def admin_logs():
         <td><b>{s[0]}</b></td><td>{s[1]}</td>
         <td style='text-align:center'><b>{s[2]}</b></td><td>{s[3]}</td>
     </tr>""" for s in stats_48h)
-        rows_logs = "".join(f"""<tr>
+    rows_logs = "".join(f"""<tr>
         <td>{r[0]}</td><td><b>{r[1]}</b></td><td>{r[2]}</td>
         <td>{r[3]}</td><td style='font-size:11px;color:#666'>{(r[4] or '')[:80]}</td>
     </tr>""" for r in logs)
