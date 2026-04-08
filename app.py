@@ -1310,3 +1310,8 @@ Réponds UNIQUEMENT en JSON valide (sans balises markdown) :
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
+app.config['PERMANENT_SESSION_LIFETIME'] = __import__('datetime').timedelta(minutes=30)
+app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
