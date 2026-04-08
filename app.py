@@ -1093,7 +1093,7 @@ ADMIN_PASSWORD = _os.environ.get("ADMIN_PASSWORD", "SenGeno2026!")
 def admin_logs():
     pwd = request.args.get("pwd", "") or request.form.get("pwd", "")
     if pwd != ADMIN_PASSWORD:
-        return """<form style='font-family:monospace;padding:20px'>
+        return """<form style='font-family:monospace;padding:20px' method='GET'>
             <h2>🔐 Admin Access</h2>
             <input type='password' name='pwd' placeholder='Mot de passe admin' style='padding:8px;width:300px'>
             <button type='submit' style='padding:8px 16px;margin-left:8px'>Entrer</button>
