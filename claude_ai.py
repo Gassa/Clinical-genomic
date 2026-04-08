@@ -49,10 +49,10 @@ def _no_api_error():
     return {"success": False, "error": "Module anthropic non installé.", "fix": "pip install anthropic"}
 
 
-def get_client():
+def get_client(user_api_key: str = ''):
     if not ANTHROPIC_AVAILABLE:
         raise ImportError("anthropic non installé")
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    api_key = user_api_key.strip() if user_api_key and user_api_key.strip() else os.environ.get("ANTHROPIC_API_KEY", "")
     if not api_key:
         raise ValueError("ANTHROPIC_API_KEY non configurée")
     return anthropic.Anthropic(api_key=api_key)
@@ -134,12 +134,12 @@ def _extract_gene_from_message(message: str) -> str:
 
 # ── Main AI functions ─────────────────────────────────────────────────────────
 
-def clinical_chat(messages_history: list, user_message: str, context: dict = None) -> dict:
+def clinical_chat(messages_history: list, user_message: str, context: dict = None, user_api_key: str = '') -> dict:
     """Chat with real-time scientific database enrichment."""
     if not ANTHROPIC_AVAILABLE:
         return _no_api_error()
     try:
-        client = get_client()
+        client = get_client(user_api_key) if user_api_key else get_client(user_api_key)
 
         # Extract gene from message for live data fetching
         gene = _extract_gene_from_message(user_message)
@@ -200,7 +200,7 @@ def analyze_uploaded_file(filename: str, content: str, file_type: str, user_ques
     if not ANTHROPIC_AVAILABLE:
         return _no_api_error()
     try:
-        client = get_client()
+        client = get_client(user_api_key) if user_api_key else get_client(user_api_key)
 
         # Extract genes from file content for live data
         known_genes = ["BRCA1","BRCA2","TP53","MLH1","MSH2","EGFR","KRAS","BRAF","ALK","PTEN"]
@@ -255,12 +255,12 @@ FICHIER: {filename}
         return {"success": False, "error": str(e), "filename": filename}
 
 
-def synthesize_pubmed_results(query: str, articles: list, genes: list) -> dict:
+def synthesize_pubmed_results(query: str, articles: list, genes: list, user_api_key: str = "") -> dict:
     """Intelligent PubMed synthesis with live data."""
     if not ANTHROPIC_AVAILABLE:
         return _no_api_error()
     try:
-        client = get_client()
+        client = get_client(user_api_key) if user_api_key else get_client(user_api_key)
         articles_summary = "\n".join([
             f"- PMID {a.get('pmid','')}: {a.get('title','')} ({a.get('journal','')}, {a.get('year','')})"
             for a in articles[:15]
@@ -288,12 +288,12 @@ ARTICLES ({len(articles)} total):
         return {"success": False, "error": str(e)}
 
 
-def generate_clinical_report(variant_data: dict, patient_context: str = "") -> dict:
+def generate_clinical_report(variant_data: dict, patient_context: str = "", user_api_key: str = "") -> dict:
     """Generate structured ACMG clinical report."""
     if not ANTHROPIC_AVAILABLE:
         return _no_api_error()
     try:
-        client = get_client()
+        client = get_client(user_api_key) if user_api_key else get_client(user_api_key)
 
         # Fetch live ClinVar data for the variant's gene
         gene = variant_data.get("gene","")
@@ -336,7 +336,7 @@ def interpret_vcf_variant(chrom: str, pos: str, ref: str, alt: str,
     if not ANTHROPIC_AVAILABLE:
         return _no_api_error()
     try:
-        client = get_client()
+        client = get_client(user_api_key) if user_api_key else get_client(user_api_key)
         context = ""
         if existing_data:
             if existing_data.get("polyphen_score") is not None:
@@ -384,12 +384,12 @@ JSON:
         return {"success": False, "error": str(e)}
 
 
-def pharmacogenomics_analysis(gene: str, variant: str = "", drug: str = "") -> dict:
+def pharmacogenomics_analysis(gene: str, variant: str = "", drug: str = "", user_api_key: str = "") -> dict:
     """Clinical pharmacogenomics analysis with live data."""
     if not ANTHROPIC_AVAILABLE:
         return _no_api_error()
     try:
-        client = get_client()
+        client = get_client(user_api_key) if user_api_key else get_client(user_api_key)
 
         # Fetch live PubMed data for pharmacogenomics
         query = f"{gene} pharmacogenomics {drug}" if drug else f"{gene} pharmacogenomics targeted therapy"

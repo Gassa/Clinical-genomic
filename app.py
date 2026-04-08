@@ -557,6 +557,7 @@ def ai_status():
 def ai_upload():
     """
     Upload d'un fichier génomique (VCF, CSV, TXT, PDF, FASTA)
+    user_api_key = request.headers.get("X-User-Api-Key", "").strip()
     et analyse intelligente par Claude AI.
     """
     if 'file' not in request.files:
@@ -620,7 +621,8 @@ def ai_chat():
         context["genes_found"] = list(_last_result.get("gene_data", {}).get("frequency", {}).keys())[:10]
         context["clinvar_variants"] = _last_result.get("clinvar", [])
 
-    result = clinical_chat(_chat_history, message, context)
+    user_api_key = request.headers.get('X-User-Api-Key', '').strip()
+    result = clinical_chat(_chat_history, message, context, user_api_key=user_api_key)
 
     if result["success"]:
         _chat_history.append({"role": "user", "content": message})
@@ -637,11 +639,12 @@ def ai_synthesize():
     """Synthèse intelligente des résultats PubMed par Claude AI."""
     if not _last_result:
         return jsonify({"error": "Effectuez d'abord une recherche PubMed"}), 400
-
+    user_api_key = request.headers.get("X-User-Api-Key", "").strip()
     result = synthesize_pubmed_results(
         query=_last_result.get("query", ""),
         articles=_last_result.get("articles", []),
-        genes=list(_last_result.get("gene_data", {}).get("frequency", {}).keys())
+        genes=list(_last_result.get("gene_data", {}).get("frequency", {}).keys()),
+        user_api_key=user_api_key
     )
     return jsonify(result)
 
@@ -650,6 +653,7 @@ def ai_synthesize():
 def ai_clinical_report():
     """Génère un rapport clinique ACMG structuré par Claude AI."""
     data = request.get_json()
+    user_api_key = request.headers.get("X-User-Api-Key", "").strip()
     variant_data = data.get("variant_data", {})
     patient_context = data.get("patient_context", "")
 
@@ -958,6 +962,7 @@ def lit_extract():
 def ai_pharmacogenomics():
     """Analyse pharmacogénomique d'un gène/variant par Claude AI."""
     data = request.get_json()
+    user_api_key = request.headers.get("X-User-Api-Key", "").strip()
     gene = data.get("gene", "").strip()
     variant = data.get("variant", "").strip()
     drug = data.get("drug", "").strip()
