@@ -195,7 +195,7 @@ def clinical_chat(messages_history: list, user_message: str, context: dict = Non
         return {"success": False, "error": str(e)}
 
 
-def analyze_uploaded_file(filename: str, content: str, file_type: str, user_question: str = "") -> dict:
+def analyze_uploaded_file(filename: str, content: str, file_type: str, user_question: str = "", user_api_key: str = "") -> dict:
     """AI analysis of genomic file with live database enrichment."""
     if not ANTHROPIC_AVAILABLE:
         return _no_api_error()
