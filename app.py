@@ -1042,6 +1042,67 @@ def test_route():
         "message": "SenGenoScope v1.0 fonctionne correctement"
     })
 
+
+# ══ ADMIN LOGS (protégé par mot de passe) ═══════════════════════════════════
+import os as _os
+ADMIN_PASSWORD = _os.environ.get("ADMIN_PASSWORD", "SenGeno2026!")
+
+@app.route("/admin/logs")
+def admin_logs():
+    pwd = request.args.get("pwd", "")
+    if pwd != ADMIN_PASSWORD:
+        return """<form style='font-family:monospace;padding:20px'>
+            <h2>🔐 Admin Access</h2>
+            <input type='password' name='pwd' placeholder='Mot de passe admin' style='padding:8px;width:300px'>
+            <button type='submit' style='padding:8px 16px;margin-left:8px'>Entrer</button>
+        </form>""", 401
+    
+    import sqlite3
+    conn = sqlite3.connect("users.db")
+    
+    logs = conn.execute("""
+        SELECT login_at, name, email, ip, user_agent 
+        FROM login_logs ORDER BY login_at DESC LIMIT 100
+    """).fetchall()
+    
+    users = conn.execute("""
+        SELECT name, email, institution, created_at, last_login 
+        FROM users ORDER BY created_at DESC
+    """).fetchall()
+    conn.close()
+    
+    rows_logs = "".join(f"""<tr>
+        <td>{r[0]}</td><td><b>{r[1]}</b></td><td>{r[2]}</td>
+        <td>{r[3]}</td><td style='font-size:11px;color:#666'>{(r[4] or '')[:80]}</td>
+    </tr>""" for r in logs)
+    
+    rows_users = "".join(f"""<tr>
+        <td><b>{u[0]}</b></td><td>{u[1]}</td><td>{u[2]}</td>
+        <td>{u[3]}</td><td>{u[4] or '—'}</td>
+    </tr>""" for u in users)
+    
+    return f"""<!DOCTYPE html><html><head>
+    <title>SenGenoScope Admin</title>
+    <style>
+        body{{font-family:monospace;padding:20px;background:#0f172a;color:#e2e8f0}}
+        h2{{color:#38bdf8}} table{{width:100%;border-collapse:collapse;margin-bottom:30px}}
+        th{{background:#1e3a5f;padding:8px;text-align:left;color:#7dd3fc}}
+        td{{padding:6px 8px;border-bottom:1px solid #1e293b;font-size:13px}}
+        tr:hover td{{background:#1e293b}}
+        .badge{{background:#0e7490;padding:2px 8px;border-radius:10px;font-size:11px}}
+    </style></head><body>
+    <h2>🧬 SenGenoScope — Admin Dashboard</h2>
+    <p>👥 <b>{len(users)}</b> utilisateurs · 🔑 <b>{len(logs)}</b> connexions enregistrées</p>
+    
+    <h3>🔑 Dernières connexions</h3>
+    <table><tr><th>Date/Heure</th><th>Nom</th><th>Email</th><th>IP</th><th>Navigateur</th></tr>
+    {rows_logs}</table>
+    
+    <h3>👥 Utilisateurs inscrits</h3>
+    <table><tr><th>Nom</th><th>Email</th><th>Institution</th><th>Inscrit le</th><th>Dernière connexion</th></tr>
+    {rows_users}</table>
+    </body></html>"""
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
