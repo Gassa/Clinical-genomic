@@ -104,6 +104,39 @@ def init_db():
     conn.close()
 
 
+
+# ══ EMAIL ALERTES ══════════════════════════════════════════════════════════
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+def send_admin_email(subject, body):
+    """Envoie un email d'alerte à l'admin."""
+    smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
+    smtp_port = int(os.environ.get("SMTP_PORT", "587"))
+    smtp_user = os.environ.get("SMTP_USER", "")
+    smtp_pass = os.environ.get("SMTP_PASS", "")
+    admin_email = os.environ.get("ADMIN_EMAIL", smtp_user)
+    
+    if not smtp_user or not smtp_pass:
+        logging.info(f"[EMAIL] Non configuré — sujet: {subject}")
+        return False
+    try:
+        msg = MIMEMultipart()
+        msg["From"] = smtp_user
+        msg["To"] = admin_email
+        msg["Subject"] = f"🧬 SenGenoScope — {subject}"
+        msg.attach(MIMEText(body, "html"))
+        with smtplib.SMTP(smtp_host, smtp_port) as server:
+            server.starttls()
+            server.login(smtp_user, smtp_pass)
+            server.sendmail(smtp_user, admin_email, msg.as_string())
+        logging.info(f"[EMAIL] Envoyé: {subject}")
+        return True
+    except Exception as e:
+        logging.error(f"[EMAIL] Erreur: {e}")
+        return False
+
 def log_login(user_id, name, email, ip, user_agent=''):
     """Enregistre chaque connexion dans login_logs et met à jour last_login."""
     logging.info(f"[LOGIN] {name} <{email}> depuis {ip}")
@@ -1056,9 +1089,9 @@ def test_route():
 import os as _os
 ADMIN_PASSWORD = _os.environ.get("ADMIN_PASSWORD", "SenGeno2026!")
 
-@app.route("/admin/logs")
+@app.route("/admin/logs", methods=["GET", "POST"])
 def admin_logs():
-    pwd = request.args.get("pwd", "")
+    pwd = request.args.get("pwd", "") or request.form.get("pwd", "")
     if pwd != ADMIN_PASSWORD:
         return """<form style='font-family:monospace;padding:20px'>
             <h2>🔐 Admin Access</h2>
