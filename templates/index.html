@@ -2072,7 +2072,7 @@ document.addEventListener('click',e=>{if(!e.target.closest('.hw'))document.getEl
 // ══ NAV ═══════════════════════════════════════════════════════════════════
 let glData=[];
 function showSec(name,btn){
-  ['search','prs','founder','penetrance','tools','ngs','acmg','risk','glcomp','manchester','compvar','pedigree','bookmarks','about','litimport','ai_chat','ai_upload','ai_pharma','clinicians','morpho','rare'].forEach(s=>{
+  ['search','prs','founder','penetrance','tools','ngs','acmg','risk','glcomp','manchester','compvar','pedigree','bookmarks','about','litimport','ai_chat','ai_upload','ai_pharma','clinicians','morpho','rare','tmb_msi','drug_interactions','esmo_decision'].forEach(s=>{
     const el=document.getElementById('sec-'+s);
     if(el) el.style.display=s===name?'block':'none';
   });
