@@ -665,8 +665,9 @@ def consult_clinician_ai(clinician_id, message, history=None, user_api_key=None)
         api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if not api_key:
         return {"success": False, "error": "Clé API manquante. Cliquez sur 'Clé API' pour saisir votre clé Anthropic."}
-    if not api_key.startswith('sk-'):
-        return {"success": False, "error": f"Clé API invalide (doit commencer par sk-). Clé reçue: {api_key[:10]}..."}
+    if not str(api_key).startswith('sk-'):
+        key_preview = str(api_key)[:15] if api_key else 'vide'
+        return {"success": False, "error": f"Clé API invalide (doit commencer par sk-). Reçue: {key_preview}"}
     try:
         client = anthropic.Anthropic(api_key=api_key)
         messages = []
