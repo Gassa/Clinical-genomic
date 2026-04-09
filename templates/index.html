@@ -2147,7 +2147,7 @@ async function switchLitTab(tab,btn){
   if(btn){btn.classList.add('active','bp3');}
 }
 
-async async function fetchLitPmid(){
+async function fetchLitPmid(){
   const raw = document.getElementById('litPmidInput').value.trim();
   if(!raw) return;
   const res = document.getElementById('litResult');
@@ -2160,7 +2160,7 @@ async async function fetchLitPmid(){
   }catch(e){res.innerHTML='<div class="erb">❌ Erreur serveur.</div>';}
 }
 
-async async function fetchLitTitle(){
+async function fetchLitTitle(){
   const q = document.getElementById('litTitleInput').value.trim();
   const src = document.getElementById('litSource').value;
   const max = document.getElementById('litMaxRes').value;
@@ -2186,7 +2186,7 @@ async async function fetchLitTitle(){
   }catch(e){res.innerHTML='<div class="erb">❌ Erreur serveur.</div>';}
 }
 
-async async function parseLitText(){
+async function parseLitText(){
   const txt = document.getElementById('litTextInput').value.trim();
   if(!txt) return;
   const res = document.getElementById('litResult');
@@ -2194,7 +2194,7 @@ async async function parseLitText(){
   await extractFromAbstract(txt,'Texte libre');
 }
 
-async async function extractFromAbstract(text, source){
+async function extractFromAbstract(text, source){
   const res = document.getElementById('litResult');
   try{
     const r = await fetch('/lit_extract',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,source})});
@@ -2239,7 +2239,7 @@ async function sigB(sig){if(!sig)return`<span class="sig so">N/S</span>`;const s
 document.getElementById('query').addEventListener('keydown',e=>{if(e.key==='Enter')runSearch();});
 let lastGenes=[];
 
-async async function runSearch(){
+async function runSearch(){
   const q=document.getElementById('query').value.trim(), hpoT=selHPO.map(h=>h.name).join(' ');
   if(!q&&!hpoT){showErr('Veuillez entrer un terme de recherche.');return;}
   clrErr();document.getElementById('results').style.display='none';
@@ -2368,7 +2368,7 @@ function renderResults(data){
   renderLinks('clingenL',data.clingen_links||[]);
 }
 
-async async function ldGI(gene){
+async function ldGI(gene){
   const p=document.getElementById('giPanel');p.className='gi v';
   p.innerHTML='<div style="font-size:13px;color:var(--mu)">Chargement fiche NCBI…</div>';
   try{
@@ -2396,7 +2396,7 @@ async async function ldGI(gene){
 const COLORS=['#0891b2','#7c3aed','#16a34a','#d97706','#dc2626','#0e7490','#5b21b6','#065f46','#b45309','#991b1b','#0369a1','#4f46e5'];
 
 async function qkVt(g){document.getElementById('varGs').value=g;ldVt(g);swTab('variants',document.querySelectorAll('.tab')[1]);}
-async async function ldVt(gene){
+async function ldVt(gene){
   if(!gene)return;
   const cv=document.getElementById('varCv'),ctx=cv.getContext('2d'),pc=document.getElementById('pathoCv'),pctx=pc.getContext('2d'),lg=document.getElementById('varLg');
   lg.textContent='Chargement ClinVar…';ctx.clearRect(0,0,cv.width,cv.height);pctx.clearRect(0,0,pc.width,pc.height);
@@ -2440,7 +2440,7 @@ async function drawPie(ctx,cv,lbs,vs,title){
 const POP={afr:'African/African American',amr:'Latino/Admixed American',asj:'Ashkenazi Jewish',eas:'East Asian',fin:'Finnish',mid:'Middle Eastern',nfe:'Non-Finnish European',sas:'South Asian',oth:'Remaining'};
 
 async function qkPop(g){document.getElementById('popGs').value=g;ldPop(g);swTab('pops',document.querySelectorAll('.tab')[2]);}
-async async function ldPop(gene){
+async function ldPop(gene){
   if(!gene)return;const el=document.getElementById('popCt');el.innerHTML='<div class="empty">Chargement gnomAD r4…</div>';
   try{
     const r=await fetch('/gnomad/'+gene);const data=await r.json();const variants=data.variants||[];
@@ -2462,7 +2462,7 @@ async async function ldPop(gene){
 
 // ══ DRUGS ═════════════════════════════════════════════════════════════════
 async function qkDrug(g){document.getElementById('drugGs').value=g;ldDrug(g);swTab('drugs',document.querySelectorAll('.tab')[3]);}
-async async function ldDrug(gene){
+async function ldDrug(gene){
   if(!gene)return;const el=document.getElementById('drugCt');el.innerHTML='<div class="empty">Chargement DGIdb…</div>';
   try{
     const r=await fetch('/drug_interactions/'+gene);const data=await r.json();const ints=data.interactions||[];
@@ -2475,7 +2475,7 @@ async async function ldDrug(gene){
 // ══ TRIALS ════════════════════════════════════════════════════════════════
 async function qkTrial(g){document.getElementById('trialGs').value=g;ldTrial(g);swTab('trials',document.querySelectorAll('.tab')[4]);}
 async function tsBadge(s){const sl=(s||'').toLowerCase();if(sl.includes('recruit'))return'tsr';if(sl.includes('active'))return'tsa';if(sl.includes('complet'))return'tsc';return'tso';}
-async async function ldTrial(gene){
+async function ldTrial(gene){
   if(!gene)return;const el=document.getElementById('trialCt');el.innerHTML='<div class="empty">Chargement ClinicalTrials.gov…</div>';
   try{
     const r=await fetch('/clinical_trials/'+gene);const data=await r.json();const trials=data.trials||[];
@@ -2508,7 +2508,7 @@ async function prefillVEP(key){
   document.getElementById('vA').value=p.alt;
   document.getElementById('vepDbStatus').innerHTML=`✅ Pré-rempli : <b>${p.label}</b> · GRCh38`;
 }
-async async function fetchVepFromDB(){
+async function fetchVepFromDB(){
   const q=document.getElementById('vepDbSearch').value.trim();
   if(!q)return;
   const st=document.getElementById('vepDbStatus');
@@ -2541,7 +2541,7 @@ async async function fetchVepFromDB(){
 }
 
 // ══ VEP ═══════════════════════════════════════════════════════════════════
-async async function predictVEP(){
+async function predictVEP(){
   const btn=document.querySelector('#tool-vep .btn[onclick="predictVEP()"]');
   const chrom=document.getElementById('vC').value.trim(),pos=document.getElementById('vP').value.trim();
   const ref=document.getElementById('vR').value.trim().toUpperCase(),alt=document.getElementById('vA').value.trim().toUpperCase();
@@ -2617,7 +2617,7 @@ async async function predictVEP(){
 }
 
 // ══ SEQUENCE ══════════════════════════════════════════════════════════════
-async async function analyzeSeq(){
+async function analyzeSeq(){
   const s=document.getElementById('seqIn').value.trim(),s2=document.getElementById('seqIn2').value.trim();
   if(!s){alert('Entrez une séquence ADN ou FASTA.');return;}
   const btn=document.querySelector('#tool-seq .btn');btn.textContent='⏳ Analyse…';btn.disabled=true;
@@ -2656,7 +2656,7 @@ async function initACMG(){
 }
 async function togACMG(code,type){acmgState[code]=!acmgState[code];const el=document.getElementById('ac-'+code);if(acmgState[code])el.classList.add(type==='p'?'sp2c':'sb2c');else el.classList.remove('sp2c','sb2c');}
 async function resetACMG(){acmgState={};document.querySelectorAll('.ac2').forEach(e=>e.classList.remove('sp2c','sb2c'));document.getElementById('acmgResult').innerHTML='';}
-async async function classifyACMG(){
+async function classifyACMG(){
   const active=Object.fromEntries(Object.entries(acmgState).filter(([k,v])=>v).map(([k])=>[k,true]));
   if(!Object.keys(active).length){alert('Sélectionnez au moins un critère ACMG.');return;}
   const r=await fetch('/classify_acmg',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({criteria:active})});
@@ -2672,12 +2672,12 @@ async async function classifyACMG(){
 
 // ══ RISK ══════════════════════════════════════════════════════════════════
 let riskSel=[];
-async async function initRisk(){
+async function initRisk(){
   const sel=document.getElementById('syndromeSelect');if(sel.options.length>1)return;
   const r=await fetch('/syndromes');const d=await r.json();
   d.forEach(s=>{const o=document.createElement('option');o.value=s.name;o.textContent=s.name;sel.appendChild(o);});
 }
-async async function loadSyndrome(name){
+async function loadSyndrome(name){
   riskSel=[];if(!name){document.getElementById('riskCriteria').innerHTML='<div class="empty">Sélectionnez un syndrome.</div>';return;}
   const r=await fetch('/hereditary_risk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({syndrome:name,criteria:[]})});
   const d=await r.json();if(d.error)return;
@@ -2692,7 +2692,7 @@ async async function loadSyndrome(name){
 }
 async function togRisk(id,name){if(riskSel.includes(id))riskSel=riskSel.filter(x=>x!==id);else riskSel.push(id);document.getElementById('rc-'+id).classList.toggle('sel',riskSel.includes(id));}
 async function resetRisk(name){riskSel=[];document.querySelectorAll('.ri').forEach(e=>e.classList.remove('sel'));document.getElementById('riskResult').innerHTML='';}
-async async function compRisk(name){
+async function compRisk(name){
   const r=await fetch('/hereditary_risk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({syndrome:name,criteria:riskSel})});
   const d=await r.json();if(d.error)return;
   const gc={'Faible':'rg-l','Modéré':'rg-m','Élevé':'rg-h','Très élevé':'rg-vh'}[d.risk_level]||'rg-m';
@@ -2708,7 +2708,7 @@ async async function compRisk(name){
 
 // ══ PRS ═══════════════════════════════════════════════════════════════════
 let prsAlleles={},selectedCancer=null;
-async async function initPRS(){
+async function initPRS(){
   if(document.getElementById('prsGrid').children.length>0)return;
   const r=await fetch('/prs_cancers');const cancers=await r.json();
   document.getElementById('prsGrid').innerHTML=cancers.map(c=>`<div class="prs-card" id="prs-${c.id}" onclick="selectCancer('${c.id}')">
@@ -2716,7 +2716,7 @@ async async function initPRS(){
     <div class="prs-meta">${c.snp_count} SNPs · GWAS méta-analyse</div>
   </div>`).join('');
 }
-async async function selectCancer(id){
+async function selectCancer(id){
   selectedCancer=id;prsAlleles={};
   document.querySelectorAll('.prs-card').forEach(c=>c.classList.remove('sel'));
   const pe=document.getElementById('prs-'+id); if(pe) pe.classList.add('sel');
@@ -2736,7 +2736,7 @@ async async function selectCancer(id){
   document.getElementById('prsResult').innerHTML='';
 }
 async function setAllele(rsid,val){[0,1,2].forEach(i=>{const el=document.getElementById('ab-'+rsid+'-'+i);if(el)el.classList.toggle('sel',i===val);});prsAlleles[rsid]=val;}
-async async function computePRS(){
+async function computePRS(){
   if(!selectedCancer)return;
   const r=await fetch('/calculate_prs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cancer_type:selectedCancer,risk_alleles:prsAlleles})});
   const d=await r.json();
@@ -2756,7 +2756,7 @@ async async function computePRS(){
 }
 
 // ══ FOUNDER MUTATIONS ══════════════════════════════════════════════════════
-async async function loadFounder(){
+async function loadFounder(){
   const el=document.getElementById('founderContent');
   if(el.querySelector('.fm-header'))return;
   el.innerHTML='<div class="empty">Chargement des mutations fondatrices…</div>';
@@ -2783,12 +2783,12 @@ async async function loadFounder(){
 async function toggleFM(el){const body=el.nextElementSibling;body.style.display=body.style.display==='none'?'block':'none';}
 
 // ══ PENETRANCE ════════════════════════════════════════════════════════════
-async async function initPenetrance(){
+async function initPenetrance(){
   const sel=document.getElementById('penGene');if(sel.options.length>1)return;
   const r=await fetch('/penetrance_genes');const genes=await r.json();
   genes.forEach(g=>{const o=document.createElement('option');o.value=g;o.textContent=g;sel.appendChild(o);});
 }
-async async function loadPenetrance(gene){
+async function loadPenetrance(gene){
   if(!gene)return;const el=document.getElementById('penetranceContent');
   el.innerHTML='<div class="empty">Chargement données de pénétrance…</div>';
   const r=await fetch('/penetrance?gene='+gene);const d=await r.json();
@@ -2830,7 +2830,7 @@ async function ngsQuick(gene, type, hgvsc, hgvsp, af){
   });
   document.getElementById('ngsFillStatus').innerHTML=`✅ Pré-rempli : <b>${gene} ${hgvsc}</b>`;
 }
-async async function autoFillNGSFromClinVar(){
+async function autoFillNGSFromClinVar(){
   const q=document.getElementById('ngsClinvarSearch').value.trim();
   if(!q)return;
   const st=document.getElementById('ngsFillStatus');
@@ -2849,7 +2849,7 @@ async async function autoFillNGSFromClinVar(){
   }catch(e){st.innerHTML='❌ Erreur serveur.';}
 }
 let selNGSType=null;
-async async function initNGS(){
+async function initNGS(){
   if(document.getElementById('ngsTypeGrid').children.length>0)return;
   const r=await fetch('/consequence_types');const types=await r.json();
   const impacts={'stop_gained':'high','frameshift_variant':'high','splice_donor_variant':'high','splice_acceptor_variant':'high','missense_variant':'mod','synonymous_variant':'low','inframe_insertion':'mod','inframe_deletion':'mod','3_prime_utr_variant':'low','5_prime_utr_variant':'low','intron_variant':'low'};
@@ -2861,7 +2861,7 @@ async async function initNGS(){
   </div>`).join('');
 }
 async function selectNGSType(type,el){selNGSType=type;document.querySelectorAll('.ngs-card').forEach(c=>c.classList.remove('sel'));el.classList.add('sel');document.getElementById('ngsSelected').style.display='block';}
-async async function interpretNGS(){
+async function interpretNGS(){
   if(!selNGSType)return;
   const r=await fetch('/interpret_variant',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({consequence:selNGSType,gene:document.getElementById('ngsGene').value,hgvsc:document.getElementById('ngsHgvsc').value,hgvsp:document.getElementById('ngsHgvsp').value,af_gnomad:parseFloat(document.getElementById('ngsAF').value)||null})});
   const d=await r.json();const imp=d.explanation||{};
@@ -2882,7 +2882,7 @@ async async function interpretNGS(){
     </div>
   </div>`;
 }
-async async function parseNGS(){
+async function parseNGS(){
   const text=document.getElementById('ngsReport').value.trim();if(!text)return;
   const r=await fetch('/parse_ngs_report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
   const d=await r.json();
@@ -2891,13 +2891,13 @@ async async function parseNGS(){
 
 // ══ GUIDELINES ════════════════════════════════════════════════════════════
 let glGroups=[];
-async async function initGLComp(){
+async function initGLComp(){
   if(glGroups.length>0)return;
   const r=await fetch('/gene_groups');glGroups=await r.json();
   document.getElementById('glTabGroup').innerHTML=glGroups.map((g,i)=>`<button class="gl-btn${i===0?' active':''}" onclick="loadGLGroup('${g}',this)">${g}</button>`).join('');
   if(glGroups.length>0)loadGLGroup(glGroups[0],document.querySelector('.gl-btn'));
 }
-async async function loadGLGroup(group,btn){
+async function loadGLGroup(group,btn){
   document.querySelectorAll('.gl-btn').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');
   const r=await fetch('/guidelines_comparison?gene_group='+encodeURIComponent(group));
   const data=await r.json();const d=data[group];
@@ -2915,7 +2915,7 @@ async async function loadGLGroup(group,btn){
 // ══ CLAUDE AI ════════════════════════════════════════════════════════════
 let chatHistory=[];
 
-async async function initAIChat(){
+async function initAIChat(){
   const badge=document.getElementById('aiStatusBadge');
   if(badge.dataset.checked) return;
   badge.dataset.checked='1';
@@ -2956,7 +2956,7 @@ async function appendChatMsg(role, text){
   el.scrollTop=el.scrollHeight;
 }
 
-async async function sendChat(){
+async function sendChat(){
   const inp=document.getElementById('chatInput');
   const msg=inp.value.trim();
   if(!msg)return;
@@ -2983,7 +2983,7 @@ async async function sendChat(){
 
 async function chatQuick(msg){document.getElementById('chatInput').value=msg;sendChat();}
 
-async async function resetChat(){
+async function resetChat(){
   await fetch('/ai/chat/reset',{method:'POST'});
   chatHistory=[];
   document.getElementById('chatMessages').innerHTML=`<div style="font-size:13px;color:var(--mu);text-align:center;padding:20px 0">🧬 Conversation réinitialisée. Posez vos questions en oncogénomique clinique.</div>`;
@@ -3006,7 +3006,7 @@ async function showFileInfo(file){
   info.innerHTML=`📄 <b>${file.name}</b> · ${(file.size/1024).toFixed(1)} KB · <span style="color:var(--sc)">${file.type||file.name.split('.').pop().toUpperCase()}</span>`;
   document.getElementById('analyzeFileBtn').disabled=false;
 }
-async async function analyzeFile(){
+async function analyzeFile(){
   if(!selectedFile)return;
   const btn=document.getElementById('analyzeFileBtn');
   const res=document.getElementById('uploadResult');
@@ -3038,7 +3038,7 @@ async function pharmaQuick(gene,variant,drug){
   document.getElementById('pharmaVariant').value=variant;
   document.getElementById('pharmaDrug').value=drug;
 }
-async async function runPharmaAnalysis(){
+async function runPharmaAnalysis(){
   const gene=document.getElementById('pharmaGene').value.trim();
   if(!gene){alert('Veuillez entrer un gène.');return;}
   const variant=document.getElementById('pharmaVariant').value.trim();
@@ -3063,8 +3063,8 @@ async async function runPharmaAnalysis(){
 }
 
 // ══ EXPORTS ══════════════════════════════════════════════════════════════
-async async function expPDF(){const btn=document.getElementById('pdfBtn');btn.textContent='⏳';btn.disabled=true;try{const r=await fetch('/export_pdf',{method:'POST'});const b=await r.blob();const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='rapport_sengenoscope_v5.pdf';a.click();URL.revokeObjectURL(u);}catch{alert('Erreur PDF.');}finally{btn.innerHTML='📄 PDF';btn.disabled=false;}}
-async async function expCSV(){const btn=document.getElementById('csvBtn');btn.textContent='⏳';btn.disabled=true;try{const r=await fetch('/export_csv',{method:'POST'});const b=await r.blob();const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='rapport_sengenoscope_v5.csv';a.click();URL.revokeObjectURL(u);}catch{alert('Erreur CSV.');}finally{btn.innerHTML='📊 CSV';btn.disabled=false;}}
+async function expPDF(){const btn=document.getElementById('pdfBtn');btn.textContent='⏳';btn.disabled=true;try{const r=await fetch('/export_pdf',{method:'POST'});const b=await r.blob();const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='rapport_sengenoscope_v5.pdf';a.click();URL.revokeObjectURL(u);}catch{alert('Erreur PDF.');}finally{btn.innerHTML='📄 PDF';btn.disabled=false;}}
+async function expCSV(){const btn=document.getElementById('csvBtn');btn.textContent='⏳';btn.disabled=true;try{const r=await fetch('/export_csv',{method:'POST'});const b=await r.blob();const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='rapport_sengenoscope_v5.csv';a.click();URL.revokeObjectURL(u);}catch{alert('Erreur CSV.');}finally{btn.innerHTML='📊 CSV';btn.disabled=false;}}
 
 // ══ API KEY MANAGEMENT ════════════════════════════════════════════════════
 
@@ -3192,7 +3192,7 @@ async function fillClinicianExample(i) {
   document.getElementById('clinicianInput').value = CLINICIAN_EXAMPLES[i] || '';
 }
 
-async async function initClinicians() {
+async function initClinicians() {
   const grid = document.getElementById('clinicianCards');
   if (!grid) return;
   try {
@@ -3324,7 +3324,7 @@ async function appendClinicianMsg(role, content) {
   document.getElementById('clinicianChat').scrollTop = 9999;
 }
 
-async async function sendClinicianMessage() {
+async function sendClinicianMessage() {
   if (!activeClinician) return;
   const input = document.getElementById('clinicianInput');
   const msg = input.value.trim();
@@ -3377,7 +3377,7 @@ document.addEventListener('keydown', e => {
 });
 
 // ══ TMB / MSI / SIGNATURES ══════════════════════════════════════════════
-async async function analyzeTMB() {
+async function analyzeTMB() {
   const tmb = document.getElementById('tmbValue').value;
   const msi = document.getElementById('msiStatus').value;
   const tumor = document.getElementById('tmbTumorType').value;
@@ -3407,7 +3407,7 @@ Fournissez:
 }
 
 // ══ INTERACTIONS CPIC ════════════════════════════════════════════════════
-async async function analyzeCPIC() {
+async function analyzeCPIC() {
   const gene = document.getElementById('cpicGene').value;
   const drug = document.getElementById('cpicDrug').value;
   const res = document.getElementById('cpicResult');
@@ -3445,7 +3445,7 @@ Fournissez:
 }
 
 // ══ ARBRE DÉCISIONNEL ESMO ═══════════════════════════════════════════════
-async async function analyzeESMO() {
+async function analyzeESMO() {
   const tumor = document.getElementById('esmoTumor').value;
   const stage = document.getElementById('esmoStage').value;
   const biomarkers = document.getElementById('esmoBiomarkers').value;
@@ -3894,6 +3894,25 @@ Arbre décisionnel ESMO 2023-2024:
 // ══ FIN MIC + NOTES CLINICIEN ════════════════════════════════════════════
 
 
+
+// ══ NAVIGATION SECTIONS ══════════════════════════════════════════════════
+function showSec(name,btn){
+  const SECS=['search','prs','founder','penetrance','tools','ngs','acmg','risk','glcomp','manchester','compvar','pedigree','bookmarks','about','litimport','ai_chat','ai_upload','ai_pharma','clinicians','morpho','rare','tmb_msi','drug_interactions','esmo_decision'];
+  SECS.forEach(s=>{
+    const el=document.getElementById('sec-'+s);
+    if(el) el.style.display=(s===name)?'block':'none';
+  });
+  document.querySelectorAll('.ni').forEach(e=>e.classList.remove('active','bp3'));
+  if(btn) btn.classList.add('active','bp3');
+  if(name==='ai_chat' && typeof initAIChat==='function') initAIChat();
+  if(name==='clinicians' && typeof initClinicians==='function') initClinicians();
+  if(name==='ngs' && typeof initNGS==='function') initNGS();
+  if(name==='glcomp' && typeof initGLComp==='function') initGLComp();
+  if(name==='prs' && typeof initPRS==='function') initPRS();
+  if(name==='penetrance' && typeof initPenetrance==='function') initPenetrance();
+  if(name==='risk' && typeof initRisk==='function') initRisk();
+}
+
 // ══ FLUSH EARLY CALLS (appels reçus avant chargement complet) ════════════
 if(typeof _pendingCalls !== 'undefined'){
   _pendingCalls.forEach(c=>{
@@ -3986,7 +4005,7 @@ function morphoHandleFile(e) {
   reader.readAsDataURL(file);
 }
 
-async async function morphoAnalyze() {
+async function morphoAnalyze() {
   const btn = document.getElementById('morphoAnalyzeBtn');
   const loading = document.getElementById('morphoLoading');
   const result = document.getElementById('morphoResult');
@@ -4208,7 +4227,7 @@ async function switchManchTab(tab, btn) {
   btn.style.color = '';
 }
 
-async async function calcManchester() {
+async function calcManchester() {
   const family = {
     breast_under40:         parseInt(document.getElementById('m_breast_under40').value)||0,
     breast_40_49:           parseInt(document.getElementById('m_breast_40_49').value)||0,
@@ -4283,7 +4302,7 @@ async async function calcManchester() {
   }
 }
 
-async async function calcTyrerCuzick() {
+async function calcTyrerCuzick() {
   const data = {
     age:                    parseInt(document.getElementById('tc_age').value)||45,
     bmi:                    parseFloat(document.getElementById('tc_bmi').value)||25,
@@ -4373,7 +4392,7 @@ async function cvGetVal(id) {
   return v === '' ? undefined : isNaN(v) ? v : parseFloat(v);
 }
 
-async async function compareVariants() {
+async function compareVariants() {
   const v1 = {
     hgvs: document.getElementById('cv1_hgvs').value || 'Variant 1',
     gene: document.getElementById('cv1_gene').value || '',

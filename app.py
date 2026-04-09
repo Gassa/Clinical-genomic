@@ -246,7 +246,7 @@ def add_security_headers(response):
     # CSP permissive pour permettre fonts Google et APIs externes
     response.headers['Content-Security-Policy'] = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline'; "
+        "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; "
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
         "font-src 'self' https://fonts.gstatic.com; "
         "connect-src 'self' https://api.anthropic.com https://eutils.ncbi.nlm.nih.gov https://clinicaltrials.gov https://hpo.jax.org https://dgidb.org; "
