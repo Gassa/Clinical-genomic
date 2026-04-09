@@ -1168,6 +1168,123 @@ def admin_logs():
     {rows_users}</table>
     </body></html>"""
 
+
+# ══ CIViC API — Clinical Interpretation of Variants in Cancer ═══════════════
+@app.route("/civic_lookup")
+def civic_lookup():
+    """Recherche CIViC pour un gène ou variant."""
+    gene = request.args.get("gene", "").strip().upper()
+    variant = request.args.get("variant", "").strip()
+    if not gene:
+        return jsonify({"error": "Gène requis"}), 400
+    try:
+        import requests as req
+        # API CIViC GraphQL
+        query = """
+        query {
+          genes(name: "%s") {
+            nodes {
+              name
+              variants {
+                nodes {
+                  name
+                  variantAliases
+                  evidenceItems {
+                    nodes {
+                      evidenceLevel
+                      evidenceType
+                      significance
+                      description
+                      disease { name }
+                      therapies { nodes { name } }
+                      source { citation citationId sourceType }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        """ % gene
+        r = req.post(
+            "https://civicdb.org/api/graphql",
+            json={"query": query},
+            timeout=10,
+            headers={"Content-Type": "application/json"}
+        )
+        data = r.json()
+        genes = data.get("data", {}).get("genes", {}).get("nodes", [])
+        if not genes:
+            return jsonify({"gene": gene, "variants": [], "message": "Aucun résultat CIViC"})
+        
+        results = []
+        for g in genes[:1]:
+            for v in g.get("variants", {}).get("nodes", [])[:10]:
+                v_name = v.get("name", "")
+                if variant and variant.upper() not in v_name.upper():
+                    continue
+                evidence_list = []
+                for ev in v.get("evidenceItems", {}).get("nodes", [])[:5]:
+                    therapies = [t["name"] for t in ev.get("therapies", {}).get("nodes", [])]
+                    evidence_list.append({
+                        "level": ev.get("evidenceLevel"),
+                        "type": ev.get("evidenceType"),
+                        "significance": ev.get("significance"),
+                        "disease": ev.get("disease", {}).get("name") if ev.get("disease") else None,
+                        "therapies": therapies,
+                        "description": ev.get("description", "")[:200],
+                        "citation": ev.get("source", {}).get("citation", "")
+                    })
+                results.append({
+                    "variant": v_name,
+                    "aliases": v.get("variantAliases", []),
+                    "evidence": evidence_list
+                })
+        return jsonify({"gene": gene, "variants": results})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# ══ OncoKB API — Thérapies FDA approuvées ════════════════════════════════════
+@app.route("/oncokb_lookup")
+def oncokb_lookup():
+    """Recherche OncoKB pour un variant."""
+    gene = request.args.get("gene", "").strip().upper()
+    alteration = request.args.get("alteration", "").strip()
+    tumor_type = request.args.get("tumor_type", "").strip()
+    if not gene:
+        return jsonify({"error": "Gène requis"}), 400
+    try:
+        import requests as req
+        oncokb_token = os.environ.get("ONCOKB_TOKEN", "")
+        headers = {"Authorization": f"Bearer {oncokb_token}"} if oncokb_token else {}
+        
+        url = f"https://www.oncokb.org/api/v1/annotate/mutations/byProteinChange"
+        params = {
+            "hugoSymbol": gene,
+            "alteration": alteration or "any",
+            "tumorType": tumor_type or ""
+        }
+        r = req.get(url, params=params, headers=headers, timeout=10)
+        if r.status_code == 401:
+            return jsonify({
+                "gene": gene,
+                "message": "OncoKB nécessite un token API. Visitez oncokb.org pour en obtenir un gratuit.",
+                "oncokb_url": f"https://www.oncokb.org/gene/{gene}"
+            })
+        data = r.json()
+        return jsonify({
+            "gene": gene,
+            "alteration": alteration,
+            "oncogenic": data.get("oncogenic"),
+            "mutationEffect": data.get("mutationEffect", {}).get("knownEffect"),
+            "highestSensitiveLevel": data.get("highestSensitiveLevel"),
+            "highestResistanceLevel": data.get("highestResistanceLevel"),
+            "treatments": data.get("treatments", [])[:5],
+            "oncokb_url": f"https://www.oncokb.org/gene/{gene}/{alteration}"
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
