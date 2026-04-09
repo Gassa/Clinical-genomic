@@ -4479,5 +4479,104 @@ function pedCanvasRightClick(e){
 }
 // ══ FIN ARBRE ════════════════════════════════════════════════════════════════
 </script>
+<script>
+// ══ TMB / MSI / SIGNATURES ══════════════════════════════════════════════
+async function analyzeTMB() {
+  const tmb = document.getElementById('tmbValue').value;
+  const msi = document.getElementById('msiStatus').value;
+  const tumor = document.getElementById('tmbTumorType').value;
+  const sigs = document.getElementById('mutSigs').value;
+  const res = document.getElementById('tmbResult');
+  if (!tmb && !msi) { res.innerHTML='<div style="color:red;padding:10px">Veuillez entrer au moins une valeur TMB ou MSI</div>'; return; }
+  res.innerHTML = '<div style="padding:10px;color:var(--mu)">⏳ Analyse TMB/MSI en cours...</div>';
+  const prompt = `En tant qu oncologuespécialisé en génomique tumorale, interprétez ces biomarqueurs selon ESMO/ASCO 2022:
+
+TMB: ${tmb||'non renseigné'} mut/Mb
+MSI: ${msi||'non renseigné'}
+Type tumoral: ${tumor||'non précisé'}
+Signatures COSMIC: ${sigs||'non renseignées'}
+
+Fournissez:
+1. INTERPRÉTATION CLINIQUE (seuils ESMO: TMB-H ≥10 mut/Mb)
+2. IMPLICATIONS THÉRAPEUTIQUES (immunothérapie: pembrolizumab/nivolumab)
+3. SIGNATURES MUTATIONNELLES si renseignées
+4. RECOMMANDATIONS GUIDELINES (ESMO 2023, FDA)
+5. CONTEXTE POPULATIONS AFRICAINES`;
+  try {
+    const r = await aiFetch('/ai/chat', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:prompt})});
+    const d = await r.json();
+    if (d.response) res.innerHTML = '<div class="card" style="margin-top:8px;padding:14px">' + (typeof marked!=='undefined'?marked.parse(d.response):d.response) + '</div>';
+    else res.innerHTML = '<div style="color:red;padding:10px">Erreur: ' + (d.error||'Réponse vide') + '</div>';
+  } catch(e) { res.innerHTML = '<div style="color:red;padding:10px">Erreur: ' + e.message + '</div>'; }
+}
+
+// ══ INTERACTIONS CPIC ════════════════════════════════════════════════════
+async function analyzeCPIC() {
+  const gene = document.getElementById('cpicGene').value;
+  const drug = document.getElementById('cpicDrug').value;
+  const res = document.getElementById('cpicResult');
+  if (!gene) { res.innerHTML='<div style="color:red;padding:10px">Sélectionnez un gène/phénotype</div>'; return; }
+  res.innerHTML = '<div style="padding:10px;color:var(--mu)">⏳ Vérification interactions CPIC...</div>';
+  const cpicData = {
+    'CYP2D6_PM':'Métaboliseur lent CYP2D6 — éviter codéine/tramadol, ajuster tamoxifène',
+    'CYP2D6_UM':'Métaboliseur ultra-rapide CYP2D6 — éviter codéine (surdosage morphine)',
+    'CYP2C19_PM':'Métaboliseur lent CYP2C19 — clopidogrel inefficace, alternative prasugrel',
+    'CYP2C19_RM':'Métaboliseur rapide CYP2C19 — IPP moins efficaces',
+    'DPYD_def':'Déficit DPYD — CONTRE-INDICATION 5-FU/capécitabine (toxicité fatale possible)',
+    'TPMT_def':'Déficit TPMT — réduire thiopurines de 90% (risque myélosuppression)',
+    'UGT1A1_28':'UGT1A1*28 homozygote — réduire irinotécan (risque neutropénie grade 4)',
+    'SLCO1B1_def':'Déficit SLCO1B1 — risque myopathie statines',
+    'G6PD_def':'Déficit G6PD — éviter rasburicase, dapsone, primaquine (risque hémolyse)'
+  };
+  const prompt = `Pharmacogénomicien clinique CPIC:
+
+Profil: ${gene}
+Info CPIC: ${cpicData[gene]||''}
+Médicament(s): ${drug||'non précisé'}
+
+Fournissez:
+1. NIVEAU RECOMMANDATION CPIC (A/B/C/D)
+2. INTERACTION SPÉCIFIQUE avec le médicament
+3. ALTERNATIVE THÉRAPEUTIQUE
+4. AJUSTEMENT POSOLOGIQUE
+5. RÉFÉRENCES CPIC et FDA`;
+  try {
+    const r = await aiFetch('/ai/chat', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:prompt})});
+    const d = await r.json();
+    if (d.response) res.innerHTML = '<div class="card" style="margin-top:8px;padding:14px">' + (typeof marked!=='undefined'?marked.parse(d.response):d.response) + '</div>';
+    else res.innerHTML = '<div style="color:red;padding:10px">Erreur: ' + (d.error||'Réponse vide') + '</div>';
+  } catch(e) { res.innerHTML = '<div style="color:red;padding:10px">Erreur: ' + e.message + '</div>'; }
+}
+
+// ══ ARBRE DÉCISIONNEL ESMO ═══════════════════════════════════════════════
+async function analyzeESMO() {
+  const tumor = document.getElementById('esmoTumor').value;
+  const stage = document.getElementById('esmoStage').value;
+  const biomarkers = document.getElementById('esmoBiomarkers').value;
+  const line = document.getElementById('esmoLine').value;
+  const res = document.getElementById('esmoResult');
+  if (!tumor || !stage) { res.innerHTML='<div style="color:red;padding:10px">Sélectionnez le type tumoral et le stade</div>'; return; }
+  res.innerHTML = '<div style="padding:10px;color:var(--mu)">⏳ Génération arbre décisionnel ESMO...</div>';
+  const prompt = `Oncologue médical expert ESMO, générez un arbre décisionnel thérapeutique:
+
+Type tumoral: ${tumor}
+Stade: ${stage}
+Ligne: ${line}
+Biomarqueurs: ${biomarkers||'non renseignés'}
+
+Arbre décisionnel ESMO 2023-2024:
+1. ALGORITHME THÉRAPEUTIQUE selon biomarqueurs
+2. THÉRAPIES CIBLÉES (niveau preuve IA/IB/IIA/IIB)
+3. IMMUNOTHÉRAPIE — critères éligibilité
+4. ESSAIS CLINIQUES pertinents
+5. CONTEXTE AFRICAIN — disponibilité traitements`;
+  try {
+    const r = await aiFetch('/ai/chat', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:prompt})});
+    const d = await r.json();
+    if (d.response) res.innerHTML = '<div class="card" style="margin-top:8px;padding:14px">' + (typeof marked!=='undefined'?marked.parse(d.response):d.response) + '</div>';
+    else res.innerHTML = '<div style="color:red;padding:10px">Erreur: ' + (d.error||'Réponse vide') + '</div>';
+  } catch(e) { res.innerHTML = '<div style="color:red;padding:10px">Erreur: ' + e.message + '</div>'; }
+}
+</script>
 </body>
 </html>
