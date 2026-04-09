@@ -1033,17 +1033,6 @@ def clinvar_lookup():
 
 # ══ CLINICIENS VIRTUELS ═══════════════════════════════════════════════════
 
-@app.route("/clinicians", methods=["GET"])
-def get_clinicians():
-    try:
-        from virtual_clinicians import get_all_clinicians
-        data = get_all_clinicians()
-        if not isinstance(data, list):
-            return jsonify([]), 200
-        return jsonify(data), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
 @app.route("/clinicians/test", methods=["GET"])
 def test_clinicians():
     try:
@@ -1359,21 +1348,22 @@ def ai_rcp():
     })
 
 
+
+
 # ══ ROUTES CLINICIENS VIRTUELS ══════════════════════════════════════════
 
 @app.route('/ai/clinicians', methods=['GET'])
-def get_clinicians():
+def get_clinicians_list():
     try:
         from virtual_clinicians import get_all_clinicians
-        data = get_all_clinicians()
-        return jsonify({"success": True, "clinicians": data})
+        return jsonify({"success": True, "clinicians": get_all_clinicians()})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route('/ai/clinician', methods=['POST'])
-def consult_clinician():
+def consult_clinician_route():
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
         clinician_id = data.get('clinician_id', '')
         message = data.get('message', '')
         history = data.get('history', [])
@@ -1388,21 +1378,18 @@ def consult_clinician():
         return jsonify({"success": False, "error": str(e), "trace": traceback.format_exc()}), 500
 
 @app.route('/ai/rcp', methods=['POST'])
-def rcp_consultation():
+def rcp_consultation_route():
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
         case = data.get('case', '')
         user_api_key = data.get('user_api_key') or request.headers.get('X-User-Api-Key')
         if not case:
             return jsonify({"success": False, "error": "Description du cas requise"}), 400
         from virtual_clinicians import get_all_clinicians, consult_clinician_ai
-        clinicians = get_all_clinicians()
-        active = [c for c in clinicians if c.get('id') != 'rcp_coordinator'][:4]
-        results = []
-        for c in active:
-            r = consult_clinician_ai(c['id'], case, [], user_api_key)
-            if r.get('success'):
-                results.append(r)
+        clinicians = [c for c in get_all_clinicians() if c.get('id') != 'rcp_coordinator'][:4]
+        results = [r for c in clinicians
+                   for r in [consult_clinician_ai(c['id'], case, [], user_api_key)]
+                   if r.get('success')]
         if not results:
             return jsonify({"success": False, "error": "Aucun clinicien disponible"}), 500
         opinions_text = "\n\n".join([
@@ -1410,36 +1397,21 @@ def rcp_consultation():
             for r in results
         ])
         synthesis_prompt = (
-            f"Tu es coordinateur d une RCP (Réunion de Concertation Pluridisciplinaire).\n\n"
-            f"CAS CLINIQUE: {case}\n\n"
-            f"AVIS DES SPÉCIALISTES:\n{opinions_text}\n\n"
-            "Produisez une SYNTHÈSE RCP structurée:\n"
-            "1. POINTS DE CONSENSUS entre les spécialistes\n"
-            "2. POINTS DE DIVERGENCE ou complémentarités\n"
-            "3. DÉCISION THÉRAPEUTIQUE RECOMMANDÉE (votée par la RCP)\n"
-            "4. PLAN DE SUIVI et examens complémentaires\n"
-            "5. CRITÈRES DE RÉÉVALUATION\n\n"
-            "Format: synthèse concise, cliniquement actionnable, niveau de preuve indiqué."
+            "Tu coordonnes une RCP. Synthèse structurée:\n"
+            "1. CONSENSUS\n2. DIVERGENCES\n3. DÉCISION THÉRAPEUTIQUE\n"
+            "4. PLAN DE SUIVI\n5. CRITÈRES DE RÉÉVALUATION\n\n"
+            f"CAS: {case}\n\nAVIS:\n{opinions_text}"
         )
         try:
             import anthropic, os
-            api_key = user_api_key or os.environ.get("ANTHROPIC_API_KEY", "")
-            client = anthropic.Anthropic(api_key=api_key)
-            response = client.messages.create(
-                model="claude-haiku-4-5-20251001",
-                max_tokens=1000,
-                messages=[{"role": "user", "content": synthesis_prompt}]
-            )
-            synthesis = response.content[0].text if response.content else ""
+            client = anthropic.Anthropic(api_key=user_api_key or os.environ.get("ANTHROPIC_API_KEY",""))
+            resp = client.messages.create(
+                model="claude-haiku-4-5-20251001", max_tokens=1000,
+                messages=[{"role":"user","content":synthesis_prompt}])
+            synthesis = resp.content[0].text if resp.content else ""
         except Exception as e:
             synthesis = f"Synthèse non disponible: {e}"
-        return jsonify({
-            "success": True,
-            "case": case,
-            "specialists_consulted": len(results),
-            "opinions": results,
-            "synthesis": synthesis
-        })
+        return jsonify({"success":True,"opinions":results,"synthesis":synthesis,"specialists_consulted":len(results)})
     except Exception as e:
         import traceback
         return jsonify({"success": False, "error": str(e), "trace": traceback.format_exc()}), 500
