@@ -3341,7 +3341,8 @@ async function sendClinicianMessage() {
       body: JSON.stringify({
         clinician_id: activeClinician.id,
         message: msg,
-        history: clinicianHistory.slice(0, -1)
+        history: clinicianHistory.slice(0, -1),
+        user_api_key: getUserApiKey()
       })
     });
     const d = await r.json();
@@ -3711,6 +3712,70 @@ Arbre décisionnel ESMO 2023-2024:
 
 })();
 // ══ FIN MODE DUAL VOCAL MULTILINGUE ═════════════════════════════════════
+
+
+
+// ══ MIC INTÉGRÉ CLINICIEN ════════════════════════════════════════════════
+(function(){
+  let cRec=null,cIsRec=false,cWaveInt=null;
+
+  window.clinMicToggle=function(){
+    if(!cIsRec){
+      const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+      if(!SR){alert('Utilisez Chrome ou Edge.');return;}
+      const lang=(document.getElementById('clinMicLang')||{}).value||'fr-FR';
+      cRec=new SR();cRec.continuous=true;cRec.interimResults=true;cRec.lang=lang;
+      cRec.onresult=e=>{
+        let final='',interim='';
+        for(let i=e.resultIndex;i<e.results.length;i++){
+          if(e.results[i].isFinal)final+=e.results[i][0].transcript+' ';
+          else interim+=e.results[i][0].transcript;
+        }
+        const ta=document.getElementById('clinicianInput');
+        if(ta&&final){
+          // Ajouter le texte final à la fin du textarea
+          ta.value=(ta.value+final).trim()+' ';
+        }
+        // Montrer l'interim dans un placeholder visuel
+        const ph=document.getElementById('clinMicInterim');
+        if(ph)ph.textContent=interim;
+      };
+      cRec.onerror=e=>{if(e.error!=='no-speech')console.warn('mic:',e.error);};
+      cRec.onend=()=>{if(cIsRec){try{cRec.start();}catch(e){}}};
+      cRec.start();
+      cIsRec=true;
+      // Animer le bouton
+      const btn=document.getElementById('clinMicBtn');
+      const dot=document.getElementById('clinMicDot');
+      const lbl=document.getElementById('clinMicLbl');
+      if(btn){btn.style.cssText='display:flex;align-items:center;gap:5px;padding:0 12px;height:40px;border-radius:20px;border:1.5px solid #E24B4A;background:#FCEBEB;color:#A32D2D;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap';}
+      if(dot){dot.style.animation='vc-blink .8s steps(1) infinite';}
+      if(lbl){lbl.textContent='⏹';}
+      // Ajouter indicateur interim sous le textarea si absent
+      let ph=document.getElementById('clinMicInterim');
+      if(!ph){
+        ph=document.createElement('div');
+        ph.id='clinMicInterim';
+        ph.style.cssText='font-size:12px;color:var(--mu);font-style:italic;padding:3px 6px;min-height:16px';
+        const ta=document.getElementById('clinicianInput');
+        if(ta&&ta.parentNode)ta.parentNode.insertBefore(ph,ta.nextSibling);
+      }
+    }else{
+      cIsRec=false;
+      try{cRec.stop();}catch(e){}
+      clearInterval(cWaveInt);
+      const btn=document.getElementById('clinMicBtn');
+      const dot=document.getElementById('clinMicDot');
+      const lbl=document.getElementById('clinMicLbl');
+      if(btn){btn.style.cssText='display:flex;align-items:center;gap:5px;padding:0 12px;height:40px;border-radius:20px;border:1.5px solid #1D9E75;background:var(--s2);color:#0F6E56;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap';}
+      if(dot){dot.style.animation='none';}
+      if(lbl){lbl.textContent='🎙️';}
+      const ph=document.getElementById('clinMicInterim');
+      if(ph)ph.textContent='';
+    }
+  };
+})();
+// ══ FIN MIC CLINICIEN ════════════════════════════════════════════════════
 
 
 // ══ FLUSH EARLY CALLS (appels reçus avant chargement complet) ════════════
