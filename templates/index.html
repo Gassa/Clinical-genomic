@@ -1257,9 +1257,60 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
                 <button class="btn bgh2 bsm" onclick="fillClinicianExample(2)" data-fr="EGFR muté CBNPC" data-en="EGFR mutated NSCLC">EGFR muté CBNPC</button>
                 <button class="btn bgh2 bsm" onclick="resetClinicianChat()">🔄 Nouvelle consultation</button>
               </div>
-              <button class="btn bp3" onclick="sendClinicianMessage()" id="clinicianSendBtn">
-                📤 Envoyer au clinicien
-              </button>
+              <!-- Zone enregistrement + notes + envoi -->
+              <div style="border-top:1px solid var(--bd);margin-top:10px;padding-top:10px">
+
+                <!-- Ligne 1 : mic + langue + timer -->
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+                  <button id="clinMicBtn" onclick="clinMicToggle()"
+                    style="display:flex;align-items:center;gap:6px;padding:0 14px;height:34px;border-radius:17px;border:1.5px solid #1D9E75;background:var(--s2);color:#0F6E56;font-size:12px;font-weight:500;cursor:pointer">
+                    <span id="clinMicDot" style="width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block"></span>
+                    <span id="clinMicLbl">🎙️ Enregistrer patient</span>
+                  </button>
+                  <select id="clinMicLang" style="height:32px;font-size:11px;padding:0 5px;border:.5px solid var(--bd);border-radius:6px;background:var(--s2);color:var(--tx)">
+                    <option value="fr-FR">🇫🇷 Français</option>
+                    <option value="en-US">🇬🇧 English</option>
+                    <option value="ar-SA">🇸🇦 العربية</option>
+                    <option value="wo-SN">🇸🇳 Wolof</option>
+                    <option value="pt-BR">🇧🇷 Português</option>
+                    <option value="es-ES">🇪🇸 Español</option>
+                    <option value="sw-KE">🇰🇪 Kiswahili</option>
+                    <option value="ha-NG">🇳🇬 Hausa</option>
+                  </select>
+                  <span id="clinMicTimer" style="font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--tx)">00:00</span>
+                  <div id="clinMicWave" style="display:flex;gap:2px;height:20px;align-items:center;flex:1;max-width:60px;overflow:hidden"></div>
+                </div>
+
+                <!-- Ligne 2 : transcription patient (temps réel) -->
+                <div id="clinMicTranscript" style="display:none;margin-bottom:8px;background:var(--s2);border-radius:6px;padding:7px 10px;font-size:12px;line-height:1.5;color:var(--tx);min-height:36px;border-left:3px solid #1D9E75">
+                  <span style="color:var(--mu);font-style:italic">Paroles du patient en temps réel…</span>
+                </div>
+
+                <!-- Ligne 3 : notes clinicien -->
+                <div style="margin-bottom:8px">
+                  <div style="font-size:10px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">
+                    ✏️ Notes clinicien <span style="font-weight:400;text-transform:none;font-style:italic">(↵ = horodater)</span>
+                  </div>
+                  <div id="clinNoteLog" style="max-height:50px;overflow-y:auto;margin-bottom:4px"></div>
+                  <textarea id="clinNoteInput" rows="2" placeholder="Prenez vos notes pendant que le patient parle… (↵ pour horodater)"
+                    style="width:100%;font-size:12px;line-height:1.5;padding:6px 9px;border:.5px solid var(--bd);border-radius:6px;background:var(--s2);color:var(--tx);font-family:inherit;resize:none"></textarea>
+                </div>
+
+                <!-- Ligne 4 : tags rapides -->
+                <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px">
+                  <span onclick="clinNoteTag('⚠️ Symptôme: ')" style="font-size:11px;padding:2px 7px;border-radius:10px;background:#FAEEDA;color:#854F0B;border:.5px solid #EF9F27;cursor:pointer">+ Symptôme</span>
+                  <span onclick="clinNoteTag('💊 Ttt: ')" style="font-size:11px;padding:2px 7px;border-radius:10px;background:#E6F1FB;color:#0C447C;border:.5px solid #378ADD;cursor:pointer">+ Traitement</span>
+                  <span onclick="clinNoteTag('🧬 Variant: ')" style="font-size:11px;padding:2px 7px;border-radius:10px;background:#EEEDFE;color:#3C3489;border:.5px solid #7F77DD;cursor:pointer">+ Variant</span>
+                  <span onclick="clinNoteTag('📌 Explorer: ')" style="font-size:11px;padding:2px 7px;border-radius:10px;background:#EAF3DE;color:#27500A;border:.5px solid #639922;cursor:pointer">+ À explorer</span>
+                  <span onclick="clinNoteTag('⚡ Urgent: ')" style="font-size:11px;padding:2px 7px;border-radius:10px;background:#FCEBEB;color:#A32D2D;border:.5px solid #E24B4A;cursor:pointer">+ Urgent</span>
+                  <button onclick="clinExport()" style="margin-left:auto;font-size:11px;padding:0 8px;height:22px;border-radius:5px;border:.5px solid var(--bd);background:var(--s2);color:var(--tx);cursor:pointer">💾 Exporter</button>
+                </div>
+
+                <!-- Ligne 5 : bouton envoyer -->
+                <button class="btn bp3" onclick="sendClinicianMessage()" id="clinicianSendBtn" style="width:100%;justify-content:center">
+                  📤 Envoyer au clinicien
+                </button>
+              </div>
             </div>
           </div>
 
@@ -3715,67 +3766,146 @@ Arbre décisionnel ESMO 2023-2024:
 
 
 
-// ══ MIC INTÉGRÉ CLINICIEN ════════════════════════════════════════════════
+
+
+
+// ══ MIC + NOTES CLINICIEN ════════════════════════════════════════════════
 (function(){
-  let cRec=null,cIsRec=false,cWaveInt=null;
+  let cRec=null,cIsRec=false,cSec=0,cTimer=null,cWaveInt=null,cFull='',cNotes=[];
+
+  // Init vagues
+  function initWave(){
+    const el=document.getElementById('clinMicWave');
+    if(!el||el.children.length>0)return;
+    for(let i=0;i<10;i++){const b=document.createElement('div');b.style.cssText='width:2px;border-radius:2px;background:#1D9E75;height:3px;transition:height .1s';el.appendChild(b);}
+  }
+
+  function fmt(s){return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
+
+  function animWave(on){
+    clearInterval(cWaveInt);
+    const el=document.getElementById('clinMicWave');if(!el)return;
+    if(!on){Array.from(el.children).forEach(b=>b.style.height='3px');return;}
+    cWaveInt=setInterval(()=>{Array.from(el.children).forEach(b=>{b.style.height=(cIsRec?Math.max(3,Math.floor(Math.random()*14)+2):3)+'px';});},120);
+  }
+
+  function setRecUI(on){
+    const btn=document.getElementById('clinMicBtn');
+    const dot=document.getElementById('clinMicDot');
+    const lbl=document.getElementById('clinMicLbl');
+    const tr=document.getElementById('clinMicTranscript');
+    if(on){
+      if(btn)btn.style.cssText='display:flex;align-items:center;gap:6px;padding:0 14px;height:34px;border-radius:17px;border:1.5px solid #E24B4A;background:#FCEBEB;color:#A32D2D;font-size:12px;font-weight:500;cursor:pointer';
+      if(dot)dot.style.animation='vc-blink .8s steps(1) infinite';
+      if(lbl)lbl.textContent='⏹ Arrêter';
+      if(tr)tr.style.display='block';
+    }else{
+      if(btn)btn.style.cssText='display:flex;align-items:center;gap:6px;padding:0 14px;height:34px;border-radius:17px;border:1.5px solid #1D9E75;background:var(--s2);color:#0F6E56;font-size:12px;font-weight:500;cursor:pointer';
+      if(dot)dot.style.animation='none';
+      if(lbl)lbl.textContent='🎙️ Enregistrer patient';
+    }
+    animWave(on);
+  }
 
   window.clinMicToggle=function(){
+    initWave();
     if(!cIsRec){
       const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-      if(!SR){alert('Utilisez Chrome ou Edge.');return;}
+      if(!SR){alert('Utilisez Chrome ou Edge pour la reconnaissance vocale.');return;}
       const lang=(document.getElementById('clinMicLang')||{}).value||'fr-FR';
       cRec=new SR();cRec.continuous=true;cRec.interimResults=true;cRec.lang=lang;
       cRec.onresult=e=>{
-        let final='',interim='';
+        let interim='';
         for(let i=e.resultIndex;i<e.results.length;i++){
-          if(e.results[i].isFinal)final+=e.results[i][0].transcript+' ';
-          else interim+=e.results[i][0].transcript;
+          if(e.results[i].isFinal){
+            cFull+=e.results[i][0].transcript+' ';
+            // Ajouter aussi dans le textarea de question
+            const ta=document.getElementById('clinicianInput');
+            if(ta){ta.value=(ta.value+e.results[i][0].transcript+' ').trim()+' ';}
+          } else {
+            interim+=e.results[i][0].transcript;
+          }
         }
-        const ta=document.getElementById('clinicianInput');
-        if(ta&&final){
-          // Ajouter le texte final à la fin du textarea
-          ta.value=(ta.value+final).trim()+' ';
-        }
-        // Montrer l'interim dans un placeholder visuel
-        const ph=document.getElementById('clinMicInterim');
-        if(ph)ph.textContent=interim;
+        const tr=document.getElementById('clinMicTranscript');
+        if(tr)tr.innerHTML='<span>'+cFull+'</span>'+(interim?'<span style="color:var(--mu)">'+interim+'</span>':'');
       };
       cRec.onerror=e=>{if(e.error!=='no-speech')console.warn('mic:',e.error);};
       cRec.onend=()=>{if(cIsRec){try{cRec.start();}catch(e){}}};
       cRec.start();
-      cIsRec=true;
-      // Animer le bouton
-      const btn=document.getElementById('clinMicBtn');
-      const dot=document.getElementById('clinMicDot');
-      const lbl=document.getElementById('clinMicLbl');
-      if(btn){btn.style.cssText='display:flex;align-items:center;gap:5px;padding:0 12px;height:40px;border-radius:20px;border:1.5px solid #E24B4A;background:#FCEBEB;color:#A32D2D;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap';}
-      if(dot){dot.style.animation='vc-blink .8s steps(1) infinite';}
-      if(lbl){lbl.textContent='⏹';}
-      // Ajouter indicateur interim sous le textarea si absent
-      let ph=document.getElementById('clinMicInterim');
-      if(!ph){
-        ph=document.createElement('div');
-        ph.id='clinMicInterim';
-        ph.style.cssText='font-size:12px;color:var(--mu);font-style:italic;padding:3px 6px;min-height:16px';
-        const ta=document.getElementById('clinicianInput');
-        if(ta&&ta.parentNode)ta.parentNode.insertBefore(ph,ta.nextSibling);
-      }
+      cIsRec=true;cSec=0;cFull='';
+      cTimer=setInterval(()=>{cSec++;const t=document.getElementById('clinMicTimer');if(t)t.textContent=fmt(cSec);},1000);
+      setRecUI(true);
+      // Focus notes
+      setTimeout(()=>{const n=document.getElementById('clinNoteInput');if(n)n.focus();},300);
     }else{
       cIsRec=false;
+      clearInterval(cTimer);clearInterval(cWaveInt);
       try{cRec.stop();}catch(e){}
-      clearInterval(cWaveInt);
-      const btn=document.getElementById('clinMicBtn');
-      const dot=document.getElementById('clinMicDot');
-      const lbl=document.getElementById('clinMicLbl');
-      if(btn){btn.style.cssText='display:flex;align-items:center;gap:5px;padding:0 12px;height:40px;border-radius:20px;border:1.5px solid #1D9E75;background:var(--s2);color:#0F6E56;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap';}
-      if(dot){dot.style.animation='none';}
-      if(lbl){lbl.textContent='🎙️';}
-      const ph=document.getElementById('clinMicInterim');
-      if(ph)ph.textContent='';
+      setRecUI(false);
     }
   };
+
+  // Ajouter note horodatée
+  function addNote(text){
+    cNotes.push({text,ts:fmt(cSec)});
+    const log=document.getElementById('clinNoteLog');
+    if(log){
+      const d=document.createElement('div');
+      d.style.cssText='border-left:2px solid #5DCAA5;padding:1px 6px;margin-bottom:2px;font-size:11px;color:var(--tx)';
+      d.innerHTML='<span style="color:var(--mu)">'+fmt(cSec)+'</span> '+text;
+      log.appendChild(d);log.scrollTop=log.scrollHeight;
+    }
+  }
+
+  // Entrée = horodater
+  document.addEventListener('DOMContentLoaded',()=>{
+    const ta=document.getElementById('clinNoteInput');
+    if(ta){
+      ta.addEventListener('keydown',e=>{
+        if(e.key==='Enter'&&!e.shiftKey){
+          e.preventDefault();
+          const v=ta.value.trim();
+          if(v){addNote(v);ta.value='';}
+        }
+      });
+    }
+  });
+  // Fallback si DOMContentLoaded déjà passé
+  setTimeout(()=>{
+    const ta=document.getElementById('clinNoteInput');
+    if(ta&&!ta._clinHook){
+      ta._clinHook=true;
+      ta.addEventListener('keydown',e=>{
+        if(e.key==='Enter'&&!e.shiftKey){
+          e.preventDefault();const v=ta.value.trim();
+          if(v){addNote(v);ta.value='';}
+        }
+      });
+    }
+  },1500);
+
+  window.clinNoteTag=function(text){
+    const ta=document.getElementById('clinNoteInput');if(!ta)return;
+    const pos=ta.selectionStart,b=ta.value.substring(0,pos),a=ta.value.substring(pos);
+    const pfx=(b.length>0&&!b.endsWith('\n'))?'\n':'';
+    ta.value=b+pfx+text+a;const np=pos+pfx.length+text.length;
+    ta.setSelectionRange(np,np);ta.focus();
+  };
+
+  window.clinExport=function(){
+    const date=new Date().toLocaleDateString('fr-FR');
+    const clinName=document.querySelector('.clinician-name')||{textContent:'Clinicien'};
+    const notesStr=cNotes.map(n=>'['+n.ts+'] '+n.text).join('\n')||'(aucune)';
+    const manual=(document.getElementById('clinNoteInput')||{}).value||'';
+    const sep='─'.repeat(40);
+    const txt=['CONSULTATION — SenGenoScope',sep,'Date: '+date,'Durée: '+fmt(cSec),'',sep,'TRANSCRIPTION PATIENT',sep,cFull.trim()||'(aucune)','',sep,'NOTES HORODATÉES',sep,notesStr,manual?'\n'+sep+'\nNOTES LIBRES\n'+sep+'\n'+manual:''].join('\n');
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain'}));
+    a.download='consultation_'+date.replace(/\//g,'-')+'.txt';a.click();
+  };
+
 })();
-// ══ FIN MIC CLINICIEN ════════════════════════════════════════════════════
+// ══ FIN MIC + NOTES CLINICIEN ════════════════════════════════════════════
 
 
 // ══ FLUSH EARLY CALLS (appels reçus avant chargement complet) ════════════
