@@ -456,9 +456,9 @@ canvas{max-width:100%;border-radius:5px;}
 <script>
 // Early stubs — évite "not defined" pendant le chargement du script principal
 var _pendingCalls = [];
-function qs(q){ _pendingCalls.push(['qs', q]); }
+async function qs(q){ _pendingCalls.push(['qs', q]); }
 function showSec(n, b){ _pendingCalls.push(['showSec', n, b]); }
-function openApiSettings(){ _pendingCalls.push(['openApiSettings']); }
+async function openApiSettings(){ _pendingCalls.push(['openApiSettings']); }
 
 function updateLangToggle() {
   const t = document.getElementById('langToggle');
@@ -2115,27 +2115,27 @@ function setLang(l){
 
 // ══ HISTORY ═══════════════════════════════════════════════════════════════
 let hist=JSON.parse(localStorage.getItem('sgs_hist')||'[]');
-function addHist(q){hist=[q,...hist.filter(x=>x!==q)].slice(0,10);localStorage.setItem('sgs_hist',JSON.stringify(hist));renderHist();}
-function renderHist(){const b=document.getElementById('histBar'),t=document.getElementById('histTags');if(!hist.length){b.style.display='none';return;}b.style.display='flex';t.innerHTML=hist.map(q=>`<span class="ht3" onclick="qs('${q.replace(/'/g,"\\'")}')">  ${q}</span>`).join('');}
+async function addHist(q){hist=[q,...hist.filter(x=>x!==q)].slice(0,10);localStorage.setItem('sgs_hist',JSON.stringify(hist));renderHist();}
+async function renderHist(){const b=document.getElementById('histBar'),t=document.getElementById('histTags');if(!hist.length){b.style.display='none';return;}b.style.display='flex';t.innerHTML=hist.map(q=>`<span class="ht3" onclick="qs('${q.replace(/'/g,"\\'")}')">  ${q}</span>`).join('');}
 function qs(q){document.getElementById('query').value=q;if(typeof runSearch==='function')runSearch();}
 
 // ══ BOOKMARKS ═════════════════════════════════════════════════════════════
 let bks=JSON.parse(localStorage.getItem('sgs_bks')||'[]');
-function saveBk(){const q=document.getElementById('query').value.trim();if(!q)return;if(!bks.find(b=>b.q===q)){bks.unshift({q,dt:new Date().toLocaleDateString()});localStorage.setItem('sgs_bks',JSON.stringify(bks));}renderBk();alert('✅ Sauvegardé !');}
-function delBk(i){bks.splice(i,1);localStorage.setItem('sgs_bks',JSON.stringify(bks));renderBk();}
-function renderBk(){const el=document.getElementById('bkList');if(!bks.length){el.innerHTML='<div class="empty">Aucun favori sauvegardé.</div>';return;}el.innerHTML=bks.map((b,i)=>`<div class="bm"><div><div class="bmq">${b.q}</div><div class="bmd">${b.dt}</div></div><div style="display:flex;gap:5px"><button class="btn bp3 bsm" onclick="qs('${b.q.replace(/'/g,"\\'")}')">▶ Relancer</button><button class="btn bsm" style="background:#fee2e2;color:#b91c1c" onclick="delBk(${i})">✕</button></div></div>`).join('');}
+async function saveBk(){const q=document.getElementById('query').value.trim();if(!q)return;if(!bks.find(b=>b.q===q)){bks.unshift({q,dt:new Date().toLocaleDateString()});localStorage.setItem('sgs_bks',JSON.stringify(bks));}renderBk();alert('✅ Sauvegardé !');}
+async function delBk(i){bks.splice(i,1);localStorage.setItem('sgs_bks',JSON.stringify(bks));renderBk();}
+async function renderBk(){const el=document.getElementById('bkList');if(!bks.length){el.innerHTML='<div class="empty">Aucun favori sauvegardé.</div>';return;}el.innerHTML=bks.map((b,i)=>`<div class="bm"><div><div class="bmq">${b.q}</div><div class="bmd">${b.dt}</div></div><div style="display:flex;gap:5px"><button class="btn bp3 bsm" onclick="qs('${b.q.replace(/'/g,"\\'")}')">▶ Relancer</button><button class="btn bsm" style="background:#fee2e2;color:#b91c1c" onclick="delBk(${i})">✕</button></div></div>`).join('');}
 
 // ══ HPO ═══════════════════════════════════════════════════════════════════
 let selHPO=[],hpoTmr=null;
-function sHPO(v){clearTimeout(hpoTmr);const dd=document.getElementById('hpoDd');if(v.length<2){dd.style.display='none';return;}hpoTmr=setTimeout(async()=>{try{const r=await fetch('/hpo_search?term='+encodeURIComponent(v));const items=await r.json();if(!items.length){dd.style.display='none';return;}dd.innerHTML=items.map(t=>`<div class="hi" onclick="addHPO('${t.id}','${t.name.replace(/'/g,"\\'")}')"><div>${t.name}</div><div class="hid">${t.id}</div></div>`).join('');dd.style.display='block';}catch{dd.style.display='none';}},300);}
-function addHPO(id,name){if(!selHPO.find(h=>h.id===id))selHPO.push({id,name});renderHPO();document.getElementById('hpoInp').value='';document.getElementById('hpoDd').style.display='none';}
-function remHPO(id){selHPO=selHPO.filter(h=>h.id!==id);renderHPO();}
-function renderHPO(){document.getElementById('hpoSel').innerHTML=selHPO.map(h=>`<span class="ht2">${h.name} <span style="opacity:.5;font-size:10px">${h.id}</span><button onclick="remHPO('${h.id}')">×</button></span>`).join('');}
+async function sHPO(v){clearTimeout(hpoTmr);const dd=document.getElementById('hpoDd');if(v.length<2){dd.style.display='none';return;}hpoTmr=setTimeout(async()=>{try{const r=await fetch('/hpo_search?term='+encodeURIComponent(v));const items=await r.json();if(!items.length){dd.style.display='none';return;}dd.innerHTML=items.map(t=>`<div class="hi" onclick="addHPO('${t.id}','${t.name.replace(/'/g,"\\'")}')"><div>${t.name}</div><div class="hid">${t.id}</div></div>`).join('');dd.style.display='block';}catch{dd.style.display='none';}},300);}
+async function addHPO(id,name){if(!selHPO.find(h=>h.id===id))selHPO.push({id,name});renderHPO();document.getElementById('hpoInp').value='';document.getElementById('hpoDd').style.display='none';}
+async function remHPO(id){selHPO=selHPO.filter(h=>h.id!==id);renderHPO();}
+async function renderHPO(){document.getElementById('hpoSel').innerHTML=selHPO.map(h=>`<span class="ht2">${h.name} <span style="opacity:.5;font-size:10px">${h.id}</span><button onclick="remHPO('${h.id}')">×</button></span>`).join('');}
 document.addEventListener('click',e=>{if(!e.target.closest('.hw'))document.getElementById('hpoDd').style.display='none';});
 
 // ══ NAV ═══════════════════════════════════════════════════════════════════
 let glData=[];
-function showSec(name,btn){
+async function showSec(name,btn){
   ['search','prs','founder','penetrance','tools','ngs','acmg','risk','glcomp','manchester','compvar','pedigree','bookmarks','about','litimport','ai_chat','ai_upload','ai_pharma','clinicians','morpho','rare','tmb_msi','drug_interactions','esmo_decision'].forEach(s=>{
     const el=document.getElementById('sec-'+s);
     if(el) el.style.display=s===name?'block':'none';
@@ -2157,7 +2157,7 @@ function showSec(name,btn){
 }
 
 // ══ LITERATURE IMPORT ════════════════════════════════════════════════════
-function switchLitTab(tab,btn){
+async function switchLitTab(tab,btn){
   ['pmid','title','text','scholar'].forEach(t=>{
     document.getElementById('lit-'+t).style.display=t===tab?'block':'none';
   });
@@ -2165,7 +2165,7 @@ function switchLitTab(tab,btn){
   if(btn){btn.classList.add('active','bp3');}
 }
 
-async function fetchLitPmid(){
+async async function fetchLitPmid(){
   const raw = document.getElementById('litPmidInput').value.trim();
   if(!raw) return;
   const res = document.getElementById('litResult');
@@ -2178,7 +2178,7 @@ async function fetchLitPmid(){
   }catch(e){res.innerHTML='<div class="erb">❌ Erreur serveur.</div>';}
 }
 
-async function fetchLitTitle(){
+async async function fetchLitTitle(){
   const q = document.getElementById('litTitleInput').value.trim();
   const src = document.getElementById('litSource').value;
   const max = document.getElementById('litMaxRes').value;
@@ -2204,7 +2204,7 @@ async function fetchLitTitle(){
   }catch(e){res.innerHTML='<div class="erb">❌ Erreur serveur.</div>';}
 }
 
-async function parseLitText(){
+async async function parseLitText(){
   const txt = document.getElementById('litTextInput').value.trim();
   if(!txt) return;
   const res = document.getElementById('litResult');
@@ -2212,7 +2212,7 @@ async function parseLitText(){
   await extractFromAbstract(txt,'Texte libre');
 }
 
-async function extractFromAbstract(text, source){
+async async function extractFromAbstract(text, source){
   const res = document.getElementById('litResult');
   try{
     const r = await fetch('/lit_extract',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,source})});
@@ -2244,20 +2244,20 @@ function renderLitResult(d, res){
 const DB_URLS={pubmed:'https://pubmed.ncbi.nlm.nih.gov/',clinvar:'https://www.ncbi.nlm.nih.gov/clinvar/',omim:'https://omim.org/',cosmic:'https://cancer.sanger.ac.uk/cosmic',gnomad:'https://gnomad.broadinstitute.org/',orphanet:'https://www.orpha.net/',hgmd:'https://www.hgmd.cf.ac.uk/',varsome:'https://varsome.com/',franklin:'https://franklin.genoox.com/',dgidb:'https://dgidb.org/',clinicaltrials:'https://clinicaltrials.gov/',decipher:'https://www.deciphergenomics.org/',insight:'https://www.insight-group.org/',enigma:'https://enigmaconsortium.org/',hpo:'https://hpo.jax.org/',lovd:'https://www.lovd.nl/',uniprot:'https://www.uniprot.org/',gtex:'https://gtexportal.org/home/',gencc:'https://thegencc.org/',spliceai:'https://spliceailookup.broadinstitute.org/',alphamissense:'https://alphamissense.hegelab.org/',scholar:'https://scholar.google.com/',europepmc:'https://europepmc.org/',crossref:'https://www.crossref.org/',oncokb:'https://www.oncokb.org/',civic:'https://civicdb.org/',cbioportal:'https://www.cbioportal.org/',iarctp53:'https://tp53.isb-cgc.org/',pharmgkb:'https://www.pharmgkb.org/',cpic:'https://cpicpgx.org/',drugbank:'https://go.drugbank.com/',h3africa:'https://h3africa.org/',awiGen:'https://gnomad.broadinstitute.org/',alphafold:'https://alphafold.ebi.ac.uk/',string:'https://string-db.org/',mavedb:'https://mavedb.org/',esmo:'https://www.esmo.org/guidelines',nccn:'https://www.nccn.org/guidelines/',has:'https://www.has-sante.fr/',dbsnp:'https://www.ncbi.nlm.nih.gov/snp/',nord:'https://rarediseases.org/',pdb:'https://www.rcsb.org/',oncokb:'https://www.oncokb.org/',civic:'https://civicdb.org/',cbioportal:'https://www.cbioportal.org/',iarctp53:'https://tp53.isb-cgc.org/',pharmgkb:'https://www.pharmgkb.org/',cpic:'https://cpicpgx.org/',drugbank:'https://go.drugbank.com/',h3africa:'https://h3africa.org/',awiGen:'https://gnomad.broadinstitute.org/',alphafold:'https://alphafold.ebi.ac.uk/',string:'https://string-db.org/',mavedb:'https://mavedb.org/',esmo:'https://www.esmo.org/guidelines',nccn:'https://www.nccn.org/guidelines/',has:'https://www.has-sante.fr/',dbsnp:'https://www.ncbi.nlm.nih.gov/snp/',nord:'https://rarediseases.org/',pdb:'https://www.rcsb.org/'};
 function openDB(n){if(DB_URLS[n])window.open(DB_URLS[n],'_blank');}
 function swTab(n,btn){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.tp').forEach(p=>p.classList.remove('active'));if(btn)btn.classList.add('active');document.getElementById('tp-'+n).classList.add('active');}
-function showTool(t){document.getElementById('tool-seq').style.display=t==='seq'?'block':'none';document.getElementById('tool-vep').style.display=t==='vep'?'block':'none';document.querySelectorAll('.tc').forEach(c=>c.classList.remove('at'));event.currentTarget.classList.add('at');}
+async function showTool(t){document.getElementById('tool-seq').style.display=t==='seq'?'block':'none';document.getElementById('tool-vep').style.display=t==='vep'?'block':'none';document.querySelectorAll('.tc').forEach(c=>c.classList.remove('at'));event.currentTarget.classList.add('at');}
 
 // ══ STATUS ════════════════════════════════════════════════════════════════
-function setSt(msg){const el=document.getElementById('statusBar');el.style.display='flex';el.style.background='var(--prl)';el.style.border='1px solid #bae6fd';el.style.borderRadius='7px';el.style.padding='9px 13px';el.innerHTML=`<div class="sp"></div><span style="color:var(--prd);font-size:13px">${msg}</span>`;}
-function clrSt(){document.getElementById('statusBar').style.display='none';}
-function showErr(msg){const el=document.getElementById('errBar');el.style.display='block';el.textContent='⚠ '+msg;}
-function clrErr(){document.getElementById('errBar').style.display='none';}
-function sigB(sig){if(!sig)return`<span class="sig so">N/S</span>`;const sl=sig.toLowerCase();if(sl.includes('pathogenic')&&!sl.includes('likely'))return`<span class="sig sp2">${sig}</span>`;if(sl.includes('likely pathogenic'))return`<span class="sig slp">${sig}</span>`;if(sl.includes('benign')&&!sl.includes('likely'))return`<span class="sig sb2">${sig}</span>`;if(sl.includes('likely benign'))return`<span class="sig sb2" style="opacity:.8">${sig}</span>`;if(sl.includes('uncertain')||sl.includes('vus'))return`<span class="sig svs">${sig}</span>`;return`<span class="sig so">${sig}</span>`;}
+async function setSt(msg){const el=document.getElementById('statusBar');el.style.display='flex';el.style.background='var(--prl)';el.style.border='1px solid #bae6fd';el.style.borderRadius='7px';el.style.padding='9px 13px';el.innerHTML=`<div class="sp"></div><span style="color:var(--prd);font-size:13px">${msg}</span>`;}
+async function clrSt(){document.getElementById('statusBar').style.display='none';}
+async function showErr(msg){const el=document.getElementById('errBar');el.style.display='block';el.textContent='⚠ '+msg;}
+async function clrErr(){document.getElementById('errBar').style.display='none';}
+async function sigB(sig){if(!sig)return`<span class="sig so">N/S</span>`;const sl=sig.toLowerCase();if(sl.includes('pathogenic')&&!sl.includes('likely'))return`<span class="sig sp2">${sig}</span>`;if(sl.includes('likely pathogenic'))return`<span class="sig slp">${sig}</span>`;if(sl.includes('benign')&&!sl.includes('likely'))return`<span class="sig sb2">${sig}</span>`;if(sl.includes('likely benign'))return`<span class="sig sb2" style="opacity:.8">${sig}</span>`;if(sl.includes('uncertain')||sl.includes('vus'))return`<span class="sig svs">${sig}</span>`;return`<span class="sig so">${sig}</span>`;}
 
 // ══ SEARCH ════════════════════════════════════════════════════════════════
 document.getElementById('query').addEventListener('keydown',e=>{if(e.key==='Enter')runSearch();});
 let lastGenes=[];
 
-async function runSearch(){
+async async function runSearch(){
   const q=document.getElementById('query').value.trim(), hpoT=selHPO.map(h=>h.name).join(' ');
   if(!q&&!hpoT){showErr('Veuillez entrer un terme de recherche.');return;}
   clrErr();document.getElementById('results').style.display='none';
@@ -2293,7 +2293,7 @@ async function runSearch(){
   document.getElementById('searchBtn').disabled=false;clrSt();
 }
 
-function popGSel(genes){
+async function popGSel(genes){
   const o='<option value="">— Sélectionner —</option>'+genes.map(g=>`<option value="${g}">${g}</option>`).join('');
   ['varGs','popGs','drugGs','trialGs'].forEach(id=>document.getElementById(id).innerHTML=o);
 }
@@ -2386,7 +2386,7 @@ function renderResults(data){
   renderLinks('clingenL',data.clingen_links||[]);
 }
 
-async function ldGI(gene){
+async async function ldGI(gene){
   const p=document.getElementById('giPanel');p.className='gi v';
   p.innerHTML='<div style="font-size:13px;color:var(--mu)">Chargement fiche NCBI…</div>';
   try{
@@ -2413,8 +2413,8 @@ async function ldGI(gene){
 // ══ CHARTS ════════════════════════════════════════════════════════════════
 const COLORS=['#0891b2','#7c3aed','#16a34a','#d97706','#dc2626','#0e7490','#5b21b6','#065f46','#b45309','#991b1b','#0369a1','#4f46e5'];
 
-function qkVt(g){document.getElementById('varGs').value=g;ldVt(g);swTab('variants',document.querySelectorAll('.tab')[1]);}
-async function ldVt(gene){
+async function qkVt(g){document.getElementById('varGs').value=g;ldVt(g);swTab('variants',document.querySelectorAll('.tab')[1]);}
+async async function ldVt(gene){
   if(!gene)return;
   const cv=document.getElementById('varCv'),ctx=cv.getContext('2d'),pc=document.getElementById('pathoCv'),pctx=pc.getContext('2d'),lg=document.getElementById('varLg');
   lg.textContent='Chargement ClinVar…';ctx.clearRect(0,0,cv.width,cv.height);pctx.clearRect(0,0,pc.width,pc.height);
@@ -2428,7 +2428,7 @@ async function ldVt(gene){
   }catch{lg.textContent='Erreur ClinVar.';}
 }
 
-function drawBar(ctx,cv,lbs,vs,title){
+async function drawBar(ctx,cv,lbs,vs,title){
   const W=cv.width,H=cv.height,pad={t:32,r:14,b:80,l:42},maxV=Math.max(...vs)||1;
   ctx.clearRect(0,0,W,H);ctx.fillStyle='#f7f9fb';ctx.fillRect(0,0,W,H);
   ctx.fillStyle='#0f1c2e';ctx.font='bold 11px DM Sans,sans-serif';ctx.textAlign='center';ctx.fillText(title,W/2,20);
@@ -2445,7 +2445,7 @@ function drawBar(ctx,cv,lbs,vs,title){
   });
 }
 
-function drawPie(ctx,cv,lbs,vs,title){
+async function drawPie(ctx,cv,lbs,vs,title){
   const W=cv.width,H=cv.height,cx=W/2,cy=(H-30)/2+28,R=Math.min(W,H-50)/2-10,tot=vs.reduce((a,b)=>a+b,0)||1;
   ctx.clearRect(0,0,W,H);ctx.fillStyle='#f7f9fb';ctx.fillRect(0,0,W,H);
   ctx.fillStyle='#0f1c2e';ctx.font='bold 11px DM Sans,sans-serif';ctx.textAlign='center';ctx.fillText(title,W/2,16);
@@ -2457,8 +2457,8 @@ function drawPie(ctx,cv,lbs,vs,title){
 // ══ gnomAD ════════════════════════════════════════════════════════════════
 const POP={afr:'African/African American',amr:'Latino/Admixed American',asj:'Ashkenazi Jewish',eas:'East Asian',fin:'Finnish',mid:'Middle Eastern',nfe:'Non-Finnish European',sas:'South Asian',oth:'Remaining'};
 
-function qkPop(g){document.getElementById('popGs').value=g;ldPop(g);swTab('pops',document.querySelectorAll('.tab')[2]);}
-async function ldPop(gene){
+async function qkPop(g){document.getElementById('popGs').value=g;ldPop(g);swTab('pops',document.querySelectorAll('.tab')[2]);}
+async async function ldPop(gene){
   if(!gene)return;const el=document.getElementById('popCt');el.innerHTML='<div class="empty">Chargement gnomAD r4…</div>';
   try{
     const r=await fetch('/gnomad/'+gene);const data=await r.json();const variants=data.variants||[];
@@ -2479,8 +2479,8 @@ async function ldPop(gene){
 }
 
 // ══ DRUGS ═════════════════════════════════════════════════════════════════
-function qkDrug(g){document.getElementById('drugGs').value=g;ldDrug(g);swTab('drugs',document.querySelectorAll('.tab')[3]);}
-async function ldDrug(gene){
+async function qkDrug(g){document.getElementById('drugGs').value=g;ldDrug(g);swTab('drugs',document.querySelectorAll('.tab')[3]);}
+async async function ldDrug(gene){
   if(!gene)return;const el=document.getElementById('drugCt');el.innerHTML='<div class="empty">Chargement DGIdb…</div>';
   try{
     const r=await fetch('/drug_interactions/'+gene);const data=await r.json();const ints=data.interactions||[];
@@ -2491,9 +2491,9 @@ async function ldDrug(gene){
 }
 
 // ══ TRIALS ════════════════════════════════════════════════════════════════
-function qkTrial(g){document.getElementById('trialGs').value=g;ldTrial(g);swTab('trials',document.querySelectorAll('.tab')[4]);}
-function tsBadge(s){const sl=(s||'').toLowerCase();if(sl.includes('recruit'))return'tsr';if(sl.includes('active'))return'tsa';if(sl.includes('complet'))return'tsc';return'tso';}
-async function ldTrial(gene){
+async function qkTrial(g){document.getElementById('trialGs').value=g;ldTrial(g);swTab('trials',document.querySelectorAll('.tab')[4]);}
+async function tsBadge(s){const sl=(s||'').toLowerCase();if(sl.includes('recruit'))return'tsr';if(sl.includes('active'))return'tsa';if(sl.includes('complet'))return'tsc';return'tso';}
+async async function ldTrial(gene){
   if(!gene)return;const el=document.getElementById('trialCt');el.innerHTML='<div class="empty">Chargement ClinicalTrials.gov…</div>';
   try{
     const r=await fetch('/clinical_trials/'+gene);const data=await r.json();const trials=data.trials||[];
@@ -2508,7 +2508,7 @@ async function ldTrial(gene){
   }catch{el.innerHTML='<div class="empty">Erreur ClinicalTrials.</div>';}
 }
 
-function renderLinks(id,links){document.getElementById(id).innerHTML=links.map(l=>`<a class="lc" href="${l.url}" target="_blank"><div class="lcn">${l.name}</div><div class="lcd">${l.description||''}</div>${l.org?`<div class="lco">${l.org}</div>`:''}</a>`).join('')||'<div class="empty">Aucun lien disponible.</div>';}
+async function renderLinks(id,links){document.getElementById(id).innerHTML=links.map(l=>`<a class="lc" href="${l.url}" target="_blank"><div class="lcn">${l.name}</div><div class="lcd">${l.description||''}</div>${l.org?`<div class="lco">${l.org}</div>`:''}</a>`).join('')||'<div class="empty">Aucun lien disponible.</div>';}
 
 // ══ VEP PRE-FILL FROM DATABASES ═══════════════════════════════════════════
 const VEP_PRESETS={
@@ -2518,7 +2518,7 @@ const VEP_PRESETS={
   kras_g12d:{chrom:'12',pos:'25245351',ref:'C',alt:'T',label:'KRAS G12D (oncogène colorectal)'},
   egfr_l858r:{chrom:'7',pos:'55191822',ref:'T',alt:'G',label:'EGFR L858R (sensible tyrosine kinase)'}
 };
-function prefillVEP(key){
+async function prefillVEP(key){
   const p=VEP_PRESETS[key];if(!p)return;
   document.getElementById('vC').value=p.chrom;
   document.getElementById('vP').value=p.pos;
@@ -2526,7 +2526,7 @@ function prefillVEP(key){
   document.getElementById('vA').value=p.alt;
   document.getElementById('vepDbStatus').innerHTML=`✅ Pré-rempli : <b>${p.label}</b> · GRCh38`;
 }
-async function fetchVepFromDB(){
+async async function fetchVepFromDB(){
   const q=document.getElementById('vepDbSearch').value.trim();
   if(!q)return;
   const st=document.getElementById('vepDbStatus');
@@ -2559,7 +2559,7 @@ async function fetchVepFromDB(){
 }
 
 // ══ VEP ═══════════════════════════════════════════════════════════════════
-async function predictVEP(){
+async async function predictVEP(){
   const btn=document.querySelector('#tool-vep .btn[onclick="predictVEP()"]');
   const chrom=document.getElementById('vC').value.trim(),pos=document.getElementById('vP').value.trim();
   const ref=document.getElementById('vR').value.trim().toUpperCase(),alt=document.getElementById('vA').value.trim().toUpperCase();
@@ -2635,7 +2635,7 @@ async function predictVEP(){
 }
 
 // ══ SEQUENCE ══════════════════════════════════════════════════════════════
-async function analyzeSeq(){
+async async function analyzeSeq(){
   const s=document.getElementById('seqIn').value.trim(),s2=document.getElementById('seqIn2').value.trim();
   if(!s){alert('Entrez une séquence ADN ou FASTA.');return;}
   const btn=document.querySelector('#tool-seq .btn');btn.textContent='⏳ Analyse…';btn.disabled=true;
@@ -2667,14 +2667,14 @@ async function analyzeSeq(){
 const APATH=[{code:'PVS1',desc:'Perte de fonction — mécanisme pathogène connu'},{code:'PS1',desc:'Même AA que variant pathogène connu'},{code:'PS2',desc:'De novo confirmé (sans famille atteinte)'},{code:'PS3',desc:'Études fonctionnelles prouvant effet délétère'},{code:'PS4',desc:'Prévalence sig. plus élevée chez patients'},{code:'PM1',desc:'Domaine fonctionnel critique / hotspot'},{code:'PM2',desc:'Absent ou très rare en population (gnomAD)'},{code:'PM3',desc:'En trans avec variant pathogène (récessif)'},{code:'PM4',desc:'Longueur protéique modifiée (frameshift/in-frame)'},{code:'PM5',desc:'Nouveau variant missense — même position pathogène'},{code:'PM6',desc:'De novo supposé (non confirmé)'},{code:'PP1',desc:'Co-ségrégation avec maladie dans la famille'},{code:'PP2',desc:'Missense dans gène peu tolérant aux variants bénins'},{code:'PP3',desc:'Outils computationnels prédisent effet délétère'},{code:'PP4',desc:'Phénotype spécifique correspond au gène'},{code:'PP5',desc:'Source réputée rapporte variant pathogène'}];
 const ABEN=[{code:'BA1',desc:'AF >5% en population générale (gnomAD)'},{code:'BS1',desc:'Fréquence > prévalence attendue de la maladie'},{code:'BS2',desc:'Observé sain homozygote/hémizygote'},{code:'BS3',desc:'Études fonctionnelles sans effet délétère'},{code:'BS4',desc:'Non-ségrégation avec maladie dans la famille'},{code:'BP1',desc:'Variant missense — mécanisme = perte de fonction'},{code:'BP2',desc:'En trans avec variant pathogène (dominant)'},{code:'BP3',desc:'In-frame délétion/insertion hors domaine fonctionnel'},{code:'BP4',desc:'Outils computationnels prédisent sans effet'},{code:'BP5',desc:'Variant trouvé avec autre cause moléculaire'},{code:'BP6',desc:'Source réputée rapporte variant bénin'},{code:'BP7',desc:'Variant synonyme sans impact sur épissage prédit'}];
 let acmgState={};
-function initACMG(){
+async function initACMG(){
   if(document.getElementById('acmg-path').children.length>0)return;
   document.getElementById('acmg-path').innerHTML=APATH.map(c=>`<div class="ac2" id="ac-${c.code}" onclick="togACMG('${c.code}','p')"><div class="acc" style="color:var(--dg)">${c.code}</div><div class="acl">${c.desc}</div></div>`).join('');
   document.getElementById('acmg-ben').innerHTML=ABEN.map(c=>`<div class="ac2" id="ac-${c.code}" onclick="togACMG('${c.code}','b')"><div class="acc" style="color:var(--sc)">${c.code}</div><div class="acl">${c.desc}</div></div>`).join('');
 }
-function togACMG(code,type){acmgState[code]=!acmgState[code];const el=document.getElementById('ac-'+code);if(acmgState[code])el.classList.add(type==='p'?'sp2c':'sb2c');else el.classList.remove('sp2c','sb2c');}
-function resetACMG(){acmgState={};document.querySelectorAll('.ac2').forEach(e=>e.classList.remove('sp2c','sb2c'));document.getElementById('acmgResult').innerHTML='';}
-async function classifyACMG(){
+async function togACMG(code,type){acmgState[code]=!acmgState[code];const el=document.getElementById('ac-'+code);if(acmgState[code])el.classList.add(type==='p'?'sp2c':'sb2c');else el.classList.remove('sp2c','sb2c');}
+async function resetACMG(){acmgState={};document.querySelectorAll('.ac2').forEach(e=>e.classList.remove('sp2c','sb2c'));document.getElementById('acmgResult').innerHTML='';}
+async async function classifyACMG(){
   const active=Object.fromEntries(Object.entries(acmgState).filter(([k,v])=>v).map(([k])=>[k,true]));
   if(!Object.keys(active).length){alert('Sélectionnez au moins un critère ACMG.');return;}
   const r=await fetch('/classify_acmg',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({criteria:active})});
@@ -2690,12 +2690,12 @@ async function classifyACMG(){
 
 // ══ RISK ══════════════════════════════════════════════════════════════════
 let riskSel=[];
-async function initRisk(){
+async async function initRisk(){
   const sel=document.getElementById('syndromeSelect');if(sel.options.length>1)return;
   const r=await fetch('/syndromes');const d=await r.json();
   d.forEach(s=>{const o=document.createElement('option');o.value=s.name;o.textContent=s.name;sel.appendChild(o);});
 }
-async function loadSyndrome(name){
+async async function loadSyndrome(name){
   riskSel=[];if(!name){document.getElementById('riskCriteria').innerHTML='<div class="empty">Sélectionnez un syndrome.</div>';return;}
   const r=await fetch('/hereditary_risk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({syndrome:name,criteria:[]})});
   const d=await r.json();if(d.error)return;
@@ -2708,9 +2708,9 @@ async function loadSyndrome(name){
     </div>`;
   document.getElementById('riskResult').innerHTML='';
 }
-function togRisk(id,name){if(riskSel.includes(id))riskSel=riskSel.filter(x=>x!==id);else riskSel.push(id);document.getElementById('rc-'+id).classList.toggle('sel',riskSel.includes(id));}
-function resetRisk(name){riskSel=[];document.querySelectorAll('.ri').forEach(e=>e.classList.remove('sel'));document.getElementById('riskResult').innerHTML='';}
-async function compRisk(name){
+async function togRisk(id,name){if(riskSel.includes(id))riskSel=riskSel.filter(x=>x!==id);else riskSel.push(id);document.getElementById('rc-'+id).classList.toggle('sel',riskSel.includes(id));}
+async function resetRisk(name){riskSel=[];document.querySelectorAll('.ri').forEach(e=>e.classList.remove('sel'));document.getElementById('riskResult').innerHTML='';}
+async async function compRisk(name){
   const r=await fetch('/hereditary_risk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({syndrome:name,criteria:riskSel})});
   const d=await r.json();if(d.error)return;
   const gc={'Faible':'rg-l','Modéré':'rg-m','Élevé':'rg-h','Très élevé':'rg-vh'}[d.risk_level]||'rg-m';
@@ -2726,7 +2726,7 @@ async function compRisk(name){
 
 // ══ PRS ═══════════════════════════════════════════════════════════════════
 let prsAlleles={},selectedCancer=null;
-async function initPRS(){
+async async function initPRS(){
   if(document.getElementById('prsGrid').children.length>0)return;
   const r=await fetch('/prs_cancers');const cancers=await r.json();
   document.getElementById('prsGrid').innerHTML=cancers.map(c=>`<div class="prs-card" id="prs-${c.id}" onclick="selectCancer('${c.id}')">
@@ -2734,7 +2734,7 @@ async function initPRS(){
     <div class="prs-meta">${c.snp_count} SNPs · GWAS méta-analyse</div>
   </div>`).join('');
 }
-async function selectCancer(id){
+async async function selectCancer(id){
   selectedCancer=id;prsAlleles={};
   document.querySelectorAll('.prs-card').forEach(c=>c.classList.remove('sel'));
   const pe=document.getElementById('prs-'+id); if(pe) pe.classList.add('sel');
@@ -2753,8 +2753,8 @@ async function selectCancer(id){
   </div>`).join('');
   document.getElementById('prsResult').innerHTML='';
 }
-function setAllele(rsid,val){[0,1,2].forEach(i=>{const el=document.getElementById('ab-'+rsid+'-'+i);if(el)el.classList.toggle('sel',i===val);});prsAlleles[rsid]=val;}
-async function computePRS(){
+async function setAllele(rsid,val){[0,1,2].forEach(i=>{const el=document.getElementById('ab-'+rsid+'-'+i);if(el)el.classList.toggle('sel',i===val);});prsAlleles[rsid]=val;}
+async async function computePRS(){
   if(!selectedCancer)return;
   const r=await fetch('/calculate_prs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cancer_type:selectedCancer,risk_alleles:prsAlleles})});
   const d=await r.json();
@@ -2774,7 +2774,7 @@ async function computePRS(){
 }
 
 // ══ FOUNDER MUTATIONS ══════════════════════════════════════════════════════
-async function loadFounder(){
+async async function loadFounder(){
   const el=document.getElementById('founderContent');
   if(el.querySelector('.fm-header'))return;
   el.innerHTML='<div class="empty">Chargement des mutations fondatrices…</div>';
@@ -2798,15 +2798,15 @@ async function loadFounder(){
       </div>
     </div>`).join('');
 }
-function toggleFM(el){const body=el.nextElementSibling;body.style.display=body.style.display==='none'?'block':'none';}
+async function toggleFM(el){const body=el.nextElementSibling;body.style.display=body.style.display==='none'?'block':'none';}
 
 // ══ PENETRANCE ════════════════════════════════════════════════════════════
-async function initPenetrance(){
+async async function initPenetrance(){
   const sel=document.getElementById('penGene');if(sel.options.length>1)return;
   const r=await fetch('/penetrance_genes');const genes=await r.json();
   genes.forEach(g=>{const o=document.createElement('option');o.value=g;o.textContent=g;sel.appendChild(o);});
 }
-async function loadPenetrance(gene){
+async async function loadPenetrance(gene){
   if(!gene)return;const el=document.getElementById('penetranceContent');
   el.innerHTML='<div class="empty">Chargement données de pénétrance…</div>';
   const r=await fetch('/penetrance?gene='+gene);const d=await r.json();
@@ -2835,7 +2835,7 @@ async function loadPenetrance(gene){
 }
 
 // ══ NGS ═══════════════════════════════════════════════════════════════════
-function ngsQuick(gene, type, hgvsc, hgvsp, af){
+async function ngsQuick(gene, type, hgvsc, hgvsp, af){
   document.getElementById('ngsGene').value=gene;
   document.getElementById('ngsHgvsc').value=hgvsc;
   document.getElementById('ngsHgvsp').value=hgvsp||'';
@@ -2848,7 +2848,7 @@ function ngsQuick(gene, type, hgvsc, hgvsp, af){
   });
   document.getElementById('ngsFillStatus').innerHTML=`✅ Pré-rempli : <b>${gene} ${hgvsc}</b>`;
 }
-async function autoFillNGSFromClinVar(){
+async async function autoFillNGSFromClinVar(){
   const q=document.getElementById('ngsClinvarSearch').value.trim();
   if(!q)return;
   const st=document.getElementById('ngsFillStatus');
@@ -2867,7 +2867,7 @@ async function autoFillNGSFromClinVar(){
   }catch(e){st.innerHTML='❌ Erreur serveur.';}
 }
 let selNGSType=null;
-async function initNGS(){
+async async function initNGS(){
   if(document.getElementById('ngsTypeGrid').children.length>0)return;
   const r=await fetch('/consequence_types');const types=await r.json();
   const impacts={'stop_gained':'high','frameshift_variant':'high','splice_donor_variant':'high','splice_acceptor_variant':'high','missense_variant':'mod','synonymous_variant':'low','inframe_insertion':'mod','inframe_deletion':'mod','3_prime_utr_variant':'low','5_prime_utr_variant':'low','intron_variant':'low'};
@@ -2878,8 +2878,8 @@ async function initNGS(){
     <div class="ngs-tech">${t}</div>
   </div>`).join('');
 }
-function selectNGSType(type,el){selNGSType=type;document.querySelectorAll('.ngs-card').forEach(c=>c.classList.remove('sel'));el.classList.add('sel');document.getElementById('ngsSelected').style.display='block';}
-async function interpretNGS(){
+async function selectNGSType(type,el){selNGSType=type;document.querySelectorAll('.ngs-card').forEach(c=>c.classList.remove('sel'));el.classList.add('sel');document.getElementById('ngsSelected').style.display='block';}
+async async function interpretNGS(){
   if(!selNGSType)return;
   const r=await fetch('/interpret_variant',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({consequence:selNGSType,gene:document.getElementById('ngsGene').value,hgvsc:document.getElementById('ngsHgvsc').value,hgvsp:document.getElementById('ngsHgvsp').value,af_gnomad:parseFloat(document.getElementById('ngsAF').value)||null})});
   const d=await r.json();const imp=d.explanation||{};
@@ -2900,7 +2900,7 @@ async function interpretNGS(){
     </div>
   </div>`;
 }
-async function parseNGS(){
+async async function parseNGS(){
   const text=document.getElementById('ngsReport').value.trim();if(!text)return;
   const r=await fetch('/parse_ngs_report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
   const d=await r.json();
@@ -2909,13 +2909,13 @@ async function parseNGS(){
 
 // ══ GUIDELINES ════════════════════════════════════════════════════════════
 let glGroups=[];
-async function initGLComp(){
+async async function initGLComp(){
   if(glGroups.length>0)return;
   const r=await fetch('/gene_groups');glGroups=await r.json();
   document.getElementById('glTabGroup').innerHTML=glGroups.map((g,i)=>`<button class="gl-btn${i===0?' active':''}" onclick="loadGLGroup('${g}',this)">${g}</button>`).join('');
   if(glGroups.length>0)loadGLGroup(glGroups[0],document.querySelector('.gl-btn'));
 }
-async function loadGLGroup(group,btn){
+async async function loadGLGroup(group,btn){
   document.querySelectorAll('.gl-btn').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');
   const r=await fetch('/guidelines_comparison?gene_group='+encodeURIComponent(group));
   const data=await r.json();const d=data[group];
@@ -2933,7 +2933,7 @@ async function loadGLGroup(group,btn){
 // ══ CLAUDE AI ════════════════════════════════════════════════════════════
 let chatHistory=[];
 
-async function initAIChat(){
+async async function initAIChat(){
   const badge=document.getElementById('aiStatusBadge');
   if(badge.dataset.checked) return;
   badge.dataset.checked='1';
@@ -2951,7 +2951,7 @@ async function initAIChat(){
   }catch{badge.textContent='⚠️ Statut inconnu';}
 }
 
-function appendChatMsg(role, text){
+async function appendChatMsg(role, text){
   const el=document.getElementById('chatMessages');
   const isUser=role==='user';
   const div=document.createElement('div');
@@ -2974,7 +2974,7 @@ function appendChatMsg(role, text){
   el.scrollTop=el.scrollHeight;
 }
 
-async function sendChat(){
+async async function sendChat(){
   const inp=document.getElementById('chatInput');
   const msg=inp.value.trim();
   if(!msg)return;
@@ -2999,9 +2999,9 @@ async function sendChat(){
   finally{btn.textContent='Envoyer';btn.disabled=false;}
 }
 
-function chatQuick(msg){document.getElementById('chatInput').value=msg;sendChat();}
+async function chatQuick(msg){document.getElementById('chatInput').value=msg;sendChat();}
 
-async function resetChat(){
+async async function resetChat(){
   await fetch('/ai/chat/reset',{method:'POST'});
   chatHistory=[];
   document.getElementById('chatMessages').innerHTML=`<div style="font-size:13px;color:var(--mu);text-align:center;padding:20px 0">🧬 Conversation réinitialisée. Posez vos questions en oncogénomique clinique.</div>`;
@@ -3009,22 +3009,22 @@ async function resetChat(){
 
 // ── UPLOAD FILE AI ──
 let selectedFile=null;
-function handleFileSelect(input){
+async function handleFileSelect(input){
   selectedFile=input.files[0];
   if(selectedFile){showFileInfo(selectedFile);}
 }
-function handleFileDrop(e){
+async function handleFileDrop(e){
   e.preventDefault();document.getElementById('uploadDropZone').style.borderColor='var(--bd)';
   const file=e.dataTransfer.files[0];
   if(file){selectedFile=file;showFileInfo(file);}
 }
-function showFileInfo(file){
+async function showFileInfo(file){
   const info=document.getElementById('uploadFileInfo');
   info.style.display='block';
   info.innerHTML=`📄 <b>${file.name}</b> · ${(file.size/1024).toFixed(1)} KB · <span style="color:var(--sc)">${file.type||file.name.split('.').pop().toUpperCase()}</span>`;
   document.getElementById('analyzeFileBtn').disabled=false;
 }
-async function analyzeFile(){
+async async function analyzeFile(){
   if(!selectedFile)return;
   const btn=document.getElementById('analyzeFileBtn');
   const res=document.getElementById('uploadResult');
@@ -3051,12 +3051,12 @@ async function analyzeFile(){
 }
 
 // ── PHARMACOGENOMICS AI ──
-function pharmaQuick(gene,variant,drug){
+async function pharmaQuick(gene,variant,drug){
   document.getElementById('pharmaGene').value=gene;
   document.getElementById('pharmaVariant').value=variant;
   document.getElementById('pharmaDrug').value=drug;
 }
-async function runPharmaAnalysis(){
+async async function runPharmaAnalysis(){
   const gene=document.getElementById('pharmaGene').value.trim();
   if(!gene){alert('Veuillez entrer un gène.');return;}
   const variant=document.getElementById('pharmaVariant').value.trim();
@@ -3081,8 +3081,8 @@ async function runPharmaAnalysis(){
 }
 
 // ══ EXPORTS ══════════════════════════════════════════════════════════════
-async function expPDF(){const btn=document.getElementById('pdfBtn');btn.textContent='⏳';btn.disabled=true;try{const r=await fetch('/export_pdf',{method:'POST'});const b=await r.blob();const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='rapport_sengenoscope_v5.pdf';a.click();URL.revokeObjectURL(u);}catch{alert('Erreur PDF.');}finally{btn.innerHTML='📄 PDF';btn.disabled=false;}}
-async function expCSV(){const btn=document.getElementById('csvBtn');btn.textContent='⏳';btn.disabled=true;try{const r=await fetch('/export_csv',{method:'POST'});const b=await r.blob();const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='rapport_sengenoscope_v5.csv';a.click();URL.revokeObjectURL(u);}catch{alert('Erreur CSV.');}finally{btn.innerHTML='📊 CSV';btn.disabled=false;}}
+async async function expPDF(){const btn=document.getElementById('pdfBtn');btn.textContent='⏳';btn.disabled=true;try{const r=await fetch('/export_pdf',{method:'POST'});const b=await r.blob();const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='rapport_sengenoscope_v5.pdf';a.click();URL.revokeObjectURL(u);}catch{alert('Erreur PDF.');}finally{btn.innerHTML='📄 PDF';btn.disabled=false;}}
+async async function expCSV(){const btn=document.getElementById('csvBtn');btn.textContent='⏳';btn.disabled=true;try{const r=await fetch('/export_csv',{method:'POST'});const b=await r.blob();const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='rapport_sengenoscope_v5.csv';a.click();URL.revokeObjectURL(u);}catch{alert('Erreur CSV.');}finally{btn.innerHTML='📊 CSV';btn.disabled=false;}}
 
 // ══ API KEY MANAGEMENT ════════════════════════════════════════════════════
 function openApiSettings(){
@@ -3095,13 +3095,13 @@ function openApiSettings(){
   setTimeout(()=>input.focus(), 100);
 }
 
-function closeApiSettings(){
+async function closeApiSettings(){
   document.getElementById('apiModal').style.display = 'none';
   document.getElementById('apiStatusOk').style.display = 'none';
   document.getElementById('apiStatusErr').style.display = 'none';
 }
 
-function saveApiKey(){
+async function saveApiKey(){
   const key = document.getElementById('apiKeyInput').value.trim();
   if(!key){ showApiStatus('err','Veuillez entrer une clé API.'); return; }
   if(!key.startsWith('sk-ant-')){ showApiStatus('err','Format invalide. La clé doit commencer par sk-ant-'); return; }
@@ -3117,14 +3117,14 @@ function saveApiKey(){
   setTimeout(()=>closeApiSettings(), 1500);
 }
 
-function clearApiKey(){
+async function clearApiKey(){
   localStorage.removeItem('sgs_api_key');
   document.getElementById('apiKeyInput').value = '';
   showApiStatus('err', lang==='en'?'API key removed':'Clé API supprimée');
   updateApiKeyBtn();
 }
 
-function showApiStatus(type, msg=''){
+async function showApiStatus(type, msg=''){
   const ok = document.getElementById('apiStatusOk');
   const err = document.getElementById('apiStatusErr');
   ok.style.display = type==='ok' ? 'block' : 'none';
@@ -3132,7 +3132,7 @@ function showApiStatus(type, msg=''){
   if(type==='err' && msg) err.textContent = '❌ ' + msg;
 }
 
-function updateApiKeyBtn(){
+async function updateApiKeyBtn(){
   const btn = document.getElementById('apiKeyBtn');
   const key = localStorage.getItem('sgs_api_key');
   if(key){
@@ -3146,12 +3146,12 @@ function updateApiKeyBtn(){
   }
 }
 
-function getUserApiKey(){
+async function getUserApiKey(){
   return localStorage.getItem('sgs_api_key') || '';
 }
 
 // Inject user API key in AI fetch calls
-function aiFetch(url, opts={}) {
+async function aiFetch(url, opts={}) {
   const userKey = getUserApiKey();
   if(userKey) {
     opts.headers = opts.headers || {};
@@ -3213,11 +3213,11 @@ const CLINICIAN_EXAMPLES = [
   "Patient 67 ans, EGFR exon 19 del, carcinome bronchique non à petites cellules stade IV. Osimertinib en première ligne ? Résistances à anticiper ?"
 ];
 
-function fillClinicianExample(i) {
+async function fillClinicianExample(i) {
   document.getElementById('clinicianInput').value = CLINICIAN_EXAMPLES[i] || '';
 }
 
-async function initClinicians() {
+async async function initClinicians() {
   const grid = document.getElementById('clinicianCards');
   if (!grid) return;
   try {
@@ -3323,7 +3323,7 @@ function appendClinicianMsg(role, text) {
 }
 
 
-function resetClinicianChat() {
+async function resetClinicianChat() {
   clinicianHistory = [];
   const el = document.getElementById('clinicianMessages');
   if (el) el.innerHTML = '';
@@ -3344,7 +3344,7 @@ document.addEventListener('keydown', e => {
 
 
 
-function backToClinicians() {
+async function backToClinicians() {
   activeClinician = null;
   clinicianHistory = [];
   document.getElementById('clinicianCards').style.display = 'grid';
@@ -3361,7 +3361,7 @@ function resetClinicianChat() {
   document.getElementById('clinicianInput').value = '';
 }
 
-function appendClinicianMsg(role, content) {
+async function appendClinicianMsg(role, content) {
   const el = document.getElementById('clinicianMessages');
   const isUser = role === 'user';
   const div = document.createElement('div');
@@ -3376,7 +3376,7 @@ function appendClinicianMsg(role, content) {
   document.getElementById('clinicianChat').scrollTop = 9999;
 }
 
-async function sendClinicianMessage() {
+async async function sendClinicianMessage() {
   if (!activeClinician) return;
   const input = document.getElementById('clinicianInput');
   const msg = input.value.trim();
@@ -3429,7 +3429,7 @@ document.addEventListener('keydown', e => {
 });
 
 // ══ TMB / MSI / SIGNATURES ══════════════════════════════════════════════
-async function analyzeTMB() {
+async async function analyzeTMB() {
   const tmb = document.getElementById('tmbValue').value;
   const msi = document.getElementById('msiStatus').value;
   const tumor = document.getElementById('tmbTumorType').value;
@@ -3459,7 +3459,7 @@ Fournissez:
 }
 
 // ══ INTERACTIONS CPIC ════════════════════════════════════════════════════
-async function analyzeCPIC() {
+async async function analyzeCPIC() {
   const gene = document.getElementById('cpicGene').value;
   const drug = document.getElementById('cpicDrug').value;
   const res = document.getElementById('cpicResult');
@@ -3497,7 +3497,7 @@ Fournissez:
 }
 
 // ══ ARBRE DÉCISIONNEL ESMO ═══════════════════════════════════════════════
-async function analyzeESMO() {
+async async function analyzeESMO() {
   const tumor = document.getElementById('esmoTumor').value;
   const stage = document.getElementById('esmoStage').value;
   const biomarkers = document.getElementById('esmoBiomarkers').value;
@@ -4037,7 +4037,7 @@ function morphoHandleFile(e) {
   reader.readAsDataURL(file);
 }
 
-async function morphoAnalyze() {
+async async function morphoAnalyze() {
   const btn = document.getElementById('morphoAnalyzeBtn');
   const loading = document.getElementById('morphoLoading');
   const result = document.getElementById('morphoResult');
@@ -4113,7 +4113,7 @@ Réponds UNIQUEMENT en JSON valide (sans balises markdown) :
   btn.disabled = false;
 }
 
-function morphoFallback(db) {
+async function morphoFallback(db) {
   const fb = {
     sein: {
       type_tumoral:'Carcinome canalaire infiltrant grade III SBR',
@@ -4243,7 +4243,7 @@ function morphoToClinician() {
 // ══ FIN MORPHO ═══════════════════════════════════════════════════════════
 
 // ══ MANCHESTER / TYRER-CUZICK ════════════════════════════════════════════════
-function switchManchTab(tab, btn) {
+async function switchManchTab(tab, btn) {
   ['manchester','tyrer'].forEach(t => {
     document.getElementById('manch-panel-' + t).style.display = t === tab ? 'block' : 'none';
   });
@@ -4259,7 +4259,7 @@ function switchManchTab(tab, btn) {
   btn.style.color = '';
 }
 
-async function calcManchester() {
+async async function calcManchester() {
   const family = {
     breast_under40:         parseInt(document.getElementById('m_breast_under40').value)||0,
     breast_40_49:           parseInt(document.getElementById('m_breast_40_49').value)||0,
@@ -4334,7 +4334,7 @@ async function calcManchester() {
   }
 }
 
-async function calcTyrerCuzick() {
+async async function calcTyrerCuzick() {
   const data = {
     age:                    parseInt(document.getElementById('tc_age').value)||45,
     bmi:                    parseFloat(document.getElementById('tc_bmi').value)||25,
@@ -4404,7 +4404,7 @@ async function calcTyrerCuzick() {
 // ══ FIN MANCHESTER ════════════════════════════════════════════════════════════
 
 // ══ COMPARATEUR DE VARIANTS ══════════════════════════════════════════════════
-function cvExample(h1, acmg1, pp1, sift1, cadd1, g1, h2, acmg2, pp2, sift2, cadd2, g2) {
+async function cvExample(h1, acmg1, pp1, sift1, cadd1, g1, h2, acmg2, pp2, sift2, cadd2, g2) {
   document.getElementById('cv1_hgvs').value = h1;
   document.getElementById('cv1_acmg').value = acmg1;
   document.getElementById('cv1_polyphen').value = pp1;
@@ -4419,12 +4419,12 @@ function cvExample(h1, acmg1, pp1, sift1, cadd1, g1, h2, acmg2, pp2, sift2, cadd
   document.getElementById('cv2_gene').value = g2;
 }
 
-function cvGetVal(id) {
+async function cvGetVal(id) {
   const v = document.getElementById(id).value;
   return v === '' ? undefined : isNaN(v) ? v : parseFloat(v);
 }
 
-async function compareVariants() {
+async async function compareVariants() {
   const v1 = {
     hgvs: document.getElementById('cv1_hgvs').value || 'Variant 1',
     gene: document.getElementById('cv1_gene').value || '',
@@ -4468,7 +4468,7 @@ async function compareVariants() {
       'Bénin': '#6b7280',
     };
 
-    function scoreBar(score, maxScore=13) {
+    async function scoreBar(score, maxScore=13) {
       const pct = Math.min(100, Math.round(score / maxScore * 100));
       const col = pct >= 70 ? '#dc2626' : pct >= 40 ? '#d97706' : '#16a34a';
       return `<div style="background:var(--bd);border-radius:4px;height:8px;overflow:hidden;margin-top:4px">
