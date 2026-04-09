@@ -1285,6 +1285,81 @@ def oncokb_lookup():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+# ══ RCP VIRTUELLE — Réunion de Concertation Pluridisciplinaire ═══════════════
+@app.route("/ai/rcp", methods=["POST"])
+def ai_rcp():
+    """RCP virtuelle: consultation séquentielle de plusieurs cliniciens."""
+    data = request.get_json()
+    case = data.get("case", "").strip()
+    specialists = data.get("specialists", ["oncogeneticist", "oncologist", "pathologist"])
+    user_api_key = request.headers.get("X-User-Api-Key", "").strip()
+    
+    if not case:
+        return jsonify({"error": "Description du cas requise"}), 400
+    
+    from virtual_clinicians import CLINICIANS, consult_clinician
+    
+    results = []
+    clinician_map = {c["id"]: c for c in CLINICIANS}
+    
+    for spec_id in specialists[:4]:  # Max 4 spécialistes
+        clinician = clinician_map.get(spec_id)
+        if not clinician:
+            continue
+        result = consult_clinician(clinician, case, user_api_key=user_api_key)
+        if result.get("success"):
+            results.append({
+                "clinician": clinician["name"],
+                "specialty": clinician["specialty"],
+                "icon": clinician.get("icon", "🩺"),
+                "response": result["response"]
+            })
+    
+    if not results:
+        return jsonify({"error": "Aucune réponse obtenue"}), 500
+    
+    # Synthèse finale par Claude
+    synthesis_prompt = f"""Tu es coordinateur d une RCP (Réunion de Concertation Pluridisciplinaire).
+
+CAS CLINIQUE: {case}
+
+AVIS DES SPÉCIALISTES:
+""" + "
+
+".join([f"--- {r['specialty']} ({r['clinician']}) ---
+{r['response'][:500]}" for r in results]) + """
+
+Produisez une SYNTHÈSE RCP structurée:
+1. POINTS DE CONSENSUS entre les spécialistes
+2. POINTS DE DIVERGENCE ou complémentarités
+3. DÉCISION THÉRAPEUTIQUE RECOMMANDÉE (votée par la RCP)
+4. PLAN DE SUIVI et examens complémentaires
+5. CRITÈRES DE RÉÉVALUATION
+
+Format: synthèse concise, cliniquement actionnable, niveau de preuve indiqué."""
+
+    try:
+        import anthropic
+        api_key = user_api_key or os.environ.get("ANTHROPIC_API_KEY", "")
+        client = anthropic.Anthropic(api_key=api_key)
+        response = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=1000,
+            messages=[{"role": "user", "content": synthesis_prompt}]
+        )
+        synthesis = response.content[0].text if response.content else ""
+    except Exception as e:
+        synthesis = f"Synthèse non disponible: {e}"
+    
+    return jsonify({
+        "success": True,
+        "case": case,
+        "specialists_consulted": len(results),
+        "opinions": results,
+        "synthesis": synthesis
+    })
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
