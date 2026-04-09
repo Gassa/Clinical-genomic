@@ -3868,6 +3868,8 @@ Arbre décisionnel ESMO 2023-2024:
       d.innerHTML='<span style="color:var(--mu)">'+fmt(cSec)+'</span> '+text;
       log.appendChild(d);log.scrollTop=log.scrollHeight;
     }
+  
+    try{localStorage.setItem('sgs_clin_notes',JSON.stringify(cNotes));}catch(e){}
   }
 
   // Entrée = horodater
@@ -3917,6 +3919,25 @@ Arbre décisionnel ESMO 2023-2024:
     a.download='consultation_'+date.replace(/\//g,'-')+'.txt';a.click();
   };
 
+
+  // ── Raccourcis clavier globaux clinicien ─────────────────────────────
+  document.addEventListener('keydown', function(kev){
+    const secClin = document.getElementById('sec-clinicians');
+    if(!secClin || secClin.style.display==='none') return;
+    if(kev.ctrlKey && kev.code==='KeyM'){
+      kev.preventDefault();
+      window.clinMicToggle();
+    }
+    if(kev.ctrlKey && kev.code==='KeyP' && cIsRec){
+      kev.preventDefault();
+      window.clinMicPause();
+    }
+    if(kev.ctrlKey && kev.code==='KeyN'){
+      kev.preventDefault();
+      const ta=document.getElementById('clinNoteInput');
+      if(ta){ta.focus();ta.placeholder='Tapez votre note et appuyez sur ↵…';}
+    }
+  });
 })();
 // ══ FIN MIC + NOTES CLINICIEN ════════════════════════════════════════════
 
