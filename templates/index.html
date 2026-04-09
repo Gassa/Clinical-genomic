@@ -3100,7 +3100,21 @@ function aiFetch(url, opts={}) {
     opts.headers = opts.headers || {};
     opts.headers['X-User-Api-Key'] = userKey;
   }
-  return fetch(url, opts);
+  return fetch(url, opts).then(async r => {
+    if (!r.ok) {
+      const text = await r.text();
+      if (r.status === 502 || r.status === 503) {
+        throw new Error('⏳ Server waking up (free tier). Please wait 30s and retry.');
+      }
+      throw new Error(`Server error ${r.status}`);
+    }
+    const ct = r.headers.get('content-type') || '';
+    if (!ct.includes('application/json')) {
+      const text = await r.text();
+      throw new Error('Invalid response format. Server may be starting up.');
+    }
+    return r;
+  });
 }
 
 // ══ INIT ══════════════════════════════════════════════════════════════════
