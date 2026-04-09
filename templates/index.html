@@ -1312,8 +1312,7 @@ async function openApiSettings(){ _pendingCalls.push(['openApiSettings']); }
                 </div>
 
                 <!-- Ligne 5 : bouton envoyer -->
-                <button onclick="clinSendTranscript()" id="clinAnalyzeBtnMain" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #1D9E75;background:#E1F5EE;color:#085041;font-size:13px;font-weight:500;cursor:pointer;margin-bottom:6px;display:none">⚡ Envoyer la transcription au clinicien</button>
-                <button class="btn bp3" onclick="clinPrepareAndSend()" id="clinicianSendBtn" style="width:100%;justify-content:center">
+                <button class="btn bp3" onclick="sendClinicianMessage()" id="clinicianSendBtn" style="width:100%;justify-content:center">
                   📤 Envoyer au clinicien
                 </button>
               </div>
@@ -3328,6 +3327,14 @@ async function appendClinicianMsg(role, content) {
 async function sendClinicianMessage() {
   if (!activeClinician) return;
   const input = document.getElementById('clinicianInput');
+  // Si textarea vide, récupérer la transcription automatiquement
+  if(!input.value.trim()){
+    const box = document.getElementById('clinMicTranscript');
+    if(box){
+      const transcript = (box.innerText||box.textContent||'').replace('Paroles du patient en temps réel…','').trim();
+      if(transcript) input.value = '🎙️ ' + transcript;
+    }
+  }
   const msg = input.value.trim();
   if (!msg) return;
 
@@ -3772,10 +3779,7 @@ Arbre décisionnel ESMO 2023-2024:
       if(dot)dot.style.animation='none';
       if(lbl)lbl.textContent='🎙️ Enregistrer patient';
       if(pb)pb.style.display='none';
-      if(ab)ab.style.display=cFull.trim()?'block':'none';
-      const abm=document.getElementById('clinAnalyzeBtnMain');
-      if(abm)abm.style.display=cFull.trim()?'block':'none';
-      if(nz&&cFull.trim())nz.style.display='block';
+      if(ab)ab.style.display=cFull.trim()?'block':'none';      if(nz&&cFull.trim())nz.style.display='block';
     }
     animWave(on);
   }
