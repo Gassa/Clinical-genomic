@@ -3730,21 +3730,24 @@ Arbre décisionnel ESMO 2023-2024:
 
 // ══ MIC + NOTES CLINICIEN ════════════════════════════════════════════════
 (function(){
-  let cRec=null,cIsRec=false,cPaused=false,cSec=0,cTimer=null,cWaveInt=null,cFull='',cNotes=[];
-
-  function initWave(){
-    const el=document.getElementById('clinMicWave');
-    if(!el||el.children.length>0)return;
-    for(let i=0;i<10;i++){const b=document.createElement('div');b.style.cssText='width:2px;border-radius:2px;background:#1D9E75;height:3px;transition:height .1s';el.appendChild(b);}
-  }
+  let cRec=null,cIsRec=false,cPaused=false,cSec=0,cTimer=null,cWaveInt=null,cFull='',cInterim='',cNotes=[];
 
   function fmt(s){return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
 
   function animWave(on){
     clearInterval(cWaveInt);
     const el=document.getElementById('clinMicWave');if(!el)return;
-    if(!on){Array.from(el.children).forEach(b=>b.style.height='3px');return;}
+    if(!on){Array.from(el.children||[]).forEach(b=>{if(b.style)b.style.height='3px';});return;}
+    if(!el.children.length){for(let i=0;i<10;i++){const b=document.createElement('div');b.style.cssText='width:2px;border-radius:2px;background:#1D9E75;height:3px;transition:height .1s';el.appendChild(b);}}
     cWaveInt=setInterval(()=>{Array.from(el.children).forEach(b=>{b.style.height=(cIsRec&&!cPaused?Math.max(3,Math.floor(Math.random()*14)+2):3)+'px';});},120);
+  }
+
+  function updateTranscriptBox(){
+    const box=document.getElementById('clinMicTranscript');
+    if(box)box.innerHTML='<span>'+cFull+'</span>'+(cInterim?'<em style="color:var(--mu)">'+cInterim+'</em>':'');
+    // Insérer aussi dans le textarea
+    const ta=document.getElementById('clinicianInput');
+    if(ta&&cFull.trim()) ta.value=cFull.trim();
   }
 
   function setRecUI(on){
@@ -3754,33 +3757,34 @@ Arbre décisionnel ESMO 2023-2024:
     const tr=document.getElementById('clinMicTranscript');
     const pb=document.getElementById('clinMicPauseBtn');
     const ab=document.getElementById('clinAnalyzeBtn');
-    const noteZone=document.getElementById('clinNoteZone');
+    const nz=document.getElementById('clinNoteZone');
     if(on){
       if(btn)btn.style.cssText='display:flex;align-items:center;gap:6px;padding:0 14px;height:34px;border-radius:17px;border:1.5px solid #E24B4A;background:#FCEBEB;color:#A32D2D;font-size:12px;font-weight:500;cursor:pointer';
       if(dot)dot.style.animation='vc-blink .8s steps(1) infinite';
       if(lbl)lbl.textContent='⏹ Arrêter';
-      if(tr)tr.style.display='block';
-      if(pb)pb.style.display='flex';
+      if(tr){tr.style.display='block';tr.innerHTML='<em style="color:var(--mu)">Paroles du patient en temps réel…</em>';}
+      if(pb){pb.style.display='flex';pb.textContent='⏸ Pause';}
       if(ab)ab.style.display='none';
-      if(noteZone)noteZone.style.display='block';
+      if(nz)nz.style.display='block';
     }else{
       if(btn)btn.style.cssText='display:flex;align-items:center;gap:6px;padding:0 14px;height:34px;border-radius:17px;border:1.5px solid #1D9E75;background:var(--s2);color:#0F6E56;font-size:12px;font-weight:500;cursor:pointer';
       if(dot)dot.style.animation='none';
       if(lbl)lbl.textContent='🎙️ Enregistrer patient';
       if(pb)pb.style.display='none';
-      if(cFull.trim()&&ab)ab.style.display='block';
-      if(noteZone&&cFull.trim())noteZone.style.display='block';
+      if(ab)ab.style.display=cFull.trim()?'block':'none';
+      if(nz&&cFull.trim())nz.style.display='block';
     }
     animWave(on);
   }
 
   function addNote(text){
-    cNotes.push({text,ts:fmt(cSec)});
+    const ts=fmt(cSec);
+    cNotes.push({text,ts});
     const log=document.getElementById('clinNoteLog');
     if(log){
       const d=document.createElement('div');
-      d.style.cssText='border-left:2px solid #5DCAA5;padding:1px 6px;margin-bottom:2px;font-size:11px;color:var(--tx)';
-      d.innerHTML='<span style="color:var(--mu)">'+fmt(cSec)+'</span> '+text;
+      d.style.cssText='border-left:2px solid #5DCAA5;padding:2px 6px;margin-bottom:3px;font-size:11px;color:var(--tx)';
+      d.innerHTML='<span style="color:var(--mu);font-weight:500">['+ts+']</span> '+text;
       log.appendChild(d);log.scrollTop=log.scrollHeight;
     }
     try{localStorage.setItem('sgs_clin_notes',JSON.stringify(cNotes));}catch(e){}
@@ -3788,45 +3792,42 @@ Arbre décisionnel ESMO 2023-2024:
 
   function startRec(){
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-    if(!SR){alert('Utilisez Chrome ou Edge pour la reconnaissance vocale.');return;}
+    if(!SR){alert('Reconnaissance vocale non supportée. Utilisez Chrome ou Edge.');return;}
     const lang=(document.getElementById('clinMicLang')||{}).value||'fr-FR';
-    cRec=new SR();cRec.continuous=true;cRec.interimResults=true;cRec.lang=lang;
-    cRec.onresult=e=>{
-      let interim='';
+    cRec=new SR();
+    cRec.continuous=true;
+    cRec.interimResults=true;
+    cRec.lang=lang;
+    cRec.onresult=function(e){
+      cInterim='';
       for(let i=e.resultIndex;i<e.results.length;i++){
         if(e.results[i].isFinal){
-          const txt=e.results[i][0].transcript+' ';
-          cFull+=txt;
-          // Auto-note : ajouter dans le textarea aussi
-          const ta=document.getElementById('clinicianInput');
-          if(ta)ta.value=(ta.value+txt).trim()+' ';
-        } else interim+=e.results[i][0].transcript;
+          cFull+=e.results[i][0].transcript+' ';
+        }else{
+          cInterim+=e.results[i][0].transcript;
+        }
       }
-      const box=document.getElementById('clinMicTranscript');
-      if(box)box.innerHTML='<span>'+cFull+'</span>'+(interim?'<span style="color:var(--mu)">'+interim+'</span>':'');
+      updateTranscriptBox();
     };
-    cRec.onerror=e=>{if(e.error!=='no-speech')console.warn('mic:',e.error);};
-    cRec.onend=()=>{if(cIsRec&&!cPaused){try{cRec.start();}catch(e){}}};
-    cRec.start();
+    cRec.onerror=function(e){if(e.error!=='no-speech')console.warn('mic erreur:',e.error);};
+    cRec.onend=function(){if(cIsRec&&!cPaused){try{cRec.start();}catch(ex){}}};
+    try{cRec.start();}catch(ex){console.error('start mic:',ex);}
   }
 
   window.clinMicToggle=function(){
-    initWave();
     if(!cIsRec){
-      cIsRec=true;cPaused=false;cSec=0;cFull='';
+      cIsRec=true;cPaused=false;cSec=0;cFull='';cInterim='';cNotes=[];
       startRec();
+      clearInterval(cTimer);
       cTimer=setInterval(()=>{
-        cSec++;
+        if(!cPaused){cSec++;}
         const t=document.getElementById('clinMicTimer');if(t)t.textContent=fmt(cSec);
       },1000);
       setRecUI(true);
-      // Focus notes
-      setTimeout(()=>{const n=document.getElementById('clinNoteInput');if(n)n.focus();},400);
     }else{
-      // Arrêter
       cIsRec=false;cPaused=false;
       clearInterval(cTimer);clearInterval(cWaveInt);
-      try{cRec&&cRec.stop();}catch(e){}
+      try{if(cRec)cRec.stop();}catch(ex){}
       setRecUI(false);
     }
   };
@@ -3836,26 +3837,26 @@ Arbre décisionnel ESMO 2023-2024:
     const pb=document.getElementById('clinMicPauseBtn');
     if(!cPaused){
       cPaused=true;
-      clearInterval(cTimer);
-      try{cRec&&cRec.stop();}catch(e){}
-      if(pb){pb.textContent='▶ Reprendre';pb.style.borderColor='#BA7517';pb.style.background='#FAEEDA';pb.style.color='#854F0B';}
+      try{if(cRec)cRec.stop();}catch(ex){}
+      if(pb){pb.textContent='▶ Reprendre';pb.style.background='#FAEEDA';pb.style.color='#854F0B';pb.style.borderColor='#BA7517';}
       animWave(false);
     }else{
       cPaused=false;
-      cTimer=setInterval(()=>{cSec++;const t=document.getElementById('clinMicTimer');if(t)t.textContent=fmt(cSec);},1000);
-      try{cRec&&cRec.start();}catch(e){startRec();}
-      if(pb){pb.textContent='⏸ Pause';pb.style.borderColor='#BA7517';pb.style.background='#FAEEDA';pb.style.color='#854F0B';}
+      try{cRec.start();}catch(ex){startRec();}
+      if(pb){pb.textContent='⏸ Pause';pb.style.background='#FAEEDA';pb.style.color='#854F0B';pb.style.borderColor='#BA7517';}
       animWave(true);
     }
   };
 
   window.clinSendTranscript=function(){
-    if(!cFull.trim())return;
-    const notesStr=cNotes.length>0?'\n\nNotes clinicien:\n'+cNotes.map(n=>'['+n.ts+'] '+n.text).join('\n'):'';
+    const text=cFull.trim();
+    if(!text){alert('Aucune transcription disponible. Enregistrez d\'abord le patient.');return;}
+    const notesStr=cNotes.length?'\n\n📝 Notes:\n'+cNotes.map(n=>'['+n.ts+'] '+n.text).join('\n'):'';
     const manual=(document.getElementById('clinNoteInput')||{}).value||'';
     const ta=document.getElementById('clinicianInput');
     if(ta){
-      ta.value='Le patient a décrit:\n'+cFull.trim()+notesStr+(manual?'\n\nObservations: '+manual:'');
+      ta.value='🎙️ Transcription patient:\n'+text+notesStr+(manual?'\n\n💡 Observations: '+manual:'');
+      ta.focus();
     }
     if(typeof sendClinicianMessage==='function')sendClinicianMessage();
   };
@@ -3864,42 +3865,49 @@ Arbre décisionnel ESMO 2023-2024:
     const ta=document.getElementById('clinNoteInput');if(!ta)return;
     const pos=ta.selectionStart,b=ta.value.substring(0,pos),a=ta.value.substring(pos);
     const pfx=(b.length>0&&!b.endsWith('\n'))?'\n':'';
-    ta.value=b+pfx+text+a;const np=pos+pfx.length+text.length;
-    ta.setSelectionRange(np,np);ta.focus();
+    ta.value=b+pfx+text+a;
+    ta.setSelectionRange(pos+pfx.length+text.length,pos+pfx.length+text.length);
+    ta.focus();
   };
 
   window.clinExport=function(){
     const date=new Date().toLocaleDateString('fr-FR');
-    const notesStr=cNotes.map(n=>'['+n.ts+'] '+n.text).join('\n')||'(aucune)';
-    const manual=(document.getElementById('clinNoteInput')||{}).value||'';
     const sep='─'.repeat(40);
-    const txt=['CONSULTATION — SenGenoScope',sep,'Date: '+date,'Durée: '+fmt(cSec),'',sep,'TRANSCRIPTION PATIENT',sep,cFull.trim()||'(aucune)','',sep,'NOTES HORODATÉES',sep,notesStr,manual?'\n'+sep+'\nNOTES LIBRES\n'+sep+'\n'+manual:''].join('\n');
+    const txt=[
+      'CONSULTATION — SenGenoScope',sep,
+      'Date: '+date,'Durée: '+fmt(cSec),'',
+      sep,'TRANSCRIPTION PATIENT',sep,cFull.trim()||'(aucune)','',
+      sep,'NOTES HORODATÉES',sep,
+      cNotes.map(n=>'['+n.ts+'] '+n.text).join('\n')||'(aucune)'
+    ].join('\n');
     const a=document.createElement('a');
     a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain'}));
-    a.download='consultation_'+date.replace(/\//g,'-')+'.txt';a.click();
+    a.download='consultation_'+date.replace(/\//g,'-')+'.txt';
+    a.click();
   };
 
-  // Entrée = horodater dans zone notes
-  setTimeout(()=>{
+  // Hook Entrée dans zone notes
+  setTimeout(function(){
     const ta=document.getElementById('clinNoteInput');
-    if(ta&&!ta._clinHook){
-      ta._clinHook=true;
-      ta.addEventListener('keydown',e=>{
+    if(ta&&!ta._hook){
+      ta._hook=true;
+      ta.addEventListener('keydown',function(e){
         if(e.key==='Enter'&&!e.shiftKey){
-          e.preventDefault();const v=ta.value.trim();
+          e.preventDefault();
+          const v=ta.value.trim();
           if(v){addNote(v);ta.value='';}
         }
       });
     }
-  },1500);
+  },2000);
 
-  // Raccourcis clavier
+  // Raccourcis
   document.addEventListener('keydown',function(kev){
-    const secClin=document.getElementById('sec-clinicians');
-    if(!secClin||secClin.style.display==='none')return;
+    const s=document.getElementById('sec-clinicians');
+    if(!s||s.style.display==='none')return;
     if(kev.ctrlKey&&kev.code==='KeyM'){kev.preventDefault();window.clinMicToggle();}
     if(kev.ctrlKey&&kev.code==='KeyP'&&cIsRec){kev.preventDefault();window.clinMicPause();}
-    if(kev.ctrlKey&&kev.code==='KeyN'){kev.preventDefault();const ta=document.getElementById('clinNoteInput');if(ta)ta.focus();}
+    if(kev.ctrlKey&&kev.code==='KeyN'){kev.preventDefault();const n=document.getElementById('clinNoteInput');if(n)n.focus();}
   });
 
 })();
