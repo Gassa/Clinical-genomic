@@ -1320,24 +1320,22 @@ def ai_rcp():
         return jsonify({"error": "Aucune réponse obtenue"}), 500
     
     # Synthèse finale par Claude
-    synthesis_prompt = f"""Tu es coordinateur d une RCP (Réunion de Concertation Pluridisciplinaire).
-
-CAS CLINIQUE: {case}
-
-AVIS DES SPÉCIALISTES:
-""" + "
-
-".join([f"--- {r['specialty']} ({r['clinician']}) ---
-{r['response'][:500]}" for r in results]) + """
-
-Produisez une SYNTHÈSE RCP structurée:
-1. POINTS DE CONSENSUS entre les spécialistes
-2. POINTS DE DIVERGENCE ou complémentarités
-3. DÉCISION THÉRAPEUTIQUE RECOMMANDÉE (votée par la RCP)
-4. PLAN DE SUIVI et examens complémentaires
-5. CRITÈRES DE RÉÉVALUATION
-
-Format: synthèse concise, cliniquement actionnable, niveau de preuve indiqué."""
+        opinions_text = "\n\n".join([
+        f"--- {r['specialty']} ({r['clinician']}) ---\n{r['response'][:500]}"
+        for r in results
+    ])
+    synthesis_prompt = (
+        f"Tu es coordinateur d une RCP (Réunion de Concertation Pluridisciplinaire).\n\n"
+        f"CAS CLINIQUE: {case}\n\n"
+        f"AVIS DES SPÉCIALISTES:\n{opinions_text}\n\n"
+        "Produisez une SYNTHÈSE RCP structurée:\n"
+        "1. POINTS DE CONSENSUS entre les spécialistes\n"
+        "2. POINTS DE DIVERGENCE ou complémentarités\n"
+        "3. DÉCISION THÉRAPEUTIQUE RECOMMANDÉE (votée par la RCP)\n"
+        "4. PLAN DE SUIVI et examens complémentaires\n"
+        "5. CRITÈRES DE RÉÉVALUATION\n\n"
+        "Format: synthèse concise, cliniquement actionnable, niveau de preuve indiqué."
+    )
 
     try:
         import anthropic
