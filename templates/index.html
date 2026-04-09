@@ -3320,7 +3320,7 @@ function appendClinicianMsg(role, content) {
   document.getElementById('clinicianChat').scrollTop = 9999;
 }
 
-async function sendClinicianMessage() {
+async async function sendClinicianMessage() {
   if (!activeClinician) return;
   const input = document.getElementById('clinicianInput');
   const msg = input.value.trim();
@@ -3335,12 +3335,13 @@ async function sendClinicianMessage() {
   clinicianHistory.push({ role: 'user', content: msg });
 
   try {
-    const r = await aiFetch('/clinicians/chat', {
+    const r = await aiFetch('/ai/clinician', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         clinician_id: activeClinician.id,
-        messages: clinicianHistory
+        message: msg,
+        history: clinicianHistory.slice(0, -1)
       })
     });
     const d = await r.json();
