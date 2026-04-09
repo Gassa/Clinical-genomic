@@ -3929,6 +3929,56 @@ function showSec(name,btn){
 
 
 
+
+// ══ GESTION CLÉ API ═══════════════════════════════════════════════════════
+function openApiSettings(){
+  const m=document.getElementById('apiModal');
+  if(m){m.style.display='flex';updateApiKeyBtn();}
+}
+function closeApiSettings(){
+  const m=document.getElementById('apiModal');
+  if(m)m.style.display='none';
+}
+function saveApiKey(){
+  const inp=document.getElementById('apiKeyInput');
+  if(!inp)return;
+  const key=inp.value.trim();
+  if(!key){showApiStatus('error','Clé vide');return;}
+  if(!key.startsWith('sk-')){showApiStatus('error','La clé doit commencer par sk-');return;}
+  localStorage.setItem('sgs_api_key',key);
+  showApiStatus('success','Clé sauvegardée !');
+  setTimeout(closeApiSettings,1200);
+}
+function clearApiKey(){
+  localStorage.removeItem('sgs_api_key');
+  const inp=document.getElementById('apiKeyInput');
+  if(inp)inp.value='';
+  updateApiKeyBtn();
+  showApiStatus('info','Clé supprimée');
+}
+function showApiStatus(type,msg){
+  const el=document.getElementById('apiStatus');
+  if(!el)return;
+  el.textContent=msg;
+  el.style.color=type==='success'?'#1D9E75':type==='error'?'#E24B4A':'#185FA5';
+}
+function updateApiKeyBtn(){
+  const key=localStorage.getItem('sgs_api_key')||'';
+  const btn=document.getElementById('apiKeyBtn');
+  const inp=document.getElementById('apiKeyInput');
+  if(inp&&!inp.value)inp.value=key;
+  if(btn){
+    if(key&&key.startsWith('sk-')){
+      btn.style.background='#E1F5EE';btn.style.color='#085041';btn.style.borderColor='#1D9E75';
+      btn.innerHTML='✅ Clé API';
+    }else{
+      btn.style.background='';btn.style.color='';btn.style.borderColor='';
+      btn.innerHTML='⚙️ Clé API';
+    }
+  }
+}
+
+
 // ══ FLUSH EARLY CALLS (appels reçus avant chargement complet) ════════════
 if(typeof _pendingCalls !== 'undefined'){
   _pendingCalls.forEach(c=>{
