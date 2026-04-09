@@ -3320,7 +3320,7 @@ function appendClinicianMsg(role, content) {
   document.getElementById('clinicianChat').scrollTop = 9999;
 }
 
-async async function sendClinicianMessage() {
+async function sendClinicianMessage() {
   if (!activeClinician) return;
   const input = document.getElementById('clinicianInput');
   const msg = input.value.trim();
