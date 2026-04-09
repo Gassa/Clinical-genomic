@@ -501,7 +501,6 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
     <button class="ni" onclick="showSec('drug_interactions',this)"><span class="ni-i">⚗️</span><span data-fr="Interactions CPIC" data-en="CPIC Interactions">Interactions CPIC</span></button>
     <button class="ni" onclick="showSec('esmo_decision',this)"><span class="ni-i">🌲</span><span data-fr="Arbre ESMO" data-en="ESMO Decision Tree">Arbre ESMO</span></button>
     <button class="ni" onclick="showSec('clinicians',this)"><span class="ni-i">🩺</span><span data-fr="Cliniciens Virtuels" data-en="Virtual Clinicians">Cliniciens Virtuels</span></button>
-    <button class="ni" onclick="showSec('voice_consult',this)"><span class="ni-i">🎙️</span><span data-fr="Enregistrement Vocal" data-en="Voice Recording">Enregistrement Vocal</span></button>
     <button class="ni" onclick="showSec('morpho',this)"><span class="ni-i">🔬</span><span data-fr="Morpho-Génétique IA" data-en="Morpho-Genetic AI">Morpho-Génétique IA</span></button>
     <button class="ni" onclick="showSec('rare',this)"><span class="ni-i">🧩</span><span data-fr="Tumeurs rares" data-en="Rare Tumors">Tumeurs rares</span></button>
     <button class="ni" onclick="showSec('bookmarks',this)"><span class="ni-i">🔖</span><span data-fr="Favoris" data-en="Bookmarks">Favoris</span></button>
@@ -2131,7 +2130,7 @@ document.addEventListener('click',e=>{if(!e.target.closest('.hw'))document.getEl
 // ══ NAV ═══════════════════════════════════════════════════════════════════
 let glData=[];
 function showSec(name,btn){
-  ['search','prs','founder','penetrance','tools','ngs','acmg','risk','glcomp','manchester','compvar','pedigree','bookmarks','about','litimport','ai_chat','ai_upload','ai_pharma','clinicians','morpho','rare','tmb_msi','drug_interactions','esmo_decision','voice_consult'].forEach(s=>{
+  ['search','prs','founder','penetrance','tools','ngs','acmg','risk','glcomp','manchester','compvar','pedigree','bookmarks','about','litimport','ai_chat','ai_upload','ai_pharma','clinicians','morpho','rare','tmb_msi','drug_interactions','esmo_decision'].forEach(s=>{
     const el=document.getElementById('sec-'+s);
     if(el) el.style.display=s===name?'block':'none';
   });
