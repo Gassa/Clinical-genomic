@@ -501,6 +501,7 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
     <button class="ni" onclick="showSec('drug_interactions',this)"><span class="ni-i">⚗️</span><span data-fr="Interactions CPIC" data-en="CPIC Interactions">Interactions CPIC</span></button>
     <button class="ni" onclick="showSec('esmo_decision',this)"><span class="ni-i">🌲</span><span data-fr="Arbre ESMO" data-en="ESMO Decision Tree">Arbre ESMO</span></button>
     <button class="ni" onclick="showSec('clinicians',this)"><span class="ni-i">🩺</span><span data-fr="Cliniciens Virtuels" data-en="Virtual Clinicians">Cliniciens Virtuels</span></button>
+    <button class="ni" onclick="showSec('voice_consult',this)"><span class="ni-i">🎙️</span><span data-fr="Enregistrement Vocal" data-en="Voice Recording">Enregistrement Vocal</span></button>
     <button class="ni" onclick="showSec('morpho',this)"><span class="ni-i">🔬</span><span data-fr="Morpho-Génétique IA" data-en="Morpho-Genetic AI">Morpho-Génétique IA</span></button>
     <button class="ni" onclick="showSec('rare',this)"><span class="ni-i">🧩</span><span data-fr="Tumeurs rares" data-en="Rare Tumors">Tumeurs rares</span></button>
     <button class="ni" onclick="showSec('bookmarks',this)"><span class="ni-i">🔖</span><span data-fr="Favoris" data-en="Bookmarks">Favoris</span></button>
@@ -2079,7 +2080,7 @@ document.addEventListener('click',e=>{if(!e.target.closest('.hw'))document.getEl
 // ══ NAV ═══════════════════════════════════════════════════════════════════
 let glData=[];
 function showSec(name,btn){
-  ['search','prs','founder','penetrance','tools','ngs','acmg','risk','glcomp','manchester','compvar','pedigree','bookmarks','about','litimport','ai_chat','ai_upload','ai_pharma','clinicians','morpho','rare','tmb_msi','drug_interactions','esmo_decision'].forEach(s=>{
+  ['search','prs','founder','penetrance','tools','ngs','acmg','risk','glcomp','manchester','compvar','pedigree','bookmarks','about','litimport','ai_chat','ai_upload','ai_pharma','clinicians','morpho','rare','tmb_msi','drug_interactions','esmo_decision','voice_consult'].forEach(s=>{
     const el=document.getElementById('sec-'+s);
     if(el) el.style.display=s===name?'block':'none';
   });
@@ -4592,5 +4593,71 @@ function pedCanvasRightClick(e){
 // ══ FIN ARBRE ════════════════════════════════════════════════════════════════
 </script>
 
+
+<!-- ══ ENREGISTREMENT VOCAL ══════════════════════════════════════════════ -->
+<div id="sec-voice_consult" style="display:none">
+  <div class="card">
+    <div class="ch"><span class="ct2"><span data-fr="🎙️ Enregistrement Vocal — Consultation Patient" data-en="🎙️ Voice Recording — Patient Consultation">🎙️ Enregistrement Vocal — Consultation Patient</span></span></div>
+    <div style="padding:14px">
+      <div style="font-size:13px;background:linear-gradient(135deg,#065f46,#0f766e);color:white;padding:10px 13px;border-radius:8px;margin-bottom:12px">
+        🎙️ <b>Transcription automatique en temps réel</b><br>
+        Parlez en français — le texte apparaît instantanément. Utilisez Chrome ou Edge.<br>
+        <span style="opacity:.85;font-size:12px">⚠️ Les données audio restent locales — aucun envoi vers un serveur externe.</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+        <input id="vc_patient" type="text" placeholder="Nom du patient" style="height:34px;font-size:13px;padding:0 10px;border:1px solid var(--bd);border-radius:6px;background:var(--s2);color:var(--tx)">
+        <input id="vc_dob" type="text" placeholder="DDN (JJ/MM/AAAA)" style="height:34px;font-size:13px;padding:0 10px;border:1px solid var(--bd);border-radius:6px;background:var(--s2);color:var(--tx)">
+        <select id="vc_type" style="height:34px;font-size:13px;padding:0 8px;border:1px solid var(--bd);border-radius:6px;background:var(--s2);color:var(--tx)">
+          <option value="">Type de consultation…</option>
+          <option>Consultation oncogénétique</option>
+          <option>Oncologie — thérapies ciblées</option>
+          <option>Génétique clinique</option>
+          <option>Anatomo-pathologie</option>
+          <option>Hémato-oncologie</option>
+          <option>Médecine interne</option>
+          <option>Médecine générale</option>
+          <option>RCP multidisciplinaire</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+        <button id="vc_recBtn" class="btn bp3" onclick="vcToggleRecord()" style="display:flex;align-items:center;gap:7px;border-radius:20px;padding:0 18px;height:38px">
+          <span id="vc_dot" style="width:10px;height:10px;border-radius:50%;background:currentColor;display:inline-block"></span>
+          <span id="vc_recLabel">Démarrer</span>
+        </button>
+        <span id="vc_timer" style="font-size:17px;font-weight:600;font-variant-numeric:tabular-nums;min-width:50px;color:var(--tx)">00:00</span>
+        <div id="vc_wave" style="flex:1;height:36px;display:flex;align-items:center;gap:2px;overflow:hidden"></div>
+        <button class="btn" onclick="vcClearAll()" style="font-size:12px;padding:0 12px;height:32px">Effacer</button>
+      </div>
+      <div style="font-size:12px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Transcription en direct</div>
+      <div id="vc_transcript" style="min-height:130px;background:var(--s2);border-radius:8px;padding:11px 14px;font-size:14px;line-height:1.7;color:var(--tx);white-space:pre-wrap;word-break:break-word;margin-bottom:8px">
+        <span id="vc_placeholder" style="color:var(--mu);font-style:italic;font-size:13px">La transcription apparaîtra ici dès que vous commencerez à parler…</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--mu);margin-bottom:10px">
+        <span id="vc_statusDot" style="width:7px;height:7px;border-radius:50%;background:#888;display:inline-block"></span>
+        <span id="vc_statusText">Microphone non actif</span>
+        <span id="vc_wordCount" style="margin-left:auto"></span>
+      </div>
+      <div id="vc_actions" style="display:none;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+        <button class="btn bp3" onclick="vcSendToAI()" style="font-size:13px;padding:0 14px;height:34px">⚡ Analyser avec l'IA</button>
+        <button class="btn" onclick="vcCopyText()" style="font-size:13px;padding:0 14px;height:34px">📋 Copier</button>
+        <button class="btn" onclick="vcExportNote()" style="font-size:13px;padding:0 14px;height:34px">💾 Exporter note clinique</button>
+      </div>
+      <div id="vc_aiResult" style="display:none;background:var(--s2);border-left:3px solid #0f766e;border-radius:0 8px 8px 0;padding:12px 14px;font-size:13px;line-height:1.6;color:var(--tx);margin-bottom:14px"></div>
+      <div style="font-size:12px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Notes cliniques structurées</div>
+      <textarea id="vc_notes" style="width:100%;min-height:90px;resize:vertical;font-size:14px;line-height:1.6;padding:10px 12px;border:1px solid var(--bd);border-radius:8px;background:var(--s2);color:var(--tx);font-family:inherit" placeholder="Ajoutez vos observations — ou cliquez sur un tag pour insérer rapidement…"></textarea>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+        <span onclick="vcInsertTag('Symptômes: ')" style="font-size:12px;padding:3px 10px;border-radius:12px;background:#FAEEDA;color:#854F0B;border:.5px solid #EF9F27;cursor:pointer">+ Symptômes</span>
+        <span onclick="vcInsertTag('Douleur: ')" style="font-size:12px;padding:3px 10px;border-radius:12px;background:#FAEEDA;color:#854F0B;border:.5px solid #EF9F27;cursor:pointer">+ Douleur</span>
+        <span onclick="vcInsertTag('ATCD familiaux: ')" style="font-size:12px;padding:3px 10px;border-radius:12px;background:#FAEEDA;color:#854F0B;border:.5px solid #EF9F27;cursor:pointer">+ ATCD familiaux</span>
+        <span onclick="vcInsertTag('Traitement en cours: ')" style="font-size:12px;padding:3px 10px;border-radius:12px;background:#E6F1FB;color:#0C447C;border:.5px solid #378ADD;cursor:pointer">+ Traitement</span>
+        <span onclick="vcInsertTag('Allergie: ')" style="font-size:12px;padding:3px 10px;border-radius:12px;background:#E6F1FB;color:#0C447C;border:.5px solid #378ADD;cursor:pointer">+ Allergie</span>
+        <span onclick="vcInsertTag('Posologie: ')" style="font-size:12px;padding:3px 10px;border-radius:12px;background:#E6F1FB;color:#0C447C;border:.5px solid #378ADD;cursor:pointer">+ Posologie</span>
+        <span onclick="vcInsertTag('Variant identifié: ')" style="font-size:12px;padding:3px 10px;border-radius:12px;background:#EEEDFE;color:#3C3489;border:.5px solid #7F77DD;cursor:pointer">+ Variant</span>
+        <span onclick="vcInsertTag('Biomarqueur: ')" style="font-size:12px;padding:3px 10px;border-radius:12px;background:#EEEDFE;color:#3C3489;border:.5px solid #7F77DD;cursor:pointer">+ Biomarqueur</span>
+        <span onclick="vcInsertTag('Plan thérapeutique: ')" style="font-size:12px;padding:3px 10px;border-radius:12px;background:#EEEDFE;color:#3C3489;border:.5px solid #7F77DD;cursor:pointer">+ Plan thérapeutique</span>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
