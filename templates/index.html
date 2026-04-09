@@ -3463,6 +3463,233 @@ Arbre décisionnel ESMO 2023-2024:
   } catch(e) { res.innerHTML = '<div style="color:red;padding:10px">Erreur: ' + e.message + '</div>'; }
 }
 
+
+// ══ MODE DUAL VOCAL — CLINICIEN + PATIENT ═══════════════════════════════
+(function(){
+  const LANGS = {
+    'fr-FR':'Français','en-US':'English','ar-SA':'العربية',
+    'wo-SN':'Wolof (Latin)','pt-BR':'Português','es-ES':'Español',
+    'sw-KE':'Kiswahili','ha-NG':'Hausa'
+  };
+  let dRec=null,dIsRec=false,dPaused=false,dTimerInt=null,dSec=0,
+      dFull='',dWaveInt=null,dNotes=[],dActiveClinId=null;
+
+  // ── Injecter le panneau dual dans la bulle clinicien ─────────────────
+  function injectDualPanel(clinId) {
+    if(document.getElementById('dual-panel-'+clinId)) return;
+    const bubble = document.getElementById('clinician-bubble-'+clinId)
+      || document.querySelector('.clinician-chat[data-id="'+clinId+'"]')
+      || document.getElementById('chat-'+clinId);
+    if(!bubble) return;
+
+    const langOptions = Object.entries(LANGS).map(([k,v])=>
+      `<option value="${k}"${k==='fr-FR'?' selected':''}>${v}</option>`).join('');
+
+    const panel = document.createElement('div');
+    panel.id = 'dual-panel-'+clinId;
+    panel.style.cssText = 'margin-top:10px;border-top:1px solid var(--bd);padding-top:10px';
+    panel.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <button id="dp-recbtn-${clinId}" onclick="dpToggle('${clinId}')"
+          style="display:flex;align-items:center;gap:6px;padding:0 14px;height:32px;border-radius:16px;border:1.5px solid #1D9E75;background:var(--s2);color:#0F6E56;font-size:12px;font-weight:500;cursor:pointer">
+          <span id="dp-dot-${clinId}" style="width:8px;height:8px;border-radius:50%;background:currentColor"></span>
+          <span id="dp-lbl-${clinId}">🎙️ Enregistrer</span>
+        </button>
+        <select id="dp-lang-${clinId}"
+          style="height:30px;font-size:12px;padding:0 6px;border:1px solid var(--bd);border-radius:6px;background:var(--s2);color:var(--tx)">
+          ${langOptions}
+        </select>
+        <span id="dp-timer-${clinId}" style="font-size:13px;font-weight:600;color:var(--tx);font-variant-numeric:tabular-nums">00:00</span>
+        <div id="dp-wave-${clinId}" style="display:flex;gap:2px;height:24px;align-items:center;flex:1;max-width:80px"></div>
+        <button onclick="dpClear('${clinId}')" style="font-size:11px;padding:0 8px;height:26px;border-radius:5px;border:.5px solid var(--bd);background:var(--s2);color:var(--mu);cursor:pointer">Effacer</button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">🎤 Patient</div>
+          <div id="dp-transcript-${clinId}"
+            style="min-height:70px;background:var(--s2);border-radius:7px;padding:8px 10px;font-size:12px;line-height:1.6;color:var(--tx);white-space:pre-wrap;word-break:break-word">
+            <span style="color:var(--mu);font-style:italic">Transcription…</span>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">✏️ Notes (↵ pour horodater)</div>
+          <div id="dp-notelog-${clinId}" style="max-height:40px;overflow-y:auto;margin-bottom:4px;font-size:11px"></div>
+          <textarea id="dp-notes-${clinId}" rows="2"
+            style="width:100%;font-size:12px;padding:6px 8px;border:.5px solid var(--bd);border-radius:6px;background:var(--s2);color:var(--tx);font-family:inherit;resize:none"
+            placeholder="Tapez vos notes simultanément…"></textarea>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <span onclick="dpTag('${clinId}','⚠️ Symptôme: ')" style="font-size:11px;padding:2px 8px;border-radius:10px;background:#FAEEDA;color:#854F0B;border:.5px solid #EF9F27;cursor:pointer">+ Symptôme</span>
+        <span onclick="dpTag('${clinId}','💊 Traitement: ')" style="font-size:11px;padding:2px 8px;border-radius:10px;background:#E6F1FB;color:#0C447C;border:.5px solid #378ADD;cursor:pointer">+ Traitement</span>
+        <span onclick="dpTag('${clinId}','🧬 Variant: ')" style="font-size:11px;padding:2px 8px;border-radius:10px;background:#EEEDFE;color:#3C3489;border:.5px solid #7F77DD;cursor:pointer">+ Variant</span>
+        <span onclick="dpTag('${clinId}','📌 À explorer: ')" style="font-size:11px;padding:2px 8px;border-radius:10px;background:#EAF3DE;color:#27500A;border:.5px solid #639922;cursor:pointer">+ À explorer</span>
+        <span onclick="dpTag('${clinId}','⚡ Urgent: ')" style="font-size:11px;padding:2px 8px;border-radius:10px;background:#FCEBEB;color:#A32D2D;border:.5px solid #E24B4A;cursor:pointer">+ Urgent</span>
+        <button onclick="dpExport('${clinId}')" style="font-size:11px;padding:0 8px;height:24px;border-radius:5px;border:.5px solid var(--bd);background:var(--s2);color:var(--tx);cursor:pointer;margin-left:auto">💾 Exporter</button>
+      </div>`;
+
+    bubble.appendChild(panel);
+
+    // Init vagues
+    const waveEl = document.getElementById('dp-wave-'+clinId);
+    for(let i=0;i<14;i++){const b=document.createElement('div');b.style.cssText='width:2px;border-radius:2px;background:#1D9E75;height:3px;transition:height .1s';waveEl.appendChild(b);}
+
+    // Entrée clavier pour horodater
+    const ta = document.getElementById('dp-notes-'+clinId);
+    ta.addEventListener('keydown', e=>{
+      if(e.key==='Enter'&&!e.shiftKey){
+        e.preventDefault();
+        const val=ta.value.trim();
+        if(val){dpAddNote(clinId,val);ta.value='';}
+      }
+    });
+  }
+
+  function dpFmt(s){return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
+
+  function dpAddNote(clinId, text){
+    dNotes.push({text,ts:dpFmt(dSec),clinId});
+    const log=document.getElementById('dp-notelog-'+clinId);
+    if(log){
+      const d=document.createElement('div');
+      d.style.cssText='border-left:2px solid #5DCAA5;padding:2px 6px;margin-bottom:3px;font-size:11px;color:var(--tx)';
+      d.innerHTML='<span style="color:var(--mu)">'+dpFmt(dSec)+'</span> '+text;
+      log.appendChild(d);log.scrollTop=log.scrollHeight;
+    }
+  }
+
+  function dpAnimWave(clinId, on){
+    clearInterval(dWaveInt);
+    const el=document.getElementById('dp-wave-'+clinId);
+    if(!el)return;
+    const bars=el.children;
+    if(!on){Array.from(bars).forEach(b=>b.style.height='3px');return;}
+    dWaveInt=setInterval(()=>{
+      Array.from(bars).forEach(b=>{
+        b.style.height=(dIsRec&&!dPaused?Math.max(3,Math.floor(Math.random()*18)+2):3)+'px';
+      });
+    },120);
+  }
+
+  function dpUpdateUI(clinId){
+    const btn=document.getElementById('dp-recbtn-'+clinId);
+    const dot=document.getElementById('dp-dot-'+clinId);
+    const lbl=document.getElementById('dp-lbl-'+clinId);
+    if(!btn)return;
+    if(dIsRec&&!dPaused){
+      btn.style.cssText='display:flex;align-items:center;gap:6px;padding:0 14px;height:32px;border-radius:16px;border:1.5px solid #E24B4A;background:#FCEBEB;color:#A32D2D;font-size:12px;font-weight:500;cursor:pointer';
+      dot.style.animation='vc-blink .8s steps(1) infinite';
+      lbl.textContent='⏸ Pause';
+    }else if(dPaused){
+      btn.style.cssText='display:flex;align-items:center;gap:6px;padding:0 14px;height:32px;border-radius:16px;border:1.5px solid #BA7517;background:#FAEEDA;color:#854F0B;font-size:12px;font-weight:500;cursor:pointer';
+      dot.style.animation='none';
+      lbl.textContent='▶ Reprendre';
+    }else{
+      btn.style.cssText='display:flex;align-items:center;gap:6px;padding:0 14px;height:32px;border-radius:16px;border:1.5px solid #1D9E75;background:var(--s2);color:#0F6E56;font-size:12px;font-weight:500;cursor:pointer';
+      dot.style.animation='none';
+      lbl.textContent='🎙️ Enregistrer';
+    }
+  }
+
+  window.dpToggle=function(clinId){
+    dActiveClinId=clinId;
+    if(!dIsRec){
+      const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+      if(!SR){alert('Utilisez Chrome ou Edge pour la reconnaissance vocale.');return;}
+      const langSel=document.getElementById('dp-lang-'+clinId);
+      const lang=langSel?langSel.value:'fr-FR';
+      dRec=new SR();dRec.continuous=true;dRec.interimResults=true;dRec.lang=lang;
+      dRec.onresult=e=>{
+        let interim='';
+        for(let i=e.resultIndex;i<e.results.length;i++){
+          if(e.results[i].isFinal) dFull+=e.results[i][0].transcript+' ';
+          else interim+=e.results[i][0].transcript;
+        }
+        const box=document.getElementById('dp-transcript-'+clinId);
+        if(box) box.innerHTML='<span>'+dFull+'</span>'+(interim?'<span style="color:var(--mu)">'+interim+'</span>':'');
+      };
+      dRec.onerror=e=>{if(e.error!=='no-speech')console.warn('SR error:',e.error);};
+      dRec.onend=()=>{if(dIsRec&&!dPaused){try{dRec.start();}catch(e){}}};
+      dRec.start();
+      dIsRec=true;dPaused=false;dSec=0;dFull='';
+      dTimerInt=setInterval(()=>{
+        dSec++;
+        const t=document.getElementById('dp-timer-'+clinId);
+        if(t)t.textContent=dpFmt(dSec);
+      },1000);
+      dpAnimWave(clinId,true);
+    }else if(!dPaused){
+      dPaused=true;clearInterval(dTimerInt);try{dRec.stop();}catch(e){}
+      dpAnimWave(clinId,false);
+    }else{
+      dPaused=false;
+      dTimerInt=setInterval(()=>{dSec++;const t=document.getElementById('dp-timer-'+clinId);if(t)t.textContent=dpFmt(dSec);},1000);
+      try{dRec.start();}catch(e){}
+      dpAnimWave(clinId,true);
+    }
+    dpUpdateUI(clinId);
+  };
+
+  window.dpClear=function(clinId){
+    dIsRec=false;dPaused=false;dFull='';dSec=0;dNotes=[];
+    clearInterval(dTimerInt);clearInterval(dWaveInt);
+    try{dRec&&dRec.stop();}catch(e){}
+    const box=document.getElementById('dp-transcript-'+clinId);
+    if(box)box.innerHTML='<span style="color:var(--mu);font-style:italic">Transcription…</span>';
+    const log=document.getElementById('dp-notelog-'+clinId);if(log)log.innerHTML='';
+    const ta=document.getElementById('dp-notes-'+clinId);if(ta)ta.value='';
+    const t=document.getElementById('dp-timer-'+clinId);if(t)t.textContent='00:00';
+    dpUpdateUI(clinId);
+  };
+
+  window.dpTag=function(clinId,text){
+    const ta=document.getElementById('dp-notes-'+clinId);
+    if(!ta)return;
+    const pos=ta.selectionStart,before=ta.value.substring(0,pos),after=ta.value.substring(pos);
+    const pfx=(before.length>0&&!before.endsWith('\n'))?'\n':'';
+    ta.value=before+pfx+text+after;
+    const np=pos+pfx.length+text.length;ta.setSelectionRange(np,np);ta.focus();
+  };
+
+  window.dpExport=function(clinId){
+    const date=new Date().toLocaleDateString('fr-FR');
+    const lang=(document.getElementById('dp-lang-'+clinId)||{}).value||'fr-FR';
+    const notesStr=dNotes.filter(n=>n.clinId===clinId).map(n=>'['+n.ts+'] '+n.text).join('\n')||'(aucune)';
+    const manual=(document.getElementById('dp-notes-'+clinId)||{}).value||'';
+    const sep='─'.repeat(40);
+    const txt=['NOTE CONSULTATION — SenGenoScope',sep,'Date : '+date,'Durée : '+dpFmt(dSec),'Langue : '+lang,'',sep,'TRANSCRIPTION PATIENT',sep,dFull.trim()||'(aucune)','','',sep,'NOTES CLINICIEN (horodatées)',sep,notesStr,manual?'\n'+sep+'\nNOTES LIBRES\n'+sep+'\n'+manual:''].join('\n');
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain'}));
+    a.download='consultation_'+clinId+'_'+date.replace(/\//g,'-')+'.txt';a.click();
+  };
+
+  // ── Hook : injecter le panneau quand un clinicien est ouvert ──────────
+  // Observer les mutations DOM pour détecter l'ouverture d'un clinicien
+  const observer = new MutationObserver(mutations=>{
+    mutations.forEach(m=>{
+      m.addedNodes.forEach(node=>{
+        if(node.nodeType===1){
+          // Chercher une bulle clinicien nouvellement ajoutée
+          const ids=['oncogeneticist','oncologist','pathologist','geneticist','generalist','internist','hematologist','rcp_coordinator'];
+          ids.forEach(id=>{
+            const el=node.id==='clinician-bubble-'+id?node:node.querySelector&&node.querySelector('#clinician-bubble-'+id);
+            if(el) setTimeout(()=>injectDualPanel(id),100);
+          });
+        }
+      });
+    });
+  });
+  observer.observe(document.body,{childList:true,subtree:true});
+
+  // Aussi exposer pour appel direct
+  window.dpInject=injectDualPanel;
+
+})();
+// ══ FIN MODE DUAL VOCAL ══════════════════════════════════════════════════
+
+
 // ══ FLUSH EARLY CALLS (appels reçus avant chargement complet) ════════════
 if(typeof _pendingCalls !== 'undefined'){
   _pendingCalls.forEach(c=>{

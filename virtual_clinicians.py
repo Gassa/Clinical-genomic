@@ -644,3 +644,44 @@ Cite les PMIDs, NCT et données ClinVar dans ta réponse.
         return {"success": False, "error": "Limite API atteinte. Réessayez dans quelques secondes."}
     except Exception as e:
         return {"success": False, "error": f"Erreur API: {str(e)}"}
+
+
+def get_all_clinicians():
+    """Retourne la liste des cliniciens sans system_prompt (pour le front)."""
+    return [
+        {k: v for k, v in c.items() if k != 'system_prompt'}
+        for c in CLINICIANS
+    ]
+
+def consult_clinician_ai(clinician_id, message, history=None, user_api_key=None):
+    """Consulte un clinicien virtuel via l'API Anthropic."""
+    import anthropic, os
+    clinician = next((c for c in CLINICIANS if c['id'] == clinician_id), None)
+    if not clinician:
+        return {"success": False, "error": f"Clinicien '{clinician_id}' non trouvé"}
+    api_key = user_api_key or os.environ.get("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        return {"success": False, "error": "Clé API Anthropic manquante"}
+    try:
+        client = anthropic.Anthropic(api_key=api_key)
+        messages = []
+        for h in (history or []):
+            if h.get('role') in ('user', 'assistant') and h.get('content'):
+                messages.append({"role": h['role'], "content": h['content']})
+        messages.append({"role": "user", "content": message})
+        response = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=1000,
+            system=clinician.get('system_prompt', ''),
+            messages=messages
+        )
+        return {
+            "success": True,
+            "response": response.content[0].text if response.content else "",
+            "clinician": clinician["name"],
+            "specialty": clinician["specialty"],
+            "clinician_id": clinician_id,
+            "model": "claude-haiku-4-5-20251001"
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
