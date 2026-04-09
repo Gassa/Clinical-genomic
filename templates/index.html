@@ -466,6 +466,7 @@ function updateLangToggle() {
 }
 function setLang(l){ _pendingCalls.push(['setLang', l]); }
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 </head>
 <body>
 <div class="shell">
@@ -1266,6 +1267,7 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
                     <span id="clinMicDot" style="width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block"></span>
                     <span id="clinMicLbl">🎙️ Enregistrer patient</span>
                   </button>
+                  <button id="clinMicPauseBtn" onclick="clinMicPause()" style="display:none;padding:0 10px;height:34px;border-radius:17px;border:1.5px solid #BA7517;background:#FAEEDA;color:#854F0B;font-size:12px;font-weight:500;cursor:pointer">⏸ Pause</button>
                   <select id="clinMicLang" style="height:32px;font-size:11px;padding:0 5px;border:.5px solid var(--bd);border-radius:6px;background:var(--s2);color:var(--tx)">
                     <option value="fr-FR">🇫🇷 Français</option>
                     <option value="en-US">🇬🇧 English</option>
@@ -1281,9 +1283,10 @@ function setLang(l){ _pendingCalls.push(['setLang', l]); }
                 </div>
 
                 <!-- Ligne 2 : transcription patient (temps réel) -->
-                <div id="clinMicTranscript" style="display:none;margin-bottom:8px;background:var(--s2);border-radius:6px;padding:7px 10px;font-size:12px;line-height:1.5;color:var(--tx);min-height:36px;border-left:3px solid #1D9E75">
+                <div id="clinMicTranscript" style="display:none;margin-bottom:6px;background:var(--s2);border-radius:6px;padding:7px 10px;font-size:12px;line-height:1.5;color:var(--tx);border-left:3px solid #1D9E75">
                   <span style="color:var(--mu);font-style:italic">Paroles du patient en temps réel…</span>
                 </div>
+                <button onclick="clinSendTranscript()" id="clinAnalyzeBtn" style="display:none;margin-bottom:8px;width:100%;padding:6px;border-radius:6px;border:.5px solid #1D9E75;background:#E1F5EE;color:#085041;font-size:12px;font-weight:500;cursor:pointer">⚡ Analyser ce que le patient a dit</button>
 
                 <!-- Ligne 3 : notes clinicien -->
                 <div style="margin-bottom:8px">
@@ -3306,7 +3309,7 @@ function appendClinicianMsg(role, text) {
 
   const bubble = document.createElement('div');
   bubble.style.cssText = `max-width:82%;padding:11px 14px;border-radius:${isUser?'14px 4px 14px 14px':'4px 14px 14px 14px'};background:${isUser?'var(--pr)':'var(--sf)'};color:${isUser?'#fff':'var(--tx)'};font-size:13px;line-height:1.7;border:1px solid ${isUser?'transparent':'var(--bd)'};white-space:pre-wrap`;
-  bubble.textContent = text;
+  bubble.(typeof marked!=="undefined"?marked.parse(text):text)Content = (typeof marked!=="undefined"?marked.parse(text):text);
 
   div.appendChild(avatar);
   div.appendChild(bubble);
@@ -3403,7 +3406,12 @@ async function sendClinicianMessage() {
       appendClinicianMsg('assistant', '❌ ' + (d.error || 'Erreur serveur'));
     }
   } catch(e) {
-    appendClinicianMsg('assistant', '❌ Erreur réseau. Vérifiez que le serveur est en ligne.');
+    if(e.message && e.message.includes('waking up')) {
+      appendClinicianMsg('assistant', '⏳ Serveur en démarrage (free tier Render). Nouvelle tentative dans 30s…');
+      setTimeout(()=>sendClinicianMessage(),30000);
+    } else {
+      appendClinicianMsg('assistant', '❌ Erreur réseau: '+e.message);
+    }
   }
 
   btn.disabled = false;
@@ -3770,7 +3778,7 @@ Arbre décisionnel ESMO 2023-2024:
 
 // ══ MIC + NOTES CLINICIEN ════════════════════════════════════════════════
 (function(){
-  let cRec=null,cIsRec=false,cSec=0,cTimer=null,cWaveInt=null,cFull='',cNotes=[];
+  let cRec=null,cIsRec=false,cPaused=false,cSec=0,cTimer=null,cWaveInt=null,cFull='',cNotes=[];
 
   // Init vagues
   function initWave(){
@@ -3798,8 +3806,14 @@ Arbre décisionnel ESMO 2023-2024:
       if(dot)dot.style.animation='vc-blink .8s steps(1) infinite';
       if(lbl)lbl.textContent='⏹ Arrêter';
       if(tr)tr.style.display='block';
+      const pb=document.getElementById('clinMicPauseBtn');
+      if(pb)pb.style.display='flex';
     }else{
       if(btn)btn.style.cssText='display:flex;align-items:center;gap:6px;padding:0 14px;height:34px;border-radius:17px;border:1.5px solid #1D9E75;background:var(--s2);color:#0F6E56;font-size:12px;font-weight:500;cursor:pointer';
+      const pb2=document.getElementById('clinMicPauseBtn');
+      if(pb2)pb2.style.display='none';
+      const ab=document.getElementById('clinAnalyzeBtn');
+      if(ab&&cFull.trim())ab.style.display='block';
       if(dot)dot.style.animation='none';
       if(lbl)lbl.textContent='🎙️ Enregistrer patient';
     }
