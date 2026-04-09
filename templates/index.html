@@ -3913,6 +3913,25 @@ function showSec(name,btn){
   if(name==='risk' && typeof initRisk==='function') initRisk();
 }
 
+
+// ══ NAVIGATION SECTIONS ══════════════════════════════════════════════════
+function showSec(name,btn){
+  const SECS=['search','prs','founder','penetrance','tools','ngs','acmg','risk','glcomp','manchester','compvar','pedigree','bookmarks','about','litimport','ai_chat','ai_upload','ai_pharma','clinicians','morpho','rare','tmb_msi','drug_interactions','esmo_decision'];
+  SECS.forEach(s=>{
+    const el=document.getElementById('sec-'+s);
+    if(el) el.style.display=(s===name)?'block':'none';
+  });
+  document.querySelectorAll('.ni').forEach(e=>e.classList.remove('active','bp3'));
+  if(btn) btn.classList.add('active','bp3');
+  if(name==='ai_chat' && typeof initAIChat==='function') initAIChat();
+  if(name==='clinicians' && typeof initClinicians==='function') initClinicians();
+  if(name==='ngs' && typeof initNGS==='function') initNGS();
+  if(name==='glcomp' && typeof initGLComp==='function') initGLComp();
+  if(name==='prs' && typeof initPRS==='function') initPRS();
+  if(name==='penetrance' && typeof initPenetrance==='function') initPenetrance();
+  if(name==='risk' && typeof initRisk==='function') initRisk();
+}
+
 // ══ FLUSH EARLY CALLS (appels reçus avant chargement complet) ════════════
 if(typeof _pendingCalls !== 'undefined'){
   _pendingCalls.forEach(c=>{
