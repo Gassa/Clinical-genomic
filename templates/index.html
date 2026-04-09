@@ -3165,7 +3165,7 @@ async function initClinicians() {
   const grid = document.getElementById('clinicianCards');
   if (!grid) return;
   try {
-    const r = await fetch('/clinicians');
+    const r = await fetch('/ai/clinicians');
     if (!r.ok) throw new Error('API /clinicians non disponible');
     const data = await r.json();
     const clinicians = Array.isArray(data) ? data : (data.clinicians || []);
