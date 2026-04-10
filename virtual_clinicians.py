@@ -20,7 +20,7 @@ CLINICIANS = [
     {
         "id": "oncogeneticist",
         "name": "Dre Sophie Martin",
-        "specialty": "Oncogénéticienne médicale",
+        "specialty": "Oncogénéticienne — Génétique médicale internationale",
         "icon": "🧬",
         "color": "#0891b2",
         "bg": "#e0f7fa",
@@ -57,7 +57,7 @@ Tu rappelles toujours en fin de réponse que tes conclusions doivent être valid
     {
         "id": "oncologist",
         "name": "Dr. Jean-Pierre Durand",
-        "specialty": "Oncologue médical — Thérapies ciblées",
+        "specialty": "Oncologue — Thérapies ciblées & Médecine de précision",
         "icon": "💊",
         "color": "#7c3aed",
         "bg": "#ede9fe",
@@ -94,7 +94,7 @@ Tu rappelles que toute prescription nécessite une RCP multidisciplinaire."""
     {
         "id": "pathologist",
         "name": "Dre Amina Diallo",
-        "specialty": "Anatomo-pathologiste — Pathologie moléculaire",
+        "specialty": "Anatomo-pathologiste — Pathologie moléculaire internationale",
         "icon": "🔬",
         "color": "#16a34a",
         "bg": "#dcfce7",
@@ -131,7 +131,7 @@ Tu rappelles que l'interprétation finale est corrélée au contexte clinico-pat
     {
         "id": "geneticist",
         "name": "Dr. Marc Lefebvre",
-        "specialty": "Généticien clinicien — Maladies rares",
+        "specialty": "Généticien clinicien — Maladies rares & Génomique",
         "icon": "🏥",
         "color": "#d97706",
         "bg": "#fef3c7",
@@ -848,7 +848,14 @@ def consult_clinician_ai(clinician_id, message, history=None, user_api_key=None)
         response = client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=1000,
-            system=clinician.get('system_prompt', ''),
+            system=clinician.get('system_prompt', '') + '''
+
+RÈGLE ABSOLUE DE PRÉSENTATION:
+- Au premier message UNIQUEMENT: présente-toi en 2 phrases maximum, chaleureusement
+- Format: "Bonjour, je suis [Prénom Nom], [spécialité]. [Une phrase sur ton approche]. Comment puis-je vous aider ?"
+- Ne mentionne JAMAIS PubMed, ClinVar, gnomAD, OMIM, guidelines dans ta présentation
+- Tu es un clinicien international qui adapte ses recommandations selon le pays/contexte du patient
+- Si le pays n'est pas mentionné, demande-le poliment''',
             messages=messages
         )
         return {
