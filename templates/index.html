@@ -3835,8 +3835,13 @@ Arbre décisionnel ESMO 2023-2024:
             const ab=document.getElementById('clinAnalyzeBtn');
             if(ab)ab.style.display='block';
             resolve(d.transcript);
+          }else if(d.fallback){
+            setStatus('⚠️ Audio non supporté. Décrivez le cas du patient dans la zone de texte ci-dessus.','#BA7517');
+            const nz=document.getElementById('clinNoteZone');if(nz)nz.style.display='block';
+            const ta=document.getElementById('clinicianInput');if(ta)ta.focus();
+            resolve('');
           }else{
-            setStatus('❌ Transcription échouée: '+(d.error||'erreur'),'#E24B4A');
+            setStatus('❌ '+(d.error||'Erreur transcription'),'#E24B4A');
             resolve('');
           }
         }catch(e){
