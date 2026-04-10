@@ -254,7 +254,6 @@ Contexte africain: prévalence élevée drépanocytose, paludisme-falcipurum com
 Tu cites: EHA, ASH, NCCN, WHO Classification Tumours Haematopoietic 2022.
 Tu adaptes tes recommandations au niveau de ressources disponibles."""
     },
-    ,
     {
         "id": "radiologist",
         "name": "Dre Fatou Sarr",
