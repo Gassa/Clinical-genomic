@@ -336,3 +336,64 @@ def generate_pdf_report(query: str, articles: list, gene_data: dict, clinvar_res
     doc.build(story)
     buffer.seek(0)
     return buffer.read()
+
+
+CLINICIAN_COLORS = {
+    "oncogenetics":colors.HexColor("#0d9488"),"oncologist":colors.HexColor("#7c3aed"),
+    "pathologist":colors.HexColor("#b45309"),"geneticist":colors.HexColor("#c2410c"),
+    "generalist":colors.HexColor("#16a34a"),"internist":colors.HexColor("#0284c7"),
+    "hematologist":colors.HexColor("#dc2626"),"radiologist":colors.HexColor("#4338ca"),
+    "gynecologist":colors.HexColor("#db2777"),"pediatric_oncologist":colors.HexColor("#d97706"),
+    "pain_specialist":colors.HexColor("#7c3aed"),"rcp_coordinator":colors.HexColor("#0891b2"),
+}
+
+def generate_clinician_pdf(clinician_id,clinician_name,clinician_specialty,messages,patient_context=""):
+    buffer=io.BytesIO(); accent=CLINICIAN_COLORS.get(clinician_id,TEAL)
+    class CDoc(BaseDocTemplate):
+        def __init__(self,buf,**kw):
+            BaseDocTemplate.__init__(self,buf,**kw)
+            frame=Frame(self.leftMargin,self.bottomMargin,self.width,self.height-1.5*cm,id="main")
+            self.addPageTemplates([PageTemplate(id="c",frames=frame,onPage=self._draw)])
+        def _draw(self,c,doc):
+            c.saveState(); w,h=A4
+            c.setFillColor(DARK_BLUE); c.rect(0,h-1.8*cm,w,1.8*cm,fill=1,stroke=0)
+            c.setFillColor(WHITE); c.setFont("Helvetica-Bold",13)
+            c.drawString(1.8*cm,h-1.2*cm,"SenGenoScope — Consultation Virtuelle")
+            c.setFillColor(accent); c.setFont("Helvetica",8)
+            c.drawString(1.8*cm,h-1.55*cm,clinician_name+" - "+clinician_specialty)
+            c.setFillColor(MID_GRAY); c.setFont("Helvetica",8)
+            c.drawRightString(w-1.8*cm,h-1.2*cm,datetime.now().strftime("%d/%m/%Y %H:%M"))
+            c.setFont("Helvetica",7); c.drawRightString(w-1.8*cm,h-1.55*cm,f"Page {doc.page}")
+            c.setStrokeColor(accent); c.setLineWidth(2); c.line(0,h-1.8*cm,w,h-1.8*cm)
+            c.setStrokeColor(LIGHT_GRAY); c.setLineWidth(0.5); c.line(1.8*cm,1.5*cm,w-1.8*cm,1.5*cm)
+            c.setFillColor(MID_GRAY); c.setFont("Helvetica-Oblique",6.5)
+            c.drawCentredString(w/2,1.0*cm,"SenGenoScope - Dr. Moustapha Gassama - Usage clinique confidentiel")
+            c.saveState(); c.setFillColor(colors.HexColor("#e2e8f0")); c.setFont("Helvetica-Bold",52)
+            c.translate(w/2,h/2); c.rotate(35); c.drawCentredString(0,0,"CONFIDENTIEL"); c.restoreState()
+            c.restoreState()
+    doc=CDoc(buffer,pagesize=A4,leftMargin=1.8*cm,rightMargin=1.8*cm,topMargin=2.5*cm,bottomMargin=2.5*cm)
+    W=A4[0]-3.6*cm; story=[]
+    story.append(Paragraph("Compte-rendu de Consultation Virtuelle",_style("T",fontSize=16,fontName="Helvetica-Bold",textColor=DARK_BLUE,spaceAfter=4)))
+    story.append(Spacer(1,0.3*cm))
+    info=[["Clinicien",clinician_name],["Specialite",clinician_specialty],["Date",datetime.now().strftime("%d/%m/%Y")],["Plateforme","SenGenoScope"]]
+    if patient_context: info.append(["Contexte",patient_context[:200]])
+    t=Table([[Paragraph(f"<b>{k}</b>",_style("K",fontSize=9,textColor=DARK_GRAY)),Paragraph(v,_style("V",fontSize=9))] for k,v in info],colWidths=[3.5*cm,W-3.5*cm])
+    t.setStyle(TableStyle([("BACKGROUND",(0,0),(0,-1),LIGHT_GRAY),("BOX",(0,0),(-1,-1),0.5,MID_GRAY),("INNERGRID",(0,0),(-1,-1),0.3,LIGHT_GRAY),("PADDING",(0,0),(-1,-1),6)]))
+    story.append(t); story.append(Spacer(1,0.5*cm))
+    story.append(HRFlowable(width="100%",thickness=1.5,color=accent,spaceAfter=10))
+    story.append(Paragraph("Echanges de la consultation",_style("S",fontSize=12,fontName="Helvetica-Bold",textColor=DARK_BLUE,spaceAfter=8)))
+    for i,msg in enumerate(messages):
+        role=msg.get("role",""); content=msg.get("content","").strip()
+        if not content: continue
+        bg=colors.HexColor("#eff6ff") if role=="user" else colors.HexColor("#f0fdf4")
+        label="Vous" if role=="user" else clinician_name
+        lc=colors.HexColor("#1d4ed8") if role=="user" else accent
+        disp=content if len(content)<=2000 else content[:2000]+"..."
+        bd=[[Paragraph(f"<b>{label}</b>",_style(f"L{i}",fontSize=8,textColor=lc,spaceAfter=3)),""],
+            [Paragraph(disp.replace("\n","<br/>"),_style(f"M{i}",fontSize=9,textColor=DARK_GRAY,leading=13)),""]]
+        bt=Table(bd,colWidths=[W,0])
+        bt.setStyle(TableStyle([("BACKGROUND",(0,0),(-1,-1),bg),("BOX",(0,0),(-1,-1),0.5,MID_GRAY),("PADDING",(0,0),(-1,-1),8)]))
+        story.append(KeepTogether(bt)); story.append(Spacer(1,0.25*cm))
+    story.append(Spacer(1,0.5*cm))
+    story.append(Paragraph("Avertissement: Resume IA, a valider par un medecin qualifie.",_style("D",fontSize=8,textColor=DARK_GRAY,leading=12,alignment=TA_JUSTIFY)))
+    doc.build(story); buffer.seek(0); return buffer.read()

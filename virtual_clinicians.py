@@ -844,7 +844,10 @@ def consult_clinician_ai(clinician_id, message, history=None, user_api_key=None)
         for h in (history or []):
             if h.get('role') in ('user', 'assistant') and h.get('content'):
                 messages.append({"role": h['role'], "content": h['content']})
-        messages.append({"role": "user", "content": message})
+        genes=extract_genes_from_message(message)
+        afr=fetch_gnomad_afr_context(genes) if genes else ""
+        enriched_message=message+afr if afr else message
+        messages.append({"role": "user", "content": enriched_message})
         response = client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=1000,

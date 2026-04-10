@@ -21,7 +21,7 @@ except ImportError:
         except: return 0
 from gene_extractor import extract_genes_from_abstracts, extract_pathogenicity_context
 from databases import search_clinvar, search_omim, search_cosmic, search_clingen, get_guidelines
-from pdf_report import generate_pdf_report
+from pdf_report import generate_pdf_report, generate_clinician_pdf
 from genomic_tools import (parse_fasta, analyze_sequence, compare_sequences,
     predict_variant_impact, classify_acmg, calculate_hereditary_risk, get_all_syndromes)
 from clinical_modules import (calculate_prs, get_prs_cancers, get_founder_mutations,
@@ -46,7 +46,7 @@ except Exception:
 import requests as req
 import io, csv, os, json, base64
 import sqlite3, hashlib
-from datetime import timedelta
+from datetime import timedelta, datetime
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -99,6 +99,17 @@ def init_db():
         ip TEXT,
         user_agent TEXT,
         login_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS consultations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        clinician_id TEXT NOT NULL,
+        clinician_name TEXT NOT NULL,
+        clinician_specialty TEXT DEFAULT '',
+        title TEXT DEFAULT '',
+        messages TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""")
     conn.commit()
     conn.close()
@@ -1417,6 +1428,161 @@ def rcp_consultation_route():
         return jsonify({"success": False, "error": str(e), "trace": traceback.format_exc()}), 500
 
 # ══ FIN ROUTES CLINICIENS ════════════════════════════════════════════════
+
+@app.route('/export_clinician_pdf', methods=['POST'])
+@login_required
+def export_clinician_pdf():
+    try:
+        data = request.get_json() or {}
+        messages = data.get('messages', [])
+        if not messages: return jsonify({"error": "Aucun message"}), 400
+        pdf_bytes = generate_clinician_pdf(
+            clinician_id=data.get('clinician_id',''), clinician_name=data.get('clinician_name','Clinicien'),
+            clinician_specialty=data.get('clinician_specialty',''), messages=messages,
+            patient_context=data.get('patient_context',''))
+        name = data.get('clinician_name','Clinicien').replace(' ','_')
+        return send_file(io.BytesIO(pdf_bytes), mimetype='application/pdf', as_attachment=True,
+                         download_name=f"consultation_{name}_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf")
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/consultations/save', methods=['POST'])
+@login_required
+def save_consultation():
+    try:
+        import json as J
+        data = request.get_json() or {}
+        uid = session.get('user_id'); cid = data.get('id')
+        msgs = data.get('messages',[]); clin_id = data.get('clinician_id','')
+        if not clin_id or not msgs: return jsonify({"error":"requis"}),400
+        title = data.get('title','') or next((m['content'] for m in msgs if m.get('role')=='user'),'')[:60]
+        mj = J.dumps(msgs, ensure_ascii=False)
+        conn = sqlite3.connect(DB_PATH)
+        if cid:
+            conn.execute("UPDATE consultations SET messages=?,title=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND user_id=?",(mj,title,cid,uid))
+            conn.commit(); conn.close(); return jsonify({"success":True,"id":cid})
+        cur = conn.execute("INSERT INTO consultations(user_id,clinician_id,clinician_name,clinician_specialty,title,messages) VALUES(?,?,?,?,?,?)",
+                           (uid,clin_id,data.get('clinician_name',''),data.get('clinician_specialty',''),title,mj))
+        nid=cur.lastrowid; conn.commit(); conn.close(); return jsonify({"success":True,"id":nid})
+    except Exception as e: return jsonify({"error":str(e)}),500
+
+@app.route('/consultations/list', methods=['GET'])
+@login_required
+def list_consultations():
+    try:
+        uid=session.get('user_id'); lim=min(int(request.args.get('limit',20)),50)
+        conn=sqlite3.connect(DB_PATH)
+        rows=conn.execute("SELECT id,clinician_id,clinician_name,clinician_specialty,title,created_at,updated_at FROM consultations WHERE user_id=? ORDER BY updated_at DESC LIMIT ?",(uid,lim)).fetchall()
+        conn.close()
+        return jsonify({"success":True,"consultations":[{"id":r[0],"clinician_id":r[1],"clinician_name":r[2],"clinician_specialty":r[3],"title":r[4],"created_at":r[5],"updated_at":r[6]} for r in rows]})
+    except Exception as e: return jsonify({"error":str(e)}),500
+
+@app.route('/consultations/<int:cid>', methods=['GET'])
+@login_required
+def get_consultation(cid):
+    try:
+        import json as J; uid=session.get('user_id')
+        conn=sqlite3.connect(DB_PATH)
+        row=conn.execute("SELECT id,clinician_id,clinician_name,clinician_specialty,title,messages,created_at,updated_at FROM consultations WHERE id=? AND user_id=?",(cid,uid)).fetchone()
+        conn.close()
+        if not row: return jsonify({"error":"introuvable"}),404
+        return jsonify({"success":True,"id":row[0],"clinician_id":row[1],"clinician_name":row[2],"clinician_specialty":row[3],"title":row[4],"messages":J.loads(row[5]),"created_at":row[6],"updated_at":row[7]})
+    except Exception as e: return jsonify({"error":str(e)}),500
+
+@app.route('/consultations/<int:cid>', methods=['DELETE'])
+@login_required
+def delete_consultation(cid):
+    try:
+        uid=session.get('user_id'); conn=sqlite3.connect(DB_PATH)
+        conn.execute("DELETE FROM consultations WHERE id=? AND user_id=?",(cid,uid)); conn.commit(); conn.close()
+        return jsonify({"success":True})
+    except Exception as e: return jsonify({"error":str(e)}),500
+
+@app.route('/consultations/rate', methods=['POST'])
+@login_required
+def rate_consultation_message():
+    try:
+        import json as J; data=request.get_json() or {}
+        cid=data.get('consultation_id'); idx=data.get('msg_index'); rating=data.get('rating')
+        if not cid or idx is None or rating not in (1,-1): return jsonify({"error":"invalide"}),400
+        uid=session.get('user_id'); conn=sqlite3.connect(DB_PATH)
+        row=conn.execute("SELECT messages FROM consultations WHERE id=? AND user_id=?",(cid,uid)).fetchone()
+        if not row: conn.close(); return jsonify({"error":"introuvable"}),404
+        msgs=J.loads(row[0])
+        if 0<=idx<len(msgs): msgs[idx]['rating']=rating
+        conn.execute("UPDATE consultations SET messages=?,updated_at=CURRENT_TIMESTAMP WHERE id=?",(J.dumps(msgs,ensure_ascii=False),cid))
+        conn.commit(); conn.close(); return jsonify({"success":True})
+    except Exception as e: return jsonify({"error":str(e)}),500
+
+@app.route('/consultations/soap', methods=['POST'])
+@login_required
+def generate_soap_summary():
+    try:
+        import anthropic as _ant
+        data = request.get_json() or {}
+        msgs = data.get('messages', [])
+        cname = data.get('clinician_name', 'Clinicien')
+        api_key = data.get('user_api_key', '').strip() or os.environ.get("ANTHROPIC_API_KEY", "")
+        if not msgs or len(msgs) < 2:
+            return jsonify({"error": "Consultation insuffisante"}), 400
+        if not api_key:
+            return jsonify({"error": "Cle API manquante"}), 400
+        parts = []
+        for m in msgs:
+            if m.get('content'):
+                role = 'PATIENT' if m['role'] == 'user' else cname.upper()
+                parts.append(role + ':\n' + m['content'])
+        transcript = '\n\n'.join(parts)[:4000]
+        prompt = (
+            "Genere un resume SOAP en francais pour cette consultation avec " + cname + ".\n\n"
+            "TRANSCRIPTION:\n" + transcript + "\n\n"
+            "## S - Subjectif\n[Motif, symptomes, antecedents, contexte familial]\n\n"
+            "## O - Objectif\n[Variants, resultats biologiques, imagerie, scores de risque]\n\n"
+            "## A - Assessment\n[Diagnostic principal, differentiels, ACMG si applicable]\n\n"
+            "## P - Plan\n[Examens, traitements, essais cliniques, suivi, conseil genetique]\n\n"
+            "---\nClinician: " + cname + " | Date: " + datetime.now().strftime('%d/%m/%Y') + "\n"
+            "Resume IA - a valider par le clinicien responsable"
+        )
+        client = _ant.Anthropic(api_key=api_key)
+        resp = client.messages.create(
+            model="claude-haiku-4-5-20251001", max_tokens=1500,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return jsonify({"success": True, "soap": resp.content[0].text if resp.content else ""})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/stats/dashboard', methods=['GET'])
+@login_required
+def stats_dashboard():
+    try:
+        import json as J; conn=sqlite3.connect(DB_PATH)
+        total=conn.execute("SELECT COUNT(*) FROM consultations").fetchone()[0]
+        by_clin=conn.execute("SELECT clinician_name,clinician_id,COUNT(*) FROM consultations GROUP BY clinician_id ORDER BY COUNT(*) DESC").fetchall()
+        by_day=conn.execute("SELECT DATE(created_at),COUNT(*) FROM consultations WHERE created_at>=DATE('now','-30 days') GROUP BY DATE(created_at) ORDER BY DATE(created_at)").fetchall()
+        all_m=conn.execute("SELECT messages FROM consultations").fetchall()
+        total_msgs=tu=td=0
+        for (m,) in all_m:
+            try:
+                ml=J.loads(m); total_msgs+=len(ml)
+                for msg in ml:
+                    r=msg.get('rating',0)
+                    if r==1: tu+=1
+                    elif r==-1: td+=1
+            except: pass
+        users=conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+        uid=session.get('user_id')
+        mine=conn.execute("SELECT COUNT(*) FROM consultations WHERE user_id=?",(uid,)).fetchone()[0]
+        week=conn.execute("SELECT COUNT(*) FROM consultations WHERE created_at>=DATE('now','-7 days')").fetchone()[0]
+        conn.close()
+        tot_r=tu+td; sat=round(tu/tot_r*100) if tot_r>0 else None
+        return jsonify({"success":True,"total_consultations":total,"my_consultations":mine,"total_messages":total_msgs,
+                        "user_count":users,"week_count":week,"satisfaction":sat,
+                        "by_clinician":[{"name":r[0],"id":r[1],"count":r[2]} for r in by_clin],
+                        "by_day":[{"day":r[0],"count":r[1]} for r in by_day]})
+    except Exception as e: return jsonify({"error":str(e)}),500
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
