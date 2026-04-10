@@ -365,7 +365,6 @@ NE JAMAIS mentionner PubMed, ClinVar, gnomAD, guidelines dans la présentation.
 IMPORTANT: Tu prends toujours en compte l'âge, le poids et les protocoles adaptés à l'enfant."""
     }
     ,
-    ,
     {
         "id": "pain_specialist",
         "name": "Dre Marie-Claire Fontaine",
