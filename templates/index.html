@@ -1261,7 +1261,7 @@ async function openApiSettings(){ _pendingCalls.push(['openApiSettings']); }
           <!-- Zone de saisie -->
           <div style="background:var(--sf);border:1.5px solid var(--bd);border-radius:9px;padding:12px">
             <div style="font-size:12px;color:var(--mu);margin-bottom:7px;font-weight:600">
-              💡 Décrivez le cas clinique (variant, gène, contexte patient, question) :
+              💡 <span id="clinInputLabel">Décrivez le cas clinique ou posez votre question :</span>
             </div>
             <textarea id="clinicianInput" rows="4"
               placeholder="Ex: Patiente 42 ans, BRCA1 c.5266dupC pathogène confirmé, cancer sein T2N0M0 triple négatif. Quels traitements ciblés recommandez-vous ? Quels essais cliniques en cours ?"
@@ -3285,6 +3285,25 @@ function selectClinician(c) {
     : 'Décrivez le cas clinique ou posez votre question...';
   // Scroll vers le panel
   document.getElementById('consultationPanel').scrollIntoView({behavior:'smooth'});
+  // Label dynamique selon clinicien
+  const lbl = document.getElementById('clinInputLabel');
+  if(lbl){
+    const labels = {
+      'oncogenetics': 'Décrivez le variant, gène, contexte patient :',
+      'oncologist': 'Décrivez le cas oncologique (biomarqueurs, stade, traitement) :',
+      'pathologist': 'Décrivez le cas (tumeur, biomarqueurs, IHC) :',
+      'geneticist': 'Décrivez le phénotype ou le variant à analyser :',
+      'generalist': 'Décrivez les symptômes, antécédents et contexte du patient :',
+      'internist': 'Décrivez le tableau clinique et les examens réalisés :',
+      'hematologist': 'Décrivez le bilan hématologique et le contexte clinique :',
+      'radiologist': 'Décrivez l'indication et les images à interpréter :',
+      'gynecologist': 'Décrivez le cas gynécologique (symptômes, imagerie, biopsie) :',
+      'pediatric_oncologist': 'Décrivez le cas pédiatrique (âge, symptômes, bilan) :',
+      'pain_specialist': 'Décrivez la douleur (localisation, intensité, durée, traitements) :',
+      'rcp_coordinator': 'Présentez le cas complexe pour discussion pluridisciplinaire :'
+    };
+    lbl.textContent = labels[c.id] || 'Décrivez le cas clinique ou posez votre question :';
+  }
 }
 
 
