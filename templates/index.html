@@ -3754,6 +3754,7 @@ Arbre décisionnel ESMO 2023-2024:
 (function(){
   let cStream=null,cRecorder=null,cChunks=[],cIsRec=false,cPaused=false;
   let cSec=0,cTimer=null,cWaveInt=null,cFull='',cNotes=[];
+  let cSR=null;
 
   function fmt(s){return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
 
@@ -3767,7 +3768,7 @@ Arbre décisionnel ESMO 2023-2024:
 
   function setStatus(msg,color){
     const tr=document.getElementById('clinMicTranscript');
-    if(tr){tr.style.display='block';tr.innerHTML='<em style="color:'+(color||'var(--mu)')+'">'+msg+'</em>';}
+    if(tr){tr.style.display='block';tr.innerHTML='<span style="color:'+(color||'var(--mu)')+'">'+msg+'</span>';}
   }
 
   function setRecUI(on){
@@ -3789,7 +3790,7 @@ Arbre décisionnel ESMO 2023-2024:
       if(dot)dot.style.animation='none';
       if(lbl)lbl.textContent='🎙️ Enregistrer patient';
       if(pb)pb.style.display='none';
-      if(ab)ab.style.display=cFull.trim()?'block':'none';
+      if(ab&&cFull.trim())ab.style.display='block';
       if(nz&&cFull.trim())nz.style.display='block';
     }
     animWave(on);
@@ -3808,110 +3809,85 @@ Arbre décisionnel ESMO 2023-2024:
     try{localStorage.setItem('sgs_clin_notes',JSON.stringify(cNotes));}catch(e){}
   }
 
-  async function transcribeAudio(blob){
-    setStatus('🔄 Transcription en cours via IA…','#185FA5');
-    const reader=new FileReader();
-    return new Promise((resolve)=>{
-      reader.onload=async function(){
-        const b64=reader.result.split(',')[1];
-        const lang=(document.getElementById('clinMicLang')||{}).value||'fr-FR';
-        const langCode=lang.split('-')[0];
-        try{
-          const r=await fetch('/ai/transcribe',{
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({
-              audio_b64:b64,
-              lang:langCode==='fr'?'français':langCode==='en'?'anglais':'français',
-              user_api_key:getUserApiKey()
-            })
-          });
-          const d=await r.json();
-          if(d.success&&d.transcript){
-            cFull=d.transcript;
-            setStatus('✅ '+d.transcript,'var(--tx)');
-            const ta=document.getElementById('clinicianInput');
-            if(ta)ta.value=d.transcript;
-            const ab=document.getElementById('clinAnalyzeBtn');
-            if(ab)ab.style.display='block';
-            resolve(d.transcript);
-          }else if(d.fallback){
-            setStatus('⚠️ Audio non supporté. Décrivez le cas du patient dans la zone de texte ci-dessus.','#BA7517');
-            const nz=document.getElementById('clinNoteZone');if(nz)nz.style.display='block';
-            const ta=document.getElementById('clinicianInput');if(ta)ta.focus();
-            resolve('');
-          }else{
-            setStatus('❌ '+(d.error||'Erreur transcription'),'#E24B4A');
-            resolve('');
-          }
-        }catch(e){
-          setStatus('❌ Erreur réseau: '+e.message,'#E24B4A');
-          resolve('');
+  function startSR(lang){
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR)return;
+    try{
+      cSR=new SR();
+      cSR.continuous=true;cSR.interimResults=true;cSR.lang=lang||'fr-FR';
+      cSR.onresult=function(e){
+        let interim='';
+        for(let i=e.resultIndex;i<e.results.length;i++){
+          if(e.results[i].isFinal){cFull+=e.results[i][0].transcript+' ';}
+          else{interim+=e.results[i][0].transcript;}
         }
+        const tr=document.getElementById('clinMicTranscript');
+        if(tr)tr.innerHTML='<span>'+cFull+'</span>'+(interim?'<em style="color:var(--mu)"> '+interim+'</em>':'');
+        const ta=document.getElementById('clinicianInput');
+        if(ta&&cFull.trim())ta.value=cFull.trim();
       };
-      reader.readAsDataURL(blob);
-    });
+      cSR.onerror=function(e){if(e.error!=='no-speech')console.warn('SR:',e.error);};
+      cSR.onend=function(){if(cIsRec&&!cPaused){try{cSR.start();}catch(x){}}};
+      cSR.start();
+    }catch(x){console.warn('SR:',x);}
   }
 
   window.clinMicToggle=async function(){
     if(!cIsRec){
-      // Démarrer enregistrement
-      try{
-        cStream=await navigator.mediaDevices.getUserMedia({audio:true});
-      }catch(ex){
-        setStatus('⚠️ Micro non disponible. Tapez vos notes directement.','#E24B4A');
-        const nz=document.getElementById('clinNoteZone');
-        if(nz)nz.style.display='block';
+      try{cStream=await navigator.mediaDevices.getUserMedia({audio:true});}
+      catch(ex){
+        setStatus('⚠️ Micro non autorisé. Tapez votre message directement.','#E24B4A');
+        const nz=document.getElementById('clinNoteZone');if(nz)nz.style.display='block';
         return;
       }
       cChunks=[];cIsRec=true;cPaused=false;cSec=0;cFull='';cNotes=[];
-      cRecorder=new MediaRecorder(cStream,{mimeType:'audio/webm'});
-      cRecorder.ondataavailable=e=>{if(e.data.size>0)cChunks.push(e.data);};
-      cRecorder.start(1000);
+      const lang=(document.getElementById('clinMicLang')||{}).value||'fr-FR';
+      startSR(lang);
       clearInterval(cTimer);
-      cTimer=setInterval(()=>{if(!cPaused){cSec++;}const t=document.getElementById('clinMicTimer');if(t)t.textContent=fmt(cSec);},1000);
+      cTimer=setInterval(()=>{if(!cPaused)cSec++;const t=document.getElementById('clinMicTimer');if(t)t.textContent=fmt(cSec);},1000);
       setRecUI(true);
-      setStatus('🎙️ Enregistrement en cours… parlez maintenant','#1D9E75');
+      setStatus('🎙️ Enregistrement en cours — parlez maintenant…','#1D9E75');
     }else{
-      // Arrêter et transcrire
       cIsRec=false;cPaused=false;
       clearInterval(cTimer);clearInterval(cWaveInt);
-      cRecorder.stop();
-      cStream.getTracks().forEach(t=>t.stop());
+      try{if(cSR)cSR.stop();}catch(x){}
+      cStream&&cStream.getTracks().forEach(t=>t.stop());
       setRecUI(false);
-      setStatus('⏳ Arrêt enregistrement, transcription en cours…','#185FA5');
-      cRecorder.onstop=async()=>{
-        const blob=new Blob(cChunks,{type:'audio/webm'});
-        await transcribeAudio(blob);
-      };
+      if(cFull.trim()){
+        setStatus('✅ Transcription prête. Cliquez "Envoyer au clinicien".','#1D9E75');
+        const ta=document.getElementById('clinicianInput');
+        if(ta)ta.value=cFull.trim();
+      }else{
+        setStatus('ℹ️ Aucune parole détectée. Tapez votre message.','#BA7517');
+      }
     }
   };
 
   window.clinMicPause=function(){
-    if(!cIsRec||!cRecorder)return;
+    if(!cIsRec)return;
     const pb=document.getElementById('clinMicPauseBtn');
     if(!cPaused){
       cPaused=true;
-      cRecorder.pause();
+      try{if(cSR)cSR.stop();}catch(x){}
       if(pb){pb.textContent='▶ Reprendre';pb.style.background='#FAEEDA';pb.style.color='#854F0B';pb.style.borderColor='#BA7517';}
       animWave(false);
-      setStatus('⏸ Enregistrement en pause','#BA7517');
+      setStatus('⏸ En pause','#BA7517');
     }else{
       cPaused=false;
-      cRecorder.resume();
+      const lang=(document.getElementById('clinMicLang')||{}).value||'fr-FR';
+      startSR(lang);
       if(pb){pb.textContent='⏸ Pause';pb.style.background='#FAEEDA';pb.style.color='#854F0B';pb.style.borderColor='#BA7517';}
       animWave(true);
-      setStatus('🎙️ Enregistrement repris…','#1D9E75');
+      setStatus('🎙️ Repris…','#1D9E75');
     }
   };
 
   window.clinSendTranscript=function(){
     const text=cFull.trim();
-    if(!text){alert('Aucune transcription. Enregistrez d\'abord.');return;}
     const notesStr=cNotes.length?'\n\n📝 Notes:\n'+cNotes.map(n=>'['+n.ts+'] '+n.text).join('\n'):'';
     const manual=(document.getElementById('clinNoteInput')||{}).value||'';
     const ta=document.getElementById('clinicianInput');
-    if(ta)ta.value='🎙️ '+text+notesStr+(manual?'\n\n💡 '+manual:'');
+    if(ta&&text)ta.value='🎙️ '+text+notesStr+(manual?'\n\n💡 '+manual:'');
     if(typeof sendClinicianMessage==='function')sendClinicianMessage();
   };
 
