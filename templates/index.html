@@ -3193,15 +3193,9 @@ updateApiKeyBtn();
 // ══ CLINICIENS VIRTUELS ═══════════════════════════════════════════════════
 // ══ CLINICIENS VIRTUELS ══════════════════════════════════════════════════════
 
-const CLINICIAN_EXAMPLES = [
-  "Patiente 42 ans, BRCA1 c.5266dupC pathogène, cancer du sein triple négatif T2N0M0. Quels traitements ciblés et essais cliniques recommandez-vous ?",
-  "Patient 58 ans, Lynch MLH1 déficient, cancer colorectal MSI-H stade III. Immunothérapie indiquée ? Quelle surveillance familiale ?",
-  "Patient 67 ans, EGFR exon 19 del, carcinome bronchique non à petites cellules stade IV. Osimertinib en première ligne ? Résistances à anticiper ?"
-];
 
-async function fillClinicianExample(i) {
-  document.getElementById('clinicianInput').value = CLINICIAN_EXAMPLES[i] || '';
-}
+
+async 
 
 async function initClinicians() {
   const grid = document.getElementById('clinicianCards');
