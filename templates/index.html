@@ -3816,7 +3816,15 @@ Arbre décisionnel ESMO 2023-2024:
       }
       updateTranscriptBox();
     };
-    cRec.onerror=function(e){if(e.error!=='no-speech')console.warn('mic erreur:',e.error);};
+    cRec.onerror=function(e){
+      console.warn('mic erreur:',e.error);
+      if(e.error==='not-allowed'){
+        const tr=document.getElementById('clinMicTranscript');
+        if(tr){tr.style.display='block';tr.innerHTML='<span style="color:#E24B4A">⚠️ Microphone bloqué par le système. Tapez vos notes manuellement dans la zone ci-dessous puis cliquez Envoyer.</span>';}
+        cIsRec=false;clearInterval(cTimer);
+        setRecUI(false);
+      }
+    };
     cRec.onend=function(){if(cIsRec&&!cPaused){try{cRec.start();}catch(ex){}}};
     try{cRec.start();}catch(ex){console.error('start mic:',ex);}
   }
