@@ -1268,9 +1268,7 @@ async function openApiSettings(){ _pendingCalls.push(['openApiSettings']); }
               style="width:100%;border:none;outline:none;resize:vertical;font-size:14px;font-family:inherit;background:transparent;color:var(--tx);line-height:1.6"></textarea>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;flex-wrap:wrap;gap:7px">
               <div style="display:flex;gap:6px;flex-wrap:wrap">
-                <button class="btn bgh2 bsm" onclick="fillClinicianExample(0)" data-fr="BRCA1 pathogène" data-en="BRCA1 pathogenic">BRCA1 pathogène</button>
-                <button class="btn bgh2 bsm" onclick="fillClinicianExample(1)">Lynch MSI-H</button>
-                <button class="btn bgh2 bsm" onclick="fillClinicianExample(2)" data-fr="EGFR muté CBNPC" data-en="EGFR mutated NSCLC">EGFR muté CBNPC</button>
+                <div id="clinicianExampleBtns" style="display:flex;flex-wrap:wrap;gap:6px"></div>
                 <button class="btn bgh2 bsm" onclick="resetClinicianChat()">🔄 Nouvelle consultation</button>
               </div>
               <!-- Zone enregistrement + notes + envoi -->
@@ -3276,13 +3274,23 @@ function selectClinician(c) {
 
   // Message de bienvenue
   appendClinicianMsg('assistant',
-    `Bonjour, je suis ${c.name} — ${c.specialty}.
-
-Avant de vous répondre, je consulte systématiquement les bases de données scientifiques (PubMed, ClinVar, gnomAD, OMIM) et les guidelines internationales (NCCN, ESMO, HAS).
-
-Décrivez le cas clinique ou posez votre question.`
+    `Bonjour, je suis ${c.name} — ${c.specialty}. Comment puis-je vous aider ?`
   );
 
+  // Boutons exemples dynamiques selon le clinicien
+  const exBtns = document.getElementById('clinicianExampleBtns');
+  if(exBtns && c.examples && c.examples.length){
+    exBtns.innerHTML = c.examples.map((ex,i) =>
+      `<button class="btn bgh2 bsm" onclick="document.getElementById('clinicianInput').value='${ex.replace(/'/g,"\'")}'">${ex}</button>`
+    ).join('');
+  } else if(exBtns){
+    exBtns.innerHTML = '';
+  }
+  // Placeholder dynamique
+  const ta = document.getElementById('clinicianInput');
+  if(ta) ta.placeholder = c.examples && c.examples.length
+    ? 'Ex: ' + c.examples[0] + '...'
+    : 'Décrivez le cas clinique ou posez votre question...';
   // Scroll vers le panel
   document.getElementById('consultationPanel').scrollIntoView({behavior:'smooth'});
 }
