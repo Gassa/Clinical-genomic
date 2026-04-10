@@ -3811,7 +3811,15 @@ Arbre décisionnel ESMO 2023-2024:
 
   function startSR(lang){
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-    if(!SR)return;
+    if(!SR){
+      // Firefox ne supporte pas SpeechRecognition
+      const tr=document.getElementById('clinMicTranscript');
+      if(tr){tr.style.display='block';tr.innerHTML='<span style="color:#E24B4A">⚠️ Transcription vocale non disponible sur Firefox.<br>Utilisez <b>Chrome ou Edge</b> pour la reconnaissance vocale, ou tapez directement dans la zone de texte ci-dessus.</span>';}
+      setStatus('⚠️ Firefox détecté — Tapez votre cas dans la zone de texte puis cliquez Envoyer.','#BA7517');
+      cIsRec=false;clearInterval(cTimer);setRecUI(false);
+      const ta=document.getElementById('clinicianInput');if(ta)ta.focus();
+      return;
+    }
     try{
       cSR=new SR();
       cSR.continuous=true;cSR.interimResults=true;cSR.lang=lang||'fr-FR';
@@ -3826,7 +3834,18 @@ Arbre décisionnel ESMO 2023-2024:
         const ta=document.getElementById('clinicianInput');
         if(ta&&cFull.trim())ta.value=cFull.trim();
       };
-      cSR.onerror=function(e){if(e.error!=='no-speech')console.warn('SR:',e.error);};
+      cSR.onerror=function(e){
+      console.warn('SR erreur:',e.error);
+      const msgs={'not-allowed':'Microphone bloqué. Autorisez-le dans les paramètres du navigateur.',
+                  'network':'Erreur réseau — vérifiez votre connexion.',
+                  'aborted':'Enregistrement interrompu.',
+                  'audio-capture':'Aucun microphone détecté.'};
+      if(msgs[e.error]){
+        setStatus('⚠️ '+msgs[e.error],'#E24B4A');
+        const tr=document.getElementById('clinMicTranscript');
+        if(tr){tr.style.display='block';tr.innerHTML='<span style="color:#E24B4A">'+msgs[e.error]+'</span>';}
+      }
+    };
       cSR.onend=function(){if(cIsRec&&!cPaused){try{cSR.start();}catch(x){}}};
       cSR.start();
     }catch(x){console.warn('SR:',x);}
