@@ -302,3 +302,60 @@ function clearClinicianFilter() {
   if (s) s.value = '';
   filterClinicians();
 }
+
+// ══ RETRY AUTO COLD START ══════════════════════════════════════
+(function() {
+  var originalFetch = window.fetch;
+  var retryToast = null;
+
+  function showRetryToast(seconds, onRetry) {
+    if (retryToast) retryToast.remove();
+    retryToast = document.createElement('div');
+    retryToast.id = 'retryToast';
+    retryToast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#0f172a;color:white;border-radius:12px;padding:14px 20px;z-index:99999;display:flex;align-items:center;gap:14px;box-shadow:0 8px 32px rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.1);min-width:300px';
+    var counter = seconds;
+    retryToast.innerHTML = '<div style="width:36px;height:36px;border-radius:50%;border:3px solid rgba(255,255,255,0.2);border-top-color:#0d9488;animation:spin 1s linear infinite;flex-shrink:0"></div>'
+      + '<div style="flex:1"><div style="font-size:13px;font-weight:500;margin-bottom:2px">Serveur en cours de démarrage...</div>'
+      + '<div style="font-size:12px;color:rgba(255,255,255,0.6)" id="retryCountdown">Reconnexion dans ' + counter + 's</div></div>'
+      + '<button onclick="document.getElementById(\'retryToast\').remove()" style="background:rgba(255,255,255,0.1);border:none;color:white;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:11px">X</button>';
+    if (!document.getElementById('retrySpinStyle')) {
+      var st = document.createElement('style');
+      st.id = 'retrySpinStyle';
+      st.textContent = '@keyframes spin{to{transform:rotate(360deg)}}';
+      document.head.appendChild(st);
+    }
+    document.body.appendChild(retryToast);
+    var interval = setInterval(function() {
+      counter--;
+      var cd = document.getElementById('retryCountdown');
+      if (cd) cd.textContent = counter > 0 ? 'Reconnexion dans ' + counter + 's' : 'Connexion...';
+      if (counter <= 0) {
+        clearInterval(interval);
+        if (retryToast) { retryToast.remove(); retryToast = null; }
+        onRetry();
+      }
+    }, 1000);
+  }
+
+  window.fetch = function(url, options) {
+    return originalFetch(url, options).then(function(response) {
+      if (retryToast) { retryToast.remove(); retryToast = null; }
+      return response;
+    }).catch(function(err) {
+      var isNetworkError = err.name === 'TypeError' || err.name === 'NetworkError' || err.message === 'Failed to fetch';
+      var isApiCall = typeof url === 'string' && (url.startsWith('/') || url.includes('clinical-genomic'));
+      if (isNetworkError && isApiCall) {
+        return new Promise(function(resolve, reject) {
+          showRetryToast(35, function() {
+            originalFetch(url, options).then(function(r) {
+              resolve(r);
+            }).catch(function(e) {
+              reject(e);
+            });
+          });
+        });
+      }
+      throw err;
+    });
+  };
+})();
