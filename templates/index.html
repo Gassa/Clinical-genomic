@@ -466,7 +466,9 @@ async function openApiSettings(){ _pendingCalls.push(['openApiSettings']); }
 
 
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js">
+function qs(q){document.getElementById('query').value=q;if(typeof runSearch==='function')runSearch();}
+</script>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -2091,8 +2093,6 @@ async function openApiSettings(){ _pendingCalls.push(['openApiSettings']); }
 // ══ VARIABLES CLINICIENS
 let activeClinician = null;
 let clinicianHistory = [];
-let currentConsultationId = null;
-let autoSaveTimer = null;
 
 // ══ LANG ══════════════════════════════════════════════════════════════════
 let lang=localStorage.getItem('sgs_lang')||'en';
@@ -2139,7 +2139,6 @@ function setLang(l){
 let hist=JSON.parse(localStorage.getItem('sgs_hist')||'[]');
 async function addHist(q){hist=[q,...hist.filter(x=>x!==q)].slice(0,10);localStorage.setItem('sgs_hist',JSON.stringify(hist));renderHist();}
 async function renderHist(){const b=document.getElementById('histBar'),t=document.getElementById('histTags');if(!hist.length){b.style.display='none';return;}b.style.display='flex';t.innerHTML=hist.map(q=>`<span class="ht3" onclick="qs('${q.replace(/'/g,"\\'")}')">  ${q}</span>`).join('');}
-function qs(q){document.getElementById('query').value=q;if(typeof runSearch==='function')runSearch();}
 
 // ══ BOOKMARKS ═════════════════════════════════════════════════════════════
 let bks=JSON.parse(localStorage.getItem('sgs_bks')||'[]');
