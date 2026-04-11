@@ -429,6 +429,20 @@ Format: Présentation du cas → Avis de chaque spécialiste → Points de conse
 
 # ══ RÉCUPÉRATION DE DONNÉES EN TEMPS RÉEL ════════════════════════════════════
 
+def extract_genes_from_message(message: str) -> list:
+    """Extrait les noms de genes mentionnes dans le message."""
+    import re
+    gene_pattern = r"\b(BRCA1|BRCA2|TP53|KRAS|EGFR|MLH1|MSH2|APC|RB1|PTEN|VHL|ALK|BRAF|PALB2|CDH1|STK11|NF1|RET|IDH1|IDH2|ERBB2|HER2|MEN1|CHEK2|ATM|RAD51C|PALB2|NBN|MUTYH|EPCAM|SMAD4|BMPR1A|STK11|CDKN2A|BAP1|FLCN|FH|SDHB|SDHC|SDHD|MAX|TMEM127)\b"
+    genes = re.findall(gene_pattern, message, re.IGNORECASE)
+    return list(set(genes))
+
+def fetch_gnomad_afr_context(genes: list) -> str:
+    """Retourne un contexte AFR/H3Africa pour les genes donnes (stub)."""
+    if not genes:
+        return ""
+    return ""
+
+
 def fetch_pubmed_context(query: str, max_results: int = 5) -> str:
     """Récupère les articles PubMed les plus récents pour enrichir le contexte."""
     try:
