@@ -968,6 +968,33 @@ function qs(q){document.getElementById('query').value=q;if(typeof runSearch==='f
         <div id="ngsReportResult" style="margin-top:9px"></div>
       </div>
     </div></div>
+
+    <!-- IA NGS ANALYZER -->
+    <div class="card" style="margin-top:14px">
+      <div class="ch"><span class="ct2">🤖 Analyse IA — Rapport NGS complet</span></div>
+      <div style="padding:14px">
+        <div style="font-size:13px;color:var(--mu);background:var(--s2);padding:10px 13px;border-radius:7px;margin-bottom:12px">
+          Collez votre rapport NGS complet (texte brut, VCF, ou résumé) — l'IA extrait les variants, les classe selon ACMG 2015 et génère les recommandations cliniques.
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+          <div>
+            <label style="font-size:11px;color:var(--mu);font-weight:500">Contexte clinique (optionnel)</label>
+            <input id="ngsContext" placeholder="Ex: Femme 42 ans, cancer sein stade II, BRCA inconnu..." style="width:100%;margin-top:4px;padding:7px 10px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px;box-sizing:border-box">
+          </div>
+          <div style="display:flex;align-items:flex-end;gap:8px">
+            <button onclick="analyzeNGSAI()" style="padding:8px 16px;border-radius:7px;border:none;background:#0d9488;color:white;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap">🧬 Analyser avec IA</button>
+            <button onclick="exportNGSPDF()" id="ngsExportBtn" style="padding:8px 12px;border-radius:7px;border:1px solid var(--bd);background:var(--sf);font-size:12px;cursor:pointer;display:none">📄 PDF</button>
+          </div>
+        </div>
+        <textarea id="ngsAIInput" rows="8" placeholder="Collez ici votre rapport NGS complet...
+Ex:
+BRCA1 c.5266dupC (p.Gln1756Profs*74) - Pathogenic - VAF: 45% - Depth: 150x
+TP53 c.817C>T (p.Arg273Cys) - Likely pathogenic - VAF: 32% - Depth: 200x
+TMB: 8.2 mut/Mb
+MSI: MSS" style="width:100%;padding:10px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px;box-sizing:border-box;resize:vertical;font-family:monospace"></textarea>
+        <div id="ngsAIResult" style="margin-top:12px"></div>
+      </div>
+    </div>
   </div>
 
   <!-- ACMG -->

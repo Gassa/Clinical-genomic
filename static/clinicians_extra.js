@@ -359,3 +359,121 @@ function clearClinicianFilter() {
     });
   };
 })();
+
+// ══ ANALYSE NGS IA ══════════════════════════════════════════
+var _lastNGSResult = null;
+
+async function analyzeNGSAI() {
+  var text = (document.getElementById('ngsAIInput') || {value:''}).value.trim();
+  var context = (document.getElementById('ngsContext') || {value:''}).value.trim();
+  if (!text) { alert('Collez un rapport NGS dans la zone de texte'); return; }
+  var resDiv = document.getElementById('ngsAIResult');
+  if (!resDiv) return;
+  resDiv.innerHTML = '<div style="text-align:center;padding:20px;color:var(--mu)"><div style="display:inline-block;width:24px;height:24px;border:3px solid var(--bd);border-top-color:#0d9488;border-radius:50%;animation:spin 1s linear infinite"></div><div style="margin-top:8px;font-size:13px">Analyse IA en cours...</div></div>';
+
+  try {
+    var r = await fetch('/interpret_ngs', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({text: text, context: context})
+    });
+    var d = await r.json();
+    if (!d.success) throw new Error(d.error);
+    _lastNGSResult = d.result;
+    renderNGSResult(d.result);
+    var btn = document.getElementById('ngsExportBtn');
+    if (btn) btn.style.display = 'inline-block';
+  } catch(e) {
+    resDiv.innerHTML = '<div style="color:#dc2626;padding:12px;background:#fef2f2;border-radius:8px;font-size:13px">Erreur: ' + e.message + '</div>';
+  }
+}
+
+function renderNGSResult(res) {
+  var resDiv = document.getElementById('ngsAIResult');
+  if (!resDiv || !res) return;
+
+  var ACMG_COL = {
+    'Pathogene':'#dc2626', 'Probablement pathogene':'#f97316',
+    'VUS':'#f59e0b', 'Probablement benin':'#84cc16', 'Benin':'#22c55e',
+    'Pathogène':'#dc2626', 'Probablement pathogène':'#f97316',
+    'Probablement bénin':'#84cc16'
+  };
+
+  var html = '<div style="display:flex;flex-direction:column;gap:12px">';
+
+  if (res.urgent) {
+    html += '<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;color:#dc2626;font-weight:500;font-size:13px">⚠️ ALERTE URGENTE: ' + (res.urgent_reason || '') + '</div>';
+  }
+
+  if (res.summary) {
+    html += '<div style="background:var(--s2);border-radius:8px;padding:12px;font-size:13px;line-height:1.6"><strong>Résumé clinique:</strong> ' + res.summary + '</div>';
+  }
+
+  var variants = res.variants || [];
+  if (variants.length) {
+    html += '<div><div style="font-size:12px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Variants (' + variants.length + ')</div>';
+    variants.forEach(function(v) {
+      var acmg = v.acmg_class || 'VUS';
+      var col = ACMG_COL[acmg] || '#f59e0b';
+      html += '<div style="border:1px solid var(--bd);border-radius:8px;padding:12px;margin-bottom:8px;border-left:4px solid ' + col + '">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">';
+      html += '<div><span style="font-size:15px;font-weight:700;color:var(--tx)">' + (v.gene || '') + '</span>';
+      html += '<span style="font-size:12px;color:var(--mu);margin-left:8px">' + (v.variant || '') + '</span></div>';
+      html += '<span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:99px;background:' + col + '20;color:' + col + '">' + acmg + '</span></div>';
+      html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;font-size:12px;color:var(--mu);margin-bottom:8px">';
+      if (v.zygosity) html += '<span>Zygosité: <strong style="color:var(--tx)">' + v.zygosity + '</strong></span>';
+      if (v.vaf) html += '<span>VAF: <strong style="color:var(--tx)">' + v.vaf + '</strong></span>';
+      if (v.depth) html += '<span>Profondeur: <strong style="color:var(--tx)">' + v.depth + '</strong></span>';
+      html += '</div>';
+      if (v.acmg_criteria && v.acmg_criteria.length) {
+        html += '<div style="margin-bottom:6px">' + v.acmg_criteria.map(function(c) {
+          return '<span style="font-size:11px;background:var(--s2);padding:2px 6px;border-radius:4px;margin-right:4px">' + c + '</span>';
+        }).join('') + '</div>';
+      }
+      if (v.clinical_significance) html += '<div style="font-size:12px;color:var(--mu);margin-bottom:4px">' + v.clinical_significance + '</div>';
+      if (v.action) html += '<div style="font-size:12px;font-weight:500;color:#0d9488;padding:6px 10px;background:#E1F5EE;border-radius:6px">→ ' + v.action + '</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+
+  var tmb = res.tmb; var msi = res.msi;
+  if (tmb || msi) {
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+    if (tmb) html += '<div style="background:var(--s2);border-radius:8px;padding:10px"><div style="font-size:11px;color:var(--mu);font-weight:500;margin-bottom:2px">TMB</div><div style="font-size:18px;font-weight:700">' + (tmb.value || '-') + '</div><div style="font-size:12px;color:var(--mu)">' + (tmb.interpretation || '') + '</div></div>';
+    if (msi) html += '<div style="background:var(--s2);border-radius:8px;padding:10px"><div style="font-size:11px;color:var(--mu);font-weight:500;margin-bottom:2px">MSI</div><div style="font-size:18px;font-weight:700">' + (msi.status || '-') + '</div><div style="font-size:12px;color:var(--mu)">' + (msi.interpretation || '') + '</div></div>';
+    html += '</div>';
+  }
+
+  var recs = res.recommendations || [];
+  if (recs.length) {
+    html += '<div style="background:var(--s2);border-radius:8px;padding:12px"><div style="font-size:12px;font-weight:600;margin-bottom:8px">Recommandations</div>';
+    recs.forEach(function(r, i) {
+      html += '<div style="font-size:13px;padding:4px 0;border-bottom:.5px solid var(--bd)">' + (i+1) + '. ' + r + '</div>';
+    });
+    html += '</div>';
+  }
+
+  html += '</div>';
+  resDiv.innerHTML = html;
+}
+
+async function exportNGSPDF() {
+  if (!_lastNGSResult) { alert('Analysez d abord un rapport NGS'); return; }
+  var btn = document.getElementById('ngsExportBtn');
+  if (btn) { btn.textContent = '...'; btn.disabled = true; }
+  try {
+    var r = await fetch('/ngs_to_pdf', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({result: _lastNGSResult})
+    });
+    if (!r.ok) throw new Error('Erreur PDF');
+    var blob = await r.blob();
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = 'rapport_ngs.pdf'; a.click();
+    URL.revokeObjectURL(url);
+  } catch(e) { alert('Erreur: ' + e.message); }
+  finally { if (btn) { btn.textContent = 'PDF'; btn.disabled = false; } }
+}
