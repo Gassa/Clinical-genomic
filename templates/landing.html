@@ -104,6 +104,36 @@ footer strong{color:#fff}
 </style>
 </head>
 <body>
+<!-- ══ WELCOME BANNER ══ -->
+<div id="welcomeBanner" style="position:fixed;bottom:24px;right:24px;z-index:9999;max-width:340px;background:#0f172a;color:white;border-radius:14px;padding:18px 20px;box-shadow:0 8px 32px rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);animation:slideIn .4s ease">
+  <div style="display:flex;align-items:flex-start;gap:12px">
+    <div style="font-size:28px;flex-shrink:0">🧬</div>
+    <div style="flex:1">
+      <div style="font-size:14px;font-weight:700;margin-bottom:4px">Bienvenue sur SenGenoScope</div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.7);line-height:1.5">Plateforme d'oncogénomique clinique avec 12 cliniciens virtuels spécialisés, 30+ bases de données et dossiers patients intégrés.</div>
+      <div style="margin-top:12px;display:flex;gap:8px">
+        <a href="/app" style="padding:7px 14px;background:#0d9488;color:white;border-radius:7px;font-size:12px;font-weight:500;text-decoration:none">🚀 Ouvrir la plateforme</a>
+        <button onclick="document.getElementById('welcomeBanner').style.display='none';localStorage.setItem('wb_closed','1')" style="padding:7px 10px;background:rgba(255,255,255,0.1);color:white;border:none;border-radius:7px;font-size:12px;cursor:pointer">✕</button>
+      </div>
+    </div>
+  </div>
+</div>
+<style>
+@keyframes slideIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+</style>
+<script>
+// Masquer si déjà fermé
+if(localStorage.getItem('wb_closed')) {
+  var wb = document.getElementById('welcomeBanner');
+  if(wb) wb.style.display = 'none';
+}
+// Auto-disparaître après 8 secondes
+setTimeout(function() {
+  var wb = document.getElementById('welcomeBanner');
+  if(wb) { wb.style.opacity='0'; wb.style.transition='opacity .5s'; setTimeout(function(){ wb.style.display='none'; }, 500); }
+}, 8000);
+</script>
+
 
 <!-- NAV -->
 <nav>
@@ -134,7 +164,8 @@ footer strong{color:#fff}
 <div class="stats">
   <div class="stat"><div class="stat-n">16</div><div class="stat-l">Clinical modules</div></div>
   <div class="stat"><div class="stat-n">30+</div><div class="stat-l">Integrated databases</div></div>
-  <div class="stat"><div class="stat-n">4</div><div class="stat-l">AI virtual clinicians</div></div>
+  <div class="stat"><div class="stat-n">12<
+          AI virtual clinicians</div></div>
   <div class="stat"><div class="stat-n">ACMG</div><div class="stat-l">2015 classification</div></div>
   <div class="stat"><div class="stat-n">NCCN</div><div class="stat-l">ESMO · HAS guidelines</div></div>
 </div>
