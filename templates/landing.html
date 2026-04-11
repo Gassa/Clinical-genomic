@@ -1,139 +1,125 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" id="landing-root">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <meta name="google" content="notranslate">
-<link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+<link rel="icon" href="/static/favicon.ico">
 <title>SenGenoScope — Clinical Oncogenomics Platform</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{
-  --pr:#0c6e9c;--prd:#085880;--prl:#dff0f8;
-  --bg:#f0f4f8;--sf:#fff;--tx:#1a2332;--mu:#6b7a8d;
-  --bd:#dde3ea;--sc:#059669;--pu:#7c3aed;
-}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh}
+:root{--pr:#0c6e9c;--pu:#7c3aed;--bg:#f0f4f8;--tx:#1a2332;--mu:#6b7a8d;--bd:#dde3ea;--sc:#059669}
+body{font-family:"DM Sans",sans-serif;background:var(--bg);color:var(--tx)}
+
+/* LANG MODAL */
+#langModal{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center}
+.lang-card{background:#fff;border-radius:16px;padding:32px;max-width:420px;width:90%;box-shadow:0 24px 60px rgba(0,0,0,.2);text-align:center}
+.lang-card h2{font-size:20px;font-weight:700;margin-bottom:8px}
+.lang-card p{font-size:14px;color:var(--mu);margin-bottom:24px}
+.lang-btns{display:flex;gap:12px;justify-content:center}
+.lang-btn{padding:12px 28px;border:2px solid var(--bd);border-radius:10px;font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;background:#fff;color:var(--tx);transition:all .15s;display:flex;align-items:center;gap:8px}
+.lang-btn:hover{border-color:var(--pr);color:var(--pr);background:var(--bg)}
+.lang-btn.active{border-color:var(--pr);background:var(--pr);color:#fff}
+.lang-small{font-size:12px;color:var(--mu);margin-top:16px;cursor:pointer;text-decoration:underline}
 
 /* NAV */
 nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,.95);backdrop-filter:blur(10px);border-bottom:1px solid var(--bd);padding:0 40px;height:64px;display:flex;align-items:center;justify-content:space-between}
 .nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
 .nav-logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--pr),var(--pu));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px}
-.nav-logo-text{font-size:18px;font-weight:700;color:var(--tx)}
-.nav-logo-text span{color:var(--pr)}
-.nav-links{display:flex;align-items:center;gap:8px}
-.nav-link{padding:8px 16px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:500;color:var(--mu);transition:all .15s}
+.nav-logo-text{font-size:18px;font-weight:700;color:var(--tx)}.nav-logo-text span{color:var(--pr)}
+.nav-right{display:flex;align-items:center;gap:8px}
+.nav-link{padding:8px 14px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:500;color:var(--mu);transition:all .15s}
 .nav-link:hover{background:var(--bg);color:var(--tx)}
+.nav-lang{padding:6px 12px;border:1.5px solid var(--bd);border-radius:8px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;background:#fff;color:var(--tx);transition:all .15s}
+.nav-lang:hover{border-color:var(--pr);color:var(--pr)}
 .nav-cta{padding:9px 20px;background:var(--pr);color:#fff;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;transition:all .15s}
-.nav-cta:hover{background:var(--prd)}
+.nav-cta:hover{background:#085880}
 
 /* HERO */
-.hero{padding:140px 40px 80px;text-align:center;max-width:900px;margin:0 auto}
-.hero-badge{display:inline-flex;align-items:center;gap:6px;background:var(--prl);color:var(--pr);border:1px solid rgba(12,110,156,.2);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:600;margin-bottom:24px}
-.hero h1{font-size:56px;font-weight:800;line-height:1.15;margin-bottom:20px;letter-spacing:-1px}
+.hero{padding:130px 40px 70px;text-align:center;max-width:900px;margin:0 auto}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;background:#dff0f8;color:var(--pr);border:1px solid rgba(12,110,156,.2);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:600;margin-bottom:24px}
+.hero h1{font-size:54px;font-weight:800;line-height:1.15;margin-bottom:20px;letter-spacing:-1px}
 .hero h1 span{background:linear-gradient(135deg,var(--pr),var(--pu));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.hero p{font-size:19px;color:var(--mu);line-height:1.7;max-width:680px;margin:0 auto 40px}
+.hero p{font-size:18px;color:var(--mu);line-height:1.7;max-width:680px;margin:0 auto 40px}
 .hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
 .btn-primary{padding:14px 32px;background:var(--pr);color:#fff;border-radius:10px;text-decoration:none;font-size:15px;font-weight:700;transition:all .2s;display:inline-flex;align-items:center;gap:8px}
-.btn-primary:hover{background:var(--prd);transform:translateY(-1px);box-shadow:0 8px 24px rgba(12,110,156,.3)}
+.btn-primary:hover{background:#085880;transform:translateY(-1px);box-shadow:0 8px 24px rgba(12,110,156,.3)}
 .btn-secondary{padding:14px 32px;background:#fff;color:var(--tx);border:1.5px solid var(--bd);border-radius:10px;text-decoration:none;font-size:15px;font-weight:600;transition:all .2s}
 .btn-secondary:hover{border-color:var(--pr);color:var(--pr)}
 
 /* STATS */
-.stats{background:#fff;border-top:1px solid var(--bd);border-bottom:1px solid var(--bd);padding:40px;display:flex;justify-content:center;gap:60px;flex-wrap:wrap}
-.stat{text-align:center}
-.stat-n{font-size:36px;font-weight:800;color:var(--pr)}
-.stat-l{font-size:13px;color:var(--mu);margin-top:4px;font-weight:500}
+.stats{background:#fff;border-top:1px solid var(--bd);border-bottom:1px solid var(--bd);padding:40px;display:flex;justify-content:center;gap:50px;flex-wrap:wrap}
+.stat{text-align:center}.stat-n{font-size:34px;font-weight:800;color:var(--pr)}.stat-l{font-size:13px;color:var(--mu);margin-top:4px;font-weight:500}
 
 /* FEATURES */
-.features{padding:80px 40px;max-width:1100px;margin:0 auto}
-.section-label{font-size:13px;font-weight:700;color:var(--pr);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px}
-.section-title{font-size:36px;font-weight:800;margin-bottom:16px;letter-spacing:-0.5px}
-.section-sub{font-size:17px;color:var(--mu);margin-bottom:50px;line-height:1.6}
-.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px}
-.feature-card{background:#fff;border:1px solid var(--bd);border-radius:14px;padding:28px;transition:all .2s}
-.feature-card:hover{border-color:var(--pr);transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,0,0,.08)}
-.feature-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:16px}
-.feature-title{font-size:16px;font-weight:700;margin-bottom:8px}
-.feature-desc{font-size:14px;color:var(--mu);line-height:1.6}
-.feature-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
-.tag{font-size:11px;padding:3px 8px;border-radius:5px;font-weight:600}
+.section{padding:80px 40px;max-width:1100px;margin:0 auto}
+.section-label{font-size:12px;font-weight:700;color:var(--pr);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px}
+.section-title{font-size:34px;font-weight:800;margin-bottom:14px;letter-spacing:-.5px}
+.section-sub{font-size:16px;color:var(--mu);margin-bottom:48px;line-height:1.6}
+.grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}
+.feature-card{background:#fff;border:1px solid var(--bd);border-radius:14px;padding:26px;transition:all .2s}
+.feature-card:hover{border-color:var(--pr);transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,0,0,.07)}
+.feat-icon{width:46px;height:46px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:14px}
+.feat-title{font-size:15px;font-weight:700;margin-bottom:8px}
+.feat-desc{font-size:13px;color:var(--mu);line-height:1.6}
+.feat-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:12px}
+.tag{font-size:11px;padding:2px 8px;border-radius:5px;font-weight:600}
 
 /* CLINICIANS */
-.clinicians{background:linear-gradient(135deg,#0c6e9c 0%,#7c3aed 100%);padding:80px 40px;color:#fff;text-align:center}
-.clinicians h2{font-size:36px;font-weight:800;margin-bottom:16px}
-.clinicians p{font-size:17px;opacity:.85;max-width:600px;margin:0 auto 50px;line-height:1.6}
-.clinicians-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;max-width:1000px;margin:0 auto}
-.clinician-card{background:rgba(255,255,255,.12);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:24px;text-align:left;transition:all .2s}
-.clinician-card:hover{background:rgba(255,255,255,.2);transform:translateY(-2px)}
-.clinician-icon{font-size:32px;margin-bottom:12px}
-.clinician-name{font-size:15px;font-weight:700;margin-bottom:4px}
-.clinician-role{font-size:12px;opacity:.75;margin-bottom:12px}
-.clinician-tags{display:flex;flex-wrap:wrap;gap:4px}
-.clinician-tag{font-size:10px;background:rgba(255,255,255,.15);padding:2px 7px;border-radius:4px}
+.clinicians{background:linear-gradient(135deg,#0c6e9c,#7c3aed);padding:80px 40px;color:#fff;text-align:center}
+.clinicians h2{font-size:34px;font-weight:800;margin-bottom:14px}
+.clinicians p{font-size:16px;opacity:.85;max-width:600px;margin:0 auto 48px;line-height:1.6}
+.clin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;max-width:1100px;margin:0 auto}
+.clin-card{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:13px;padding:20px;text-align:left;transition:all .2s}
+.clin-card:hover{background:rgba(255,255,255,.2);transform:translateY(-2px)}
+.clin-icon{font-size:28px;margin-bottom:10px}
+.clin-name{font-size:14px;font-weight:700;margin-bottom:3px}
+.clin-role{font-size:11px;opacity:.75;margin-bottom:10px}
+.clin-tags{display:flex;flex-wrap:wrap;gap:4px}
+.ctag{font-size:10px;background:rgba(255,255,255,.15);padding:2px 7px;border-radius:4px}
 
 /* DATABASES */
-.databases{padding:80px 40px;max-width:1100px;margin:0 auto;text-align:center}
-.db-grid{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:40px}
-.db-badge{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;color:var(--tx);display:flex;align-items:center;gap:6px;transition:all .15s}
+.databases{padding:70px 40px;max-width:1100px;margin:0 auto;text-align:center}
+.db-grid{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:36px}
+.db-badge{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;color:var(--tx);transition:all .15s}
 .db-badge:hover{border-color:var(--pr);color:var(--pr)}
 
 /* AFRICA */
-.africa{background:linear-gradient(135deg,#065f46,#0c6e9c);padding:60px 40px;color:#fff;text-align:center}
-.africa h2{font-size:30px;font-weight:800;margin-bottom:12px}
-.africa p{font-size:16px;opacity:.85;max-width:600px;margin:0 auto}
+.africa{background:linear-gradient(135deg,#065f46,#0c6e9c);padding:56px 40px;color:#fff;text-align:center}
+.africa h2{font-size:28px;font-weight:800;margin-bottom:12px}
+.africa p{font-size:15px;opacity:.85;max-width:600px;margin:0 auto}
 
 /* CTA */
-.cta{padding:80px 40px;text-align:center;background:#fff;border-top:1px solid var(--bd)}
-.cta h2{font-size:40px;font-weight:800;margin-bottom:16px}
-.cta p{font-size:17px;color:var(--mu);margin-bottom:40px}
+.cta-section{padding:80px 40px;text-align:center;background:#fff;border-top:1px solid var(--bd)}
+.cta-section h2{font-size:38px;font-weight:800;margin-bottom:14px}
+.cta-section p{font-size:16px;color:var(--mu);margin-bottom:38px}
 
-/* FOOTER */
-footer{background:var(--tx);color:rgba(255,255,255,.6);padding:40px;text-align:center;font-size:13px}
+footer{background:#1a2332;color:rgba(255,255,255,.6);padding:36px;text-align:center;font-size:13px}
 footer a{color:rgba(255,255,255,.8);text-decoration:none}
 footer strong{color:#fff}
 
 @media(max-width:768px){
-  .hero h1{font-size:36px}
-  nav{padding:0 20px}
-  .stats{gap:30px}
-  .hero{padding:100px 20px 60px}
-  .features,.databases,.cta{padding:60px 20px}
+  .hero h1{font-size:34px}nav{padding:0 16px}.stats{gap:24px}
+  .section,.databases,.cta-section{padding:56px 20px}.africa{padding:40px 20px}
 }
 </style>
 </head>
 <body>
-<!-- ══ WELCOME BANNER ══ -->
-<div id="welcomeBanner" style="position:fixed;bottom:24px;right:24px;z-index:9999;max-width:340px;background:#0f172a;color:white;border-radius:14px;padding:18px 20px;box-shadow:0 8px 32px rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);animation:slideIn .4s ease">
-  <div style="display:flex;align-items:flex-start;gap:12px">
-    <div style="font-size:28px;flex-shrink:0">🧬</div>
-    <div style="flex:1">
-      <div style="font-size:14px;font-weight:700;margin-bottom:4px">Bienvenue sur SenGenoScope</div>
-      <div style="font-size:12px;color:rgba(255,255,255,0.7);line-height:1.5">Plateforme d'oncogénomique clinique avec 12 cliniciens virtuels spécialisés, 30+ bases de données et dossiers patients intégrés.</div>
-      <div style="margin-top:12px;display:flex;gap:8px">
-        <a href="/app" style="padding:7px 14px;background:#0d9488;color:white;border-radius:7px;font-size:12px;font-weight:500;text-decoration:none">🚀 Ouvrir la plateforme</a>
-        <button onclick="document.getElementById('welcomeBanner').style.display='none';localStorage.setItem('wb_closed','1')" style="padding:7px 10px;background:rgba(255,255,255,0.1);color:white;border:none;border-radius:7px;font-size:12px;cursor:pointer">✕</button>
-      </div>
+
+<!-- LANGUAGE MODAL -->
+<div id="langModal">
+  <div class="lang-card">
+    <div style="font-size:36px;margin-bottom:12px">🧬</div>
+    <h2 id="lm-title">Choose your language</h2>
+    <p id="lm-sub">Select your preferred language for SenGenoScope</p>
+    <div class="lang-btns">
+      <button class="lang-btn" onclick="setLandingLang('en')" id="btn-en">🇬🇧 English</button>
+      <button class="lang-btn" onclick="setLandingLang('fr')" id="btn-fr">🇫🇷 Français</button>
     </div>
+    <div class="lang-small" onclick="setLandingLang('en')" id="lm-skip">Continue without choosing</div>
   </div>
 </div>
-<style>
-@keyframes slideIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
-</style>
-<script>
-// Masquer si déjà fermé
-if(localStorage.getItem('wb_closed')) {
-  var wb = document.getElementById('welcomeBanner');
-  if(wb) wb.style.display = 'none';
-}
-// Auto-disparaître après 8 secondes
-setTimeout(function() {
-  var wb = document.getElementById('welcomeBanner');
-  if(wb) { wb.style.opacity='0'; wb.style.transition='opacity .5s'; setTimeout(function(){ wb.style.display='none'; }, 500); }
-}, 8000);
-</script>
-
 
 <!-- NAV -->
 <nav>
@@ -141,235 +127,158 @@ setTimeout(function() {
     <div class="nav-logo-icon">🧬</div>
     <div class="nav-logo-text"><span>Sen</span>GenoScope</div>
   </a>
-  <div class="nav-links">
-    <a href="#features" class="nav-link">Features</a>
-    <a href="#clinicians" class="nav-link">AI Clinicians</a>
-    <a href="#databases" class="nav-link">Databases</a>
-    <a href="/app" class="nav-cta">🚀 Open Platform</a>
+  <div class="nav-right">
+    <a href="#features" class="nav-link" data-en="Features" data-fr="Fonctionnalités">Features</a>
+    <a href="#clinicians" class="nav-link" data-en="AI Clinicians" data-fr="Cliniciens IA">AI Clinicians</a>
+    <a href="#databases" class="nav-link" data-en="Databases" data-fr="Bases de données">Databases</a>
+    <button class="nav-lang" onclick="toggleLandingLang()" id="langToggleBtn">🇫🇷 FR</button>
+    <a href="/app" class="nav-cta" data-en="🚀 Open Platform" data-fr="🚀 Ouvrir la plateforme">🚀 Open Platform</a>
   </div>
 </nav>
 
 <!-- HERO -->
 <section class="hero">
-  <div class="hero-badge">🚀 clinical oncogenomics · v1.0 · 20 modules</div>
-  <h1>The AI platform for<br><span>clinical oncogenomics</span></h1>
-  <p>Analyze genomic variants, consult AI specialists, and access 30+ international databases — built for clinicians and researchers in oncology.</p>
+  <div class="hero-badge" data-en="🚀 Clinical Oncogenomics · v1.0 · 20 modules · 12 AI Clinicians" data-fr="🚀 Oncogénomique clinique · v1.0 · 20 modules · 12 Cliniciens IA">🚀 Clinical Oncogenomics · v1.0 · 20 modules · 12 AI Clinicians</div>
+  <h1 data-en="The AI Platform for<br><span>Clinical Oncogenomics</span>" data-fr="La plateforme IA pour<br><span>l'Oncogénomique Clinique</span>">The AI Platform for<br><span>Clinical Oncogenomics</span></h1>
+  <p data-en="Analyze genomic variants, consult AI specialists, and access 30+ international databases — built for clinicians and researchers in oncology." data-fr="Analysez des variants génomiques, consultez des spécialistes IA et accédez à 30+ bases de données internationales — conçu pour les cliniciens et chercheurs en oncologie.">Analyze genomic variants, consult AI specialists, and access 30+ international databases — built for clinicians and researchers in oncology.</p>
   <div class="hero-btns">
-    <a href="/app" class="btn-primary">🔬 Open Platform →</a>
-    <a href="#features" class="btn-secondary">Explore features</a>
+    <a href="/app" class="btn-primary" data-en="🔬 Open Platform →" data-fr="🔬 Ouvrir la plateforme →">🔬 Open Platform →</a>
+    <a href="#features" class="btn-secondary" data-en="Explore features" data-fr="Explorer les fonctionnalités">Explore features</a>
   </div>
 </section>
 
 <!-- STATS -->
 <div class="stats">
-  <div class="stat"><div class="stat-n">20</div><div class="stat-l">Clinical modules</div></div>
-  <div class="stat"><div class="stat-n">30+</div><div class="stat-l">Integrated databases</div></div>
-  <div class="stat"><div class="stat-n">12<
-          AI virtual clinicians</div></div>
-  <div class="stat"><div class="stat-n">ACMG</div><div class="stat-l">2015 classification</div></div>
-  <div class="stat"><div class="stat-n">NCCN</div><div class="stat-l">ESMO · HAS guidelines</div></div>
+  <div class="stat"><div class="stat-n">20</div><div class="stat-l" data-en="Clinical modules" data-fr="Modules cliniques">Clinical modules</div></div>
+  <div class="stat"><div class="stat-n">30+</div><div class="stat-l" data-en="Integrated databases" data-fr="Bases de données intégrées">Integrated databases</div></div>
+  <div class="stat"><div class="stat-n">12</div><div class="stat-l" data-en="AI virtual clinicians" data-fr="Cliniciens virtuels IA">AI virtual clinicians</div></div>
+  <div class="stat"><div class="stat-n">ACMG</div><div class="stat-l" data-en="2015 classification" data-fr="Classification 2015">2015 classification</div></div>
+  <div class="stat"><div class="stat-n">NCCN</div><div class="stat-l" data-en="ESMO · HAS guidelines" data-fr="Guidelines ESMO · HAS">ESMO · HAS guidelines</div></div>
 </div>
 
 <!-- FEATURES -->
-<section class="features" id="features">
-  <div class="section-label">Platform</div>
-  <div class="section-title">Everything for clinical oncogenomics</div>
-  <div class="section-sub">20 specialized modules covering the full workflow from variant analysis to therapeutic decision.</div>
-  <div class="features-grid">
-
-    <div class="feature-card">
-      <div class="feature-icon" style="background:#dff0f8">🔬</div>
-      <div class="feature-title">Multi-database Search</div>
-      <div class="feature-desc">Simultaneous query of PubMed, ClinVar, OMIM, COSMIC, ClinGen, gnomAD, HPO, clinical trials and drug interactions.</div>
-      <div class="feature-tags">
-        <span class="tag" style="background:#dff0f8;color:#0c6e9c">PubMed</span>
-        <span class="tag" style="background:#dff0f8;color:#0c6e9c">ClinVar</span>
-        <span class="tag" style="background:#dff0f8;color:#0c6e9c">gnomAD</span>
-      </div>
-    </div>
-
-    <div class="feature-card">
-      <div class="feature-icon" style="background:#ede9fe">🩺</div>
-      <div class="feature-title">Virtual AI Clinicians</div>
-      <div class="feature-desc">12 specialized oncology AI doctors — oncogeneticist, medical oncologist, pharmacogenomicist, radio-oncologist.</div>
-      <div class="feature-tags">
-        <span class="tag" style="background:#ede9fe;color:#7c3aed">Claude AI</span>
-        <span class="tag" style="background:#ede9fe;color:#7c3aed">Real-time</span>
-      </div>
-    </div>
-
-    <div class="feature-card">
-      <div class="feature-icon" style="background:#dcfce7">⚖️</div>
-      <div class="feature-title">ACMG Classifier</div>
-      <div class="feature-desc">Automatic variant classification according to ACMG/AMP 2015 criteria with detailed evidence scoring.</div>
-      <div class="feature-tags">
-        <span class="tag" style="background:#dcfce7;color:#059669">ACMG 2015</span>
-        <span class="tag" style="background:#dcfce7;color:#059669">AMP</span>
-      </div>
-    </div>
-
-    <div class="feature-card">
-      <div class="feature-icon" style="background:#ffedd5">🎯</div>
-      <div class="feature-title">Hereditary Risk</div>
-      <div class="feature-desc">Manchester score, Tyrer-Cuzick model, penetrance analysis and hereditary risk estimation for 20+ cancer syndromes.</div>
-      <div class="feature-tags">
-        <span class="tag" style="background:#ffedd5;color:#c2410c">Manchester</span>
-        <span class="tag" style="background:#ffedd5;color:#c2410c">Tyrer-Cuzick</span>
-      </div>
-    </div>
-
-    <div class="feature-card">
-      <div class="feature-icon" style="background:#dff0f8">📊</div>
-      <div class="feature-title">Polygenic Risk Score</div>
-      <div class="feature-desc">PRS calculation for 10+ cancers based on published GWAS SNPs. Visual risk assessment with population comparison.</div>
-      <div class="feature-tags">
-        <span class="tag" style="background:#dff0f8;color:#0c6e9c">GWAS SNPs</span>
-        <span class="tag" style="background:#dff0f8;color:#0c6e9c">PRS</span>
-      </div>
-    </div>
-
-    <div class="feature-card">
-      <div class="feature-icon" style="background:#ede9fe">💊</div>
-      <div class="feature-title">Pharmacogenomics AI</div>
-      <div class="feature-desc">Drug-gene interactions, CPIC guidelines, dose adjustment based on genetic profile (CYP2D6, DPYD, UGT1A1...).</div>
-      <div class="feature-tags">
-        <span class="tag" style="background:#ede9fe;color:#7c3aed">CPIC</span>
-        <span class="tag" style="background:#ede9fe;color:#7c3aed">PharmGKB</span>
-      </div>
-    </div>
-
-    <div class="feature-card">
-      <div class="feature-icon" style="background:#dcfce7">🗂️</div>
-      <div class="feature-title">NGS Report Interpreter</div>
-      <div class="feature-desc">Automated interpretation of NGS sequencing reports in clinical language with actionable recommendations.</div>
-      <div class="feature-tags">
-        <span class="tag" style="background:#dcfce7;color:#059669">NGS</span>
-        <span class="tag" style="background:#dcfce7;color:#059669">VCF</span>
-      </div>
-    </div>
-
-    <div class="feature-card">
-      <div class="feature-icon" style="background:#ffedd5">🔬</div>
-      <div class="feature-title">Morpho-Genetic AI</div>
-      <div class="feature-desc">AI-powered histological image analysis for breast, prostate and pediatric tumors with genotype-phenotype correlation.</div>
-      <div class="feature-tags">
-        <span class="tag" style="background:#ffedd5;color:#c2410c">Breast</span>
-        <span class="tag" style="background:#ffedd5;color:#c2410c">Prostate</span>
-        <span class="tag" style="background:#ffedd5;color:#c2410c">Pediatric</span>
-      </div>
-    </div>
-
+<section class="section" id="features">
+  <div class="section-label" data-en="Platform" data-fr="Plateforme">Platform</div>
+  <div class="section-title" data-en="Everything for clinical oncogenomics" data-fr="Tout pour l'oncogénomique clinique">Everything for clinical oncogenomics</div>
+  <div class="section-sub" data-en="20 specialized modules covering the full clinical workflow from variant analysis to therapeutic decision." data-fr="20 modules spécialisés couvrant le flux clinique complet de l'analyse de variants à la décision thérapeutique.">20 specialized modules covering the full clinical workflow from variant analysis to therapeutic decision.</div>
+  <div class="grid-3">
+    <div class="feature-card"><div class="feat-icon" style="background:#dff0f8">🔬</div><div class="feat-title" data-en="Multi-database Search" data-fr="Recherche multi-bases">Multi-database Search</div><div class="feat-desc" data-en="Simultaneous query of PubMed, ClinVar, OMIM, COSMIC, ClinGen, gnomAD v4, HPO, clinical trials and drug interactions." data-fr="Interrogation simultanée de PubMed, ClinVar, OMIM, COSMIC, ClinGen, gnomAD v4, HPO, essais cliniques et interactions médicamenteuses.">Simultaneous query of PubMed, ClinVar, OMIM, COSMIC, ClinGen, gnomAD v4, HPO, clinical trials and drug interactions.</div><div class="feat-tags"><span class="tag" style="background:#dff0f8;color:#0c6e9c">PubMed</span><span class="tag" style="background:#dff0f8;color:#0c6e9c">ClinVar</span><span class="tag" style="background:#dff0f8;color:#0c6e9c">gnomAD v4</span></div></div>
+    <div class="feature-card"><div class="feat-icon" style="background:#ede9fe">🩺</div><div class="feat-title" data-en="12 Virtual AI Clinicians" data-fr="12 Cliniciens Virtuels IA">12 Virtual AI Clinicians</div><div class="feat-desc" data-en="Oncogeneticist, medical oncologist, internist, generalist, hematologist, pharmacogenomicist, radio-oncologist, RCP virtuelle and more." data-fr="Oncogénéticien, oncologue médical, interniste, généraliste, hématologue, pharmacogénomicien, radio-oncologue, RCP virtuelle et plus.">Oncogeneticist, medical oncologist, internist, generalist, hematologist, pharmacogenomicist, radio-oncologist, RCP virtuelle and more.</div><div class="feat-tags"><span class="tag" style="background:#ede9fe;color:#7c3aed">Claude AI</span><span class="tag" style="background:#ede9fe;color:#7c3aed" data-en="Real-time" data-fr="Temps réel">Real-time</span><span class="tag" style="background:#ede9fe;color:#7c3aed">RCP</span></div></div>
+    <div class="feature-card"><div class="feat-icon" style="background:#dcfce7">⚖️</div><div class="feat-title" data-en="ACMG Classifier" data-fr="Classificateur ACMG">ACMG Classifier</div><div class="feat-desc" data-en="Automatic variant classification according to ACMG/AMP 2015 criteria with detailed evidence scoring." data-fr="Classification automatique des variants selon les critères ACMG/AMP 2015 avec scoring d'évidence détaillé.">Automatic variant classification according to ACMG/AMP 2015 criteria with detailed evidence scoring.</div><div class="feat-tags"><span class="tag" style="background:#dcfce7;color:#059669">ACMG 2015</span><span class="tag" style="background:#dcfce7;color:#059669">AMP</span></div></div>
+    <div class="feature-card"><div class="feat-icon" style="background:#ffedd5">🎯</div><div class="feat-title" data-en="Hereditary Risk" data-fr="Risque Héréditaire">Hereditary Risk</div><div class="feat-desc" data-en="Manchester score, Tyrer-Cuzick model, penetrance analysis and hereditary risk for 20+ cancer syndromes." data-fr="Score Manchester, modèle Tyrer-Cuzick, analyse de pénétrance et risque héréditaire pour 20+ syndromes.">Manchester score, Tyrer-Cuzick model, penetrance analysis and hereditary risk for 20+ cancer syndromes.</div><div class="feat-tags"><span class="tag" style="background:#ffedd5;color:#c2410c">Manchester</span><span class="tag" style="background:#ffedd5;color:#c2410c">Tyrer-Cuzick</span></div></div>
+    <div class="feature-card"><div class="feat-icon" style="background:#dff0f8">📊</div><div class="feat-title" data-en="Polygenic Risk Score (PRS)" data-fr="Score Polygénique (PRS)">Polygenic Risk Score (PRS)</div><div class="feat-desc" data-en="PRS calculation for 10+ cancers based on GWAS SNPs with AWI-Gen African population context." data-fr="Calcul PRS pour 10+ cancers basé sur SNPs GWAS avec contexte populations africaines AWI-Gen.">PRS calculation for 10+ cancers based on GWAS SNPs with AWI-Gen African population context.</div><div class="feat-tags"><span class="tag" style="background:#dff0f8;color:#0c6e9c">GWAS SNPs</span><span class="tag" style="background:#dff0f8;color:#0c6e9c">AWI-Gen</span></div></div>
+    <div class="feature-card"><div class="feat-icon" style="background:#ede9fe">💊</div><div class="feat-title" data-en="Pharmacogenomics AI" data-fr="Pharmacogénomique IA">Pharmacogenomics AI</div><div class="feat-desc" data-en="Drug-gene interactions, CPIC guidelines, dose adjustment based on genetic profile (CYP2D6, DPYD, UGT1A1...)." data-fr="Interactions médicament-gène, guidelines CPIC, ajustement de dose selon profil génétique.">Drug-gene interactions, CPIC guidelines, dose adjustment based on genetic profile (CYP2D6, DPYD, UGT1A1...).</div><div class="feat-tags"><span class="tag" style="background:#ede9fe;color:#7c3aed">CPIC</span><span class="tag" style="background:#ede9fe;color:#7c3aed">PharmGKB</span></div></div>
+    <div class="feature-card"><div class="feat-icon" style="background:#dcfce7">🗂️</div><div class="feat-title" data-en="NGS Report Interpreter" data-fr="Interpréteur NGS">NGS Report Interpreter</div><div class="feat-desc" data-en="Automated interpretation of NGS sequencing reports in clinical language with actionable recommendations." data-fr="Interprétation automatisée des rapports NGS en langage clinique avec recommandations actionnables.">Automated interpretation of NGS sequencing reports in clinical language with actionable recommendations.</div><div class="feat-tags"><span class="tag" style="background:#dcfce7;color:#059669">NGS</span><span class="tag" style="background:#dcfce7;color:#059669">VCF</span></div></div>
+    <div class="feature-card"><div class="feat-icon" style="background:#ffedd5">🔬</div><div class="feat-title" data-en="Morpho-Genetic AI" data-fr="Morpho-Génétique IA">Morpho-Genetic AI</div><div class="feat-desc" data-en="AI-powered histological image analysis for breast, prostate and pediatric tumors with genotype-phenotype correlation." data-fr="Analyse d'images histologiques par IA pour cancers du sein, prostate et tumeurs pédiatriques.">AI-powered histological image analysis for breast, prostate and pediatric tumors.</div><div class="feat-tags"><span class="tag" style="background:#ffedd5;color:#c2410c" data-en="Breast" data-fr="Sein">Breast</span><span class="tag" style="background:#ffedd5;color:#c2410c" data-en="Prostate" data-fr="Prostate">Prostate</span><span class="tag" style="background:#ffedd5;color:#c2410c" data-en="Pediatric" data-fr="Pédiatrique">Pediatric</span></div></div>
+    <div class="feature-card"><div class="feat-icon" style="background:#dff0f8">🌿</div><div class="feat-title" data-en="Rare Tumors" data-fr="Tumeurs Rares">Rare Tumors</div><div class="feat-desc" data-en="Genomic reference for sarcomas, neuroendocrine tumors, GIST and pediatric cancers with African relevance." data-fr="Référentiel génomique pour sarcomes, TNE, GIST et cancers pédiatriques avec pertinence africaine.">Genomic reference for sarcomas, neuroendocrine tumors, GIST and pediatric cancers.</div><div class="feat-tags"><span class="tag" style="background:#dff0f8;color:#0c6e9c">ESMO</span><span class="tag" style="background:#dff0f8;color:#0c6e9c">NCCN</span></div></div>
   </div>
 </section>
 
 <!-- CLINICIANS -->
 <section class="clinicians" id="clinicians">
-  <h2>🩺 Virtual Oncology Clinicians</h2>
-  <p>Consult AI specialists trained on NCCN, ESMO and HAS guidelines with real-time access to scientific databases.</p>
-  <div class="clinicians-grid">
-    <div class="clinician-card">
-      <div class="clinician-icon">🧬</div>
-      <div class="clinician-name">Dre. Sophie Martin</div>
-      <div class="clinician-role">Medical Oncogeneticist</div>
-      <div class="clinician-tags">
-        <span class="clinician-tag">BRCA1/2</span>
-        <span class="clinician-tag">Lynch</span>
-        <span class="clinician-tag">ACMG</span>
-      </div>
-    </div>
-    <div class="clinician-card">
-      <div class="clinician-icon">💊</div>
-      <div class="clinician-name">Dr. Jean-Pierre Durand</div>
-      <div class="clinician-role">Medical Oncologist</div>
-      <div class="clinician-tags">
-        <span class="clinician-tag">EGFR</span>
-        <span class="clinician-tag">Immunotherapy</span>
-        <span class="clinician-tag">Trials</span>
-      </div>
-    </div>
-    <div class="clinician-card">
-      <div class="clinician-icon">🔬</div>
-      <div class="clinician-name">Dre. Amina Diallo</div>
-      <div class="clinician-role">Molecular Pathologist</div>
-      <div class="clinician-tags">
-        <span class="clinician-tag">MSI/MMR</span>
-        <span class="clinician-tag">TMB</span>
-        <span class="clinician-tag">IHC</span>
-      </div>
-    </div>
-    <div class="clinician-card">
-      <div class="clinician-icon">🏥</div>
-      <div class="clinician-name">Dr. Marc Lefebvre</div>
-      <div class="clinician-role">Clinical Geneticist</div>
-      <div class="clinician-tags">
-        <span class="clinician-tag">HPO</span>
-        <span class="clinician-tag">Rare diseases</span>
-        <span class="clinician-tag">VUS</span>
-      </div>
-    </div>
+  <h2 data-en="🩺 12 Virtual Oncology Clinicians" data-fr="🩺 12 Cliniciens Virtuels en Oncologie">🩺 12 Virtual Oncology Clinicians</h2>
+  <p data-en="AI specialists trained on NCCN, ESMO and HAS guidelines with real-time access to scientific databases and voice transcription." data-fr="Spécialistes IA formés sur les guidelines NCCN, ESMO et HAS avec accès en temps réel aux bases scientifiques et transcription vocale.">AI specialists trained on NCCN, ESMO and HAS guidelines with real-time access to scientific databases and voice transcription.</p>
+  <div class="clin-grid">
+    <div class="clin-card"><div class="clin-icon">🧬</div><div class="clin-name">Dre. Sophie Martin</div><div class="clin-role" data-en="Medical Oncogeneticist" data-fr="Oncogénéticienne médicale">Medical Oncogeneticist</div><div class="clin-tags"><span class="ctag">BRCA1/2</span><span class="ctag">Lynch</span><span class="ctag">ACMG</span></div></div>
+    <div class="clin-card"><div class="clin-icon">💊</div><div class="clin-name">Dr. Jean-Pierre Durand</div><div class="clin-role" data-en="Medical Oncologist" data-fr="Oncologue Médical">Medical Oncologist</div><div class="clin-tags"><span class="ctag">EGFR</span><span class="ctag" data-en="Immunotherapy" data-fr="Immunothérapie">Immunotherapy</span><span class="ctag">Trials</span></div></div>
+    <div class="clin-card"><div class="clin-icon">🔬</div><div class="clin-name">Dre. Amina Diallo</div><div class="clin-role" data-en="Molecular Pathologist" data-fr="Anatomo-pathologiste">Molecular Pathologist</div><div class="clin-tags"><span class="ctag">MSI/MMR</span><span class="ctag">TMB</span><span class="ctag">IHC</span></div></div>
+    <div class="clin-card"><div class="clin-icon">🏥</div><div class="clin-name">Dr. Marc Lefebvre</div><div class="clin-role" data-en="Clinical Geneticist" data-fr="Généticien Clinicien">Clinical Geneticist</div><div class="clin-tags"><span class="ctag">HPO</span><span class="ctag" data-en="Rare diseases" data-fr="Maladies rares">Rare diseases</span><span class="ctag">VUS</span></div></div>
+    <div class="clin-card"><div class="clin-icon">👩‍⚕️</div><div class="clin-name">Dre. Ndeye Fatou Thiam</div><div class="clin-role" data-en="General Practitioner" data-fr="Médecin Généraliste">General Practitioner</div><div class="clin-tags"><span class="ctag" data-en="West Africa" data-fr="Afrique de l'Ouest">West Africa</span><span class="ctag" data-en="Chronic diseases" data-fr="Maladies chroniques">Chronic diseases</span></div></div>
+    <div class="clin-card"><div class="clin-icon">🩺</div><div class="clin-name">Dr. Amine Diaby</div><div class="clin-role" data-en="Internist" data-fr="Médecin Interniste">Internist</div><div class="clin-tags"><span class="ctag">Lupus</span><span class="ctag" data-en="Auto-immune" data-fr="Auto-immun">Auto-immune</span><span class="ctag">Multi-organ</span></div></div>
+    <div class="clin-card"><div class="clin-icon">🩸</div><div class="clin-name">Dr. Yacouba Gassama</div><div class="clin-role" data-en="Onco-Hematologist" data-fr="Onco-Hématologue">Onco-Hematologist</div><div class="clin-tags"><span class="ctag" data-en="Leukemia" data-fr="Leucémie">Leukemia</span><span class="ctag" data-en="Lymphoma" data-fr="Lymphome">Lymphoma</span><span class="ctag" data-en="Sickle cell" data-fr="Drépanocytose">Sickle cell</span></div></div>
+    <div class="clin-card"><div class="clin-icon">⚗️</div><div class="clin-name">Dre. Fatou Sarr</div><div class="clin-role" data-en="Pharmacogenomicist" data-fr="Pharmacogénomicienne">Pharmacogenomicist</div><div class="clin-tags"><span class="ctag">CYP2D6</span><span class="ctag">DPYD</span><span class="ctag">CPIC</span></div></div>
+    <div class="clin-card"><div class="clin-icon">☢️</div><div class="clin-name">Dre. Aissatou Balde</div><div class="clin-role" data-en="Radio-Oncologist" data-fr="Radio-Oncologue">Radio-Oncologist</div><div class="clin-tags"><span class="ctag">IMRT</span><span class="ctag">SBRT</span><span class="ctag">ESTRO</span></div></div>
+    <div class="clin-card"><div class="clin-icon">🧠</div><div class="clin-name">Dr. Moussa Diop</div><div class="clin-role" data-en="Neuro-Oncologist" data-fr="Neuro-Oncologue">Neuro-Oncologist</div><div class="clin-tags"><span class="ctag">Glioma</span><span class="ctag">IDH</span><span class="ctag">MGMT</span></div></div>
+    <div class="clin-card"><div class="clin-icon">👶</div><div class="clin-name">Dre. Marie-Claire Fontaine</div><div class="clin-role" data-en="Pediatric Oncologist" data-fr="Pédiatre-Oncologue">Pediatric Oncologist</div><div class="clin-tags"><span class="ctag">ALL</span><span class="ctag">MYCN</span><span class="ctag">Wilms</span></div></div>
+    <div class="clin-card" style="background:rgba(255,255,255,.2)"><div class="clin-icon">🏥</div><div class="clin-name" data-en="Virtual RCP" data-fr="RCP Virtuelle">Virtual RCP</div><div class="clin-role" data-en="Multidisciplinary consultation" data-fr="Concertation multidisciplinaire">Multidisciplinary consultation</div><div class="clin-tags"><span class="ctag" data-en="Consensus" data-fr="Consensus">Consensus</span><span class="ctag" data-en="Synthesis" data-fr="Synthèse">Synthesis</span></div></div>
   </div>
 </section>
 
 <!-- DATABASES -->
 <section class="databases" id="databases">
-  <div class="section-label">Databases</div>
-  <div class="section-title">30+ integrated scientific databases</div>
-  <div class="section-sub">Real-time access to the world's leading genomic, clinical and pharmacogenomic resources.</div>
+  <div class="section-label" data-en="Databases" data-fr="Bases de données">Databases</div>
+  <div class="section-title" data-en="30+ integrated scientific databases" data-fr="30+ bases de données scientifiques intégrées">30+ integrated scientific databases</div>
+  <div class="section-sub" data-en="Real-time access to the world's leading genomic, clinical and pharmacogenomic resources." data-fr="Accès en temps réel aux principales ressources génomiques, cliniques et pharmacogénomiques mondiales.">Real-time access to the world's leading genomic, clinical and pharmacogenomic resources.</div>
   <div class="db-grid">
-    <div class="db-badge">📚 PubMed / NCBI</div>
-    <div class="db-badge">⚠️ ClinVar</div>
-    <div class="db-badge">📖 OMIM</div>
-    <div class="db-badge">☄️ COSMIC</div>
-    <div class="db-badge">🌍 gnomAD v4</div>
-    <div class="db-badge">🔗 ClinGen</div>
-    <div class="db-badge">🌿 Orphanet</div>
-    <div class="db-badge">💊 PharmGKB</div>
-    <div class="db-badge">📋 CPIC</div>
-    <div class="db-badge">💉 DrugBank</div>
-    <div class="db-badge">🧪 ClinicalTrials.gov</div>
-    <div class="db-badge">🔍 VarSome</div>
-    <div class="db-badge">⚡ Franklin (Genoox)</div>
-    <div class="db-badge">🧬 AlphaFold</div>
-    <div class="db-badge">🔗 STRING</div>
-    <div class="db-badge">🎯 OncoKB</div>
-    <div class="db-badge">⚖️ CIViC</div>
-    <div class="db-badge">📊 cBioPortal</div>
-    <div class="db-badge">🌍 H3Africa</div>
-    <div class="db-badge">🧬 ESMO Guidelines</div>
-    <div class="db-badge">📋 NCCN Guidelines</div>
-    <div class="db-badge">🇫🇷 HAS Recommendations</div>
+    <div class="db-badge">📚 PubMed / NCBI</div><div class="db-badge">⚠️ ClinVar</div>
+    <div class="db-badge">📖 OMIM</div><div class="db-badge">☄️ COSMIC</div>
+    <div class="db-badge">🌍 gnomAD v4</div><div class="db-badge">🔗 ClinGen</div>
+    <div class="db-badge">🌿 Orphanet</div><div class="db-badge">💊 PharmGKB</div>
+    <div class="db-badge">📋 CPIC</div><div class="db-badge">💉 DrugBank</div>
+    <div class="db-badge">🧪 ClinicalTrials.gov</div><div class="db-badge">🔍 VarSome</div>
+    <div class="db-badge">⚡ Franklin (Genoox)</div><div class="db-badge">🧬 AlphaFold</div>
+    <div class="db-badge">🔗 STRING</div><div class="db-badge">🎯 OncoKB</div>
+    <div class="db-badge">⚖️ CIViC</div><div class="db-badge">📊 cBioPortal</div>
+    <div class="db-badge">🌍 H3Africa</div><div class="db-badge">🌍 AWI-Gen</div>
+    <div class="db-badge">📋 ESMO Guidelines</div><div class="db-badge">📋 NCCN Guidelines</div>
+    <div class="db-badge">🇫🇷 HAS Recommendations</div><div class="db-badge">🧬 HGMD</div>
+    <div class="db-badge">🔬 SpliceAI</div><div class="db-badge">🧬 AlphaMissense</div>
+    <div class="db-badge">📖 LOVD</div><div class="db-badge">🔗 InSiGHT</div>
+    <div class="db-badge">🧬 ENIGMA</div><div class="db-badge">🏥 HPO Browser</div>
   </div>
 </section>
 
 <!-- AFRICA -->
 <section class="africa">
-  <h2>🌍 Focus on African Populations</h2>
-  <p>SenGenoScope integrates H3Africa data and gnomAD v4 African populations for genomic analysis adapted to African and Senegalese patients.</p>
+  <h2 data-en="🌍 Focus on African Populations" data-fr="🌍 Focus sur les Populations Africaines">🌍 Focus on African Populations</h2>
+  <p data-en="SenGenoScope integrates H3Africa, AWI-Gen and gnomAD v4 African population data for genomic analysis adapted to African and Senegalese patients. Developed with a focus on sub-Saharan Africa." data-fr="SenGenoScope intègre les données H3Africa, AWI-Gen et gnomAD v4 populations africaines pour une analyse génomique adaptée aux patients africains et sénégalais. Développé avec un focus sur l'Afrique subsaharienne.">SenGenoScope integrates H3Africa, AWI-Gen and gnomAD v4 African population data for genomic analysis adapted to African and Senegalese patients.</p>
 </section>
 
 <!-- CTA -->
-<section class="cta">
-  <h2>Ready to start?</h2>
-  <p>Free access — No installation required — Runs in your browser</p>
+<section class="cta-section">
+  <h2 data-en="Ready to start?" data-fr="Prêt à commencer ?">Ready to start?</h2>
+  <p data-en="Free access — No installation required — Runs in your browser" data-fr="Accès gratuit — Aucune installation — Fonctionne dans votre navigateur">Free access — No installation required — Runs in your browser</p>
   <div class="hero-btns">
-    <a href="/app" class="btn-primary">🚀 Open Platform →</a>
+    <a href="/app" class="btn-primary" data-en="🚀 Open Platform →" data-fr="🚀 Ouvrir la plateforme →">🚀 Open Platform →</a>
+    <a href="/login" class="btn-secondary" data-en="🔑 Sign In / Register" data-fr="🔑 Se connecter / S'inscrire">🔑 Sign In / Register</a>
   </div>
-  <div style="margin-top:24px;font-size:13px;color:var(--mu)">
-    🔒 Clinical use · Your API key is stored only in your browser
-  </div>
+  <div style="margin-top:20px;font-size:13px;color:var(--mu)" data-en="🔒 Clinical use · Your API key is stored only in your browser" data-fr="🔒 Usage clinique · Votre clé API est stockée uniquement dans votre navigateur">🔒 Clinical use · Your API key is stored only in your browser</div>
 </section>
 
-<!-- FOOTER -->
 <footer>
-  <div style="margin-bottom:12px">
-    <strong>SenGenoScope</strong> · Clinical Oncogenomics Platform · v1.0
-  </div>
-  <div>
-    Developed by <strong>Moustapha Gassama</strong> · 
-    <a href="/app">Platform</a> · 
-    <a href="https://github.com/Gassa/Clinical-genomic" target="_blank">GitHub</a>
-  </div>
+  <div style="margin-bottom:10px"><strong>SenGenoScope</strong> · Clinical Oncogenomics Platform · v1.0</div>
+  <div data-en="Developed by <strong>Dr. Moustapha Gassama</strong> · <a href='/app'>Platform</a> · <a href='/login'>Sign In</a> · <a href='https://github.com/Gassa/Clinical-genomic' target='_blank'>GitHub</a>" data-fr="Développé par <strong>Dr. Moustapha Gassama</strong> · <a href='/app'>Plateforme</a> · <a href='/login'>Connexion</a> · <a href='https://github.com/Gassa/Clinical-genomic' target='_blank'>GitHub</a>">Developed by <strong>Dr. Moustapha Gassama</strong> · <a href="/app">Platform</a> · <a href="/login">Sign In</a> · <a href="https://github.com/Gassa/Clinical-genomic" target="_blank">GitHub</a></div>
 </footer>
 
+<script>
+// ── LANGUAGE SYSTEM ─────────────────────────────────────────────
+var _lang = localStorage.getItem('sgs_landing_lang') || null;
+
+function applyLang(l) {
+  _lang = l;
+  localStorage.setItem('sgs_landing_lang', l);
+  document.getElementById('landing-root').lang = l;
+  // Traduire tous les éléments avec data-en/data-fr
+  document.querySelectorAll('[data-en]').forEach(function(el) {
+    var txt = l === 'fr' ? el.getAttribute('data-fr') : el.getAttribute('data-en');
+    if (!txt) return;
+    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+      el.placeholder = txt;
+    } else if (el.tagName === 'A' || el.tagName === 'BUTTON' || el.tagName === 'DIV' || el.tagName === 'SPAN' || el.tagName === 'P' || el.tagName === 'H1' || el.tagName === 'H2') {
+      el.innerHTML = txt;
+    }
+  });
+  // Mettre à jour le bouton toggle
+  var tb = document.getElementById('langToggleBtn');
+  if (tb) tb.innerHTML = l === 'fr' ? '🇬🇧 EN' : '🇫🇷 FR';
+}
+
+function setLandingLang(l) {
+  document.getElementById('langModal').style.display = 'none';
+  applyLang(l);
+}
+
+function toggleLandingLang() {
+  applyLang(_lang === 'fr' ? 'en' : 'fr');
+}
+
+// Afficher modal si langue pas choisie
+if (!_lang) {
+  document.getElementById('langModal').style.display = 'flex';
+} else {
+  document.getElementById('langModal').style.display = 'none';
+  applyLang(_lang);
+}
+</script>
 </body>
 </html>
