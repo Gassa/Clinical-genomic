@@ -3499,39 +3499,12 @@ async function attachVcfToConsultation(input) {
   const file = input.files[0]; if (!file) return;
   try {
     const text = await file.text();
-    const lines = text.split('
-').filter(function(l){ return l.trim() && !l.startsWith('##'); });
-    const preview = lines.slice(0,30).join('
-');
+    const lines = text.split('\n').filter(function(l){ return l.trim() && !l.startsWith('##'); });
+    const preview = lines.slice(0,30).join('\n');
     const ta = document.getElementById('clinicianInput');
-    if (ta) ta.value = (ta.value.trim() || 'Analyse ce fichier :') + '
-
---- ' + file.name + ' ---
-' + preview;
+    if (ta) ta.value = (ta.value.trim() || 'Analyse ce fichier :') + '\n\n--- ' + file.name + ' ---\n' + preview;
   } catch(e) { alert('Erreur lecture: ' + e.message); }
   finally { input.value = ''; }
-}
-function rateMessage(idx, value, btn) {
-  const p = btn.closest('.msg-rating');
-  if (p) p.querySelectorAll('button').forEach(function(b){ b.style.opacity = '.3'; });
-  btn.style.opacity = '1'; btn.style.background = value === 1 ? '#E1F5EE' : '#FCEBEB';
-  if (currentConsultationId) {
-    fetch('/consultations/rate', {method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({consultation_id:currentConsultationId, msg_index:idx, rating:value})
-    }).catch(function(){});
-  }
-}
-function filterClinicians() {
-  const q = ((document.getElementById('clinicianSearch')||{value:''}).value || '').toLowerCase();
-  const all = window._allClinicians || [];
-  const grid = document.getElementById('clinicianCards'); if (!grid) return;
-  const f = all.filter(function(c){ return !q || c.name.toLowerCase().includes(q) || c.specialty.toLowerCase().includes(q) || (c.description||'').toLowerCase().includes(q); });
-  if (!f.length) { grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--mu)">Aucun resultat</div>'; return; }
-  renderClinicianCards(f);
-}
-function clearClinicianFilter() {
-  const s = document.getElementById('clinicianSearch'); if (s) s.value = '';
-  filterClinicians();
 }
 async function loadDashboard() {
   const c = document.getElementById('dashboardContent'); if (!c) return;
