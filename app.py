@@ -2138,3 +2138,215 @@ def stream_clinician():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+# ══ INTERPRÉTEUR NGS AUTOMATIQUE ═════════════════════════════════════════════
+@app.route('/interpret_ngs', methods=['POST'])
+@login_required
+def interpret_ngs():
+    """Interpréter un rapport NGS avec classification ACMG et recommandations."""
+    try:
+        api_key = os.environ.get('ANTHROPIC_API_KEY', '')
+        data = request.json or {}
+        ngs_text = data.get('text', '').strip()
+        context = data.get('context', '')
+
+        if not ngs_text:
+            return jsonify({"success": False, "error": "Aucun texte NGS fourni"})
+
+        if len(ngs_text) > 50000:
+            ngs_text = ngs_text[:50000]
+
+        system_prompt = """Tu es un expert en génomique oncologique clinique.
+Tu dois analyser un rapport NGS et produire une interprétation structurée en JSON strict.
+
+IMPORTANT: Réponds UNIQUEMENT avec un JSON valide, sans texte avant ou après.
+
+Format de réponse:
+{
+  "variants": [
+    {
+      "gene": "BRCA1",
+      "variant": "c.5266dupC",
+      "protein": "p.Gln1756Profs",
+      "type": "frameshift",
+      "zygosity": "heterozygote",
+      "acmg_class": "Pathogène",
+      "acmg_criteria": ["PVS1", "PM2", "PP5"],
+      "vaf": "45%",
+      "depth": "150x",
+      "clinical_significance": "Prédisposition syndrome Sein/Ovaire héréditaire",
+      "action": "Consultation oncogénétique recommandée. Test cascade famille."
+    }
+  ],
+  "tmb": {"value": "12 mut/Mb", "interpretation": "Intermédiaire"},
+  "msi": {"status": "MSS", "interpretation": "Stable"},
+  "summary": "Résumé clinique en 2-3 phrases",
+  "recommendations": ["Recommandation 1", "Recommandation 2"],
+  "guidelines": ["NCCN 2024: ...", "ESMO: ..."],
+  "urgent": false,
+  "urgent_reason": ""
+}
+
+Si une donnée est absente du rapport, mets null.
+Classe ACMG: Pathogène, Probablement pathogène, VUS, Probablement bénin, Bénin."""
+
+        user_msg = f"Analyse ce rapport NGS:
+
+{ngs_text}"
+        if context:
+            user_msg += f"
+
+Contexte clinique: {context}"
+
+        import anthropic as _anth
+        client = _anth.Anthropic(api_key=api_key)
+        response = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=3000,
+            system=system_prompt,
+            messages=[{"role": "user", "content": user_msg}]
+        )
+
+        import json as _json
+        raw = response.content[0].text.strip()
+        raw = raw.replace("```json", "").replace("```", "").strip()
+        result = _json.loads(raw)
+        return jsonify({"success": True, "result": result, "raw": raw})
+
+    except Exception as e:
+        logging.error(f"interpret_ngs error: {e}")
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route('/ngs_to_pdf', methods=['POST'])
+@login_required
+def ngs_to_pdf():
+    """Générer un rapport PDF depuis l'analyse NGS."""
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import cm
+        from reportlab.lib import colors
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+        from reportlab.lib.enums import TA_CENTER
+        import io, json as _json
+        from datetime import datetime
+
+        data = request.json or {}
+        result = data.get('result', {})
+        context = data.get('context', '')
+
+        buf = io.BytesIO()
+        doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=2*cm, bottomMargin=2*cm,
+                               leftMargin=2*cm, rightMargin=2*cm)
+
+        styles = getSampleStyleSheet()
+        title_s = ParagraphStyle('t', fontSize=18, fontName='Helvetica-Bold',
+                                textColor=colors.HexColor('#0d9488'), spaceAfter=4)
+        sub_s = ParagraphStyle('s', fontSize=10, fontName='Helvetica',
+                              textColor=colors.HexColor('#64748b'), spaceAfter=16)
+        h2_s = ParagraphStyle('h2', fontSize=13, fontName='Helvetica-Bold',
+                             textColor=colors.HexColor('#1e293b'), spaceBefore=14, spaceAfter=8)
+        body_s = ParagraphStyle('b', fontSize=10, fontName='Helvetica',
+                               textColor=colors.HexColor('#374151'), spaceAfter=4, leading=14)
+        urgent_s = ParagraphStyle('u', fontSize=11, fontName='Helvetica-Bold',
+                                 textColor=colors.HexColor('#dc2626'), spaceAfter=8)
+
+        ACMG_COLORS = {
+            'Pathogène': '#dc2626', 'Probablement pathogène': '#f97316',
+            'VUS': '#f59e0b', 'Probablement bénin': '#84cc16', 'Bénin': '#22c55e'
+        }
+
+        story = []
+        story.append(Paragraph("SenGenoScope — Rapport NGS", title_s))
+        story.append(Paragraph(f"Analyse génomique oncologique · {datetime.now().strftime('%d/%m/%Y')}", sub_s))
+        story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#e2e8f0')))
+        story.append(Spacer(1, 10))
+
+        if result.get('urgent'):
+            story.append(Paragraph(f"ALERTE URGENTE: {result.get('urgent_reason', '')}", urgent_s))
+
+        if result.get('summary'):
+            story.append(Paragraph("Résumé clinique", h2_s))
+            story.append(Paragraph(result['summary'], body_s))
+
+        variants = result.get('variants', [])
+        if variants:
+            story.append(Paragraph(f"Variants identifiés ({len(variants)})", h2_s))
+            for v in variants:
+                acmg = v.get('acmg_class', 'VUS')
+                col = colors.HexColor(ACMG_COLORS.get(acmg, '#f59e0b'))
+                v_data = [
+                    ['Gène', v.get('gene', '-'), 'Variant', v.get('variant', '-')],
+                    ['Classe ACMG', acmg, 'Zygosité', v.get('zygosity', '-')],
+                    ['VAF', v.get('vaf', '-'), 'Profondeur', v.get('depth', '-')],
+                    ['Critères', ', '.join(v.get('acmg_criteria', [])), 'Type', v.get('type', '-')],
+                ]
+                t = Table(v_data, colWidths=[3.5*cm, 5.5*cm, 3.5*cm, 4.5*cm])
+                t.setStyle(TableStyle([
+                    ('FONTNAME', (0,0), (0,-1), 'Helvetica-Bold'),
+                    ('FONTNAME', (2,0), (2,-1), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0,0), (-1,-1), 9),
+                    ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#f8fafc')),
+                    ('TEXTCOLOR', (0,0), (-1,-1), colors.HexColor('#1e293b')),
+                    ('TOPPADDING', (0,0), (-1,-1), 4),
+                    ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+                    ('LEFTPADDING', (0,0), (-1,-1), 6),
+                    ('BOX', (0,0), (-1,-1), 0.5, col),
+                    ('INNERGRID', (0,0), (-1,-1), 0.3, colors.HexColor('#e2e8f0')),
+                ]))
+                story.append(t)
+                if v.get('clinical_significance'):
+                    story.append(Paragraph(f"Signification: {v['clinical_significance']}", body_s))
+                if v.get('action'):
+                    story.append(Paragraph(f"Conduite: {v['action']}", ParagraphStyle('a', fontSize=10,
+                        fontName='Helvetica-Bold', textColor=colors.HexColor('#0d9488'), spaceAfter=10)))
+
+        tmb = result.get('tmb')
+        msi = result.get('msi')
+        if tmb or msi:
+            story.append(Paragraph("Biomarqueurs", h2_s))
+            bm_data = []
+            if tmb: bm_data.append(['TMB', str(tmb.get('value','-')), tmb.get('interpretation','')])
+            if msi: bm_data.append(['MSI', str(msi.get('status','-')), msi.get('interpretation','')])
+            if bm_data:
+                t2 = Table([['Marqueur','Valeur','Interprétation']] + bm_data,
+                           colWidths=[4*cm, 4*cm, 9*cm])
+                t2.setStyle(TableStyle([
+                    ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0,0), (-1,-1), 9),
+                    ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#0d9488')),
+                    ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+                    ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.HexColor('#f8fafc'), colors.white]),
+                    ('TOPPADDING', (0,0), (-1,-1), 5),
+                    ('BOTTOMPADDING', (0,0), (-1,-1), 5),
+                    ('LEFTPADDING', (0,0), (-1,-1), 8),
+                ]))
+                story.append(t2)
+
+        recs = result.get('recommendations', [])
+        if recs:
+            story.append(Paragraph("Recommandations", h2_s))
+            for i, r in enumerate(recs, 1):
+                story.append(Paragraph(f"{i}. {r}", body_s))
+
+        guides = result.get('guidelines', [])
+        if guides:
+            story.append(Paragraph("Guidelines", h2_s))
+            for g in guides:
+                story.append(Paragraph(f"• {g}", body_s))
+
+        story.append(Spacer(1, 20))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#e2e8f0')))
+        story.append(Paragraph(
+            f"Rapport généré le {datetime.now().strftime('%d/%m/%Y à %H:%M')} par SenGenoScope v1.0 — Usage clinique confidentiel",
+            ParagraphStyle('footer', fontSize=8, textColor=colors.HexColor('#94a3b8'), alignment=TA_CENTER)))
+
+        doc.build(story)
+        buf.seek(0)
+        from flask import send_file
+        return send_file(buf, mimetype='application/pdf', as_attachment=True,
+                        download_name=f'rapport_ngs_{datetime.now().strftime("%Y%m%d_%H%M")}.pdf')
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
