@@ -167,6 +167,53 @@ def init_db():
 
 
 
+# ══ MIGRATION DB ════════════════════════════════════════
+def migrate_db():
+    """Ajoute les colonnes/tables manquantes sans recréer."""
+    try:
+        conn, _db = get_conn()
+        cur = conn.cursor()
+        if _db == "pg":
+            # Ajouter patient_id si manquant
+            cur.execute("""
+                ALTER TABLE consultations ADD COLUMN IF NOT EXISTS patient_id INTEGER DEFAULT NULL
+            """)
+            # Créer table patients si manquante
+            cur.execute("""CREATE TABLE IF NOT EXISTS patients (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                nom TEXT NOT NULL,
+                prenom TEXT DEFAULT '',
+                date_naissance TEXT DEFAULT '',
+                numero_dossier TEXT DEFAULT '',
+                diagnostic TEXT DEFAULT '',
+                notes TEXT DEFAULT '',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )""")
+        else:
+            # SQLite — vérifier si colonne existe
+            cur.execute("PRAGMA table_info(consultations)")
+            cols = [r[1] for r in cur.fetchall()]
+            if 'patient_id' not in cols:
+                cur.execute("ALTER TABLE consultations ADD COLUMN patient_id INTEGER DEFAULT NULL")
+            # Créer table patients si manquante
+            cur.execute("""CREATE TABLE IF NOT EXISTS patients (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                nom TEXT NOT NULL,
+                prenom TEXT DEFAULT '',
+                date_naissance TEXT DEFAULT '',
+                numero_dossier TEXT DEFAULT '',
+                diagnostic TEXT DEFAULT '',
+                notes TEXT DEFAULT '',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )""")
+        conn.commit()
+        conn.close()
+        logging.info("[DB] Migration OK")
+    except Exception as e:
+        logging.error(f"[DB] Migration erreur: {e}")
+
 # ══ EMAIL ALERTES ══════════════════════════════════════════════════════════
 import smtplib
 from email.mime.text import MIMEText
