@@ -1865,3 +1865,95 @@ app.config['PERMANENT_SESSION_LIFETIME'] = __import__('datetime').timedelta(minu
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
+
+# ══ PATIENTS ══════════════════════════════════════════════════════
+@app.route('/patients/list')
+@login_required
+def list_patients():
+    try:
+        uid = session['user_id']
+        conn, _db = get_conn()
+        cur = conn.cursor()
+        ph = "%s" if _db == "pg" else "?"
+        cur.execute(f"SELECT id,nom,prenom,date_naissance,numero_dossier,diagnostic,notes,created_at FROM patients WHERE user_id={ph} ORDER BY nom ASC", (uid,))
+        rows = cur.fetchall()
+        conn.close()
+        patients = [{"id":r[0],"nom":r[1],"prenom":r[2],"date_naissance":r[3],"numero_dossier":r[4],"diagnostic":r[5],"notes":r[6],"created_at":str(r[7])} for r in rows]
+        return jsonify({"success": True, "patients": patients})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route('/patients/create', methods=['POST'])
+@login_required
+def create_patient():
+    try:
+        uid = session['user_id']
+        data = request.json or {}
+        nom = data.get('nom', '').strip()
+        if not nom:
+            return jsonify({"success": False, "error": "Nom requis"})
+        conn, _db = get_conn()
+        cur = conn.cursor()
+        ph = "%s" if _db == "pg" else "?"
+        cur.execute(f"INSERT INTO patients (user_id,nom,prenom,date_naissance,numero_dossier,diagnostic,notes) VALUES ({ph},{ph},{ph},{ph},{ph},{ph},{ph})",
+            (uid, nom, data.get('prenom',''), data.get('date_naissance',''), data.get('numero_dossier',''), data.get('diagnostic',''), data.get('notes','')))
+        conn.commit()
+        if _db == "pg":
+            cur.execute("SELECT LASTVAL()")
+            pid = cur.fetchone()[0]
+        else:
+            pid = cur.lastrowid
+        conn.close()
+        return jsonify({"success": True, "id": pid})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route('/patients/<int:pid>', methods=['GET','PUT','DELETE'])
+@login_required
+def patient_detail(pid):
+    uid = session['user_id']
+    conn, _db = get_conn()
+    cur = conn.cursor()
+    ph = "%s" if _db == "pg" else "?"
+    try:
+        if request.method == 'GET':
+            cur.execute(f"SELECT id,nom,prenom,date_naissance,numero_dossier,diagnostic,notes,created_at FROM patients WHERE id={ph} AND user_id={ph}", (pid,uid))
+            r = cur.fetchone()
+            if not r:
+                return jsonify({"success": False, "error": "Patient non trouve"})
+            cur.execute(f"SELECT id,clinician_name,clinician_specialty,title,updated_at FROM consultations WHERE patient_id={ph} AND user_id={ph} ORDER BY updated_at DESC", (pid,uid))
+            consults = [{"id":c[0],"clinician_name":c[1],"clinician_specialty":c[2],"title":c[3],"updated_at":str(c[4])} for c in cur.fetchall()]
+            conn.close()
+            return jsonify({"success":True,"patient":{"id":r[0],"nom":r[1],"prenom":r[2],"date_naissance":r[3],"numero_dossier":r[4],"diagnostic":r[5],"notes":r[6],"created_at":str(r[7])},"consultations":consults})
+        elif request.method == 'PUT':
+            data = request.json or {}
+            cur.execute(f"UPDATE patients SET nom={ph},prenom={ph},date_naissance={ph},numero_dossier={ph},diagnostic={ph},notes={ph} WHERE id={ph} AND user_id={ph}",
+                (data.get('nom',''),data.get('prenom',''),data.get('date_naissance',''),data.get('numero_dossier',''),data.get('diagnostic',''),data.get('notes',''),pid,uid))
+            conn.commit()
+            conn.close()
+            return jsonify({"success": True})
+        elif request.method == 'DELETE':
+            cur.execute(f"DELETE FROM patients WHERE id={ph} AND user_id={ph}", (pid,uid))
+            conn.commit()
+            conn.close()
+            return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route('/patients/attach', methods=['POST'])
+@login_required
+def attach_patient():
+    try:
+        uid = session['user_id']
+        data = request.json or {}
+        conn, _db = get_conn()
+        cur = conn.cursor()
+        ph = "%s" if _db == "pg" else "?"
+        cur.execute(f"UPDATE consultations SET patient_id={ph} WHERE id={ph} AND user_id={ph}",
+            (data.get('patient_id'), data.get('consultation_id'), uid))
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
