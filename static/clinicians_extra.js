@@ -275,3 +275,30 @@ async function exportPatientPDFFull(patientId, patientName) {
     if (event.target) { event.target.textContent = '📄 Exporter PDF'; event.target.disabled = false; }
   }
 }
+
+function filterClinicians() {
+  var inp = document.getElementById('clinicianSearch');
+  var q = inp ? inp.value.toLowerCase() : '';
+  var all = window._allClinicians || [];
+  var grid = document.getElementById('clinicianCards');
+  if (!grid) return;
+  if (!all.length && q) { setTimeout(filterClinicians, 500); return; }
+  if (!q) { if (all.length) renderClinicianCards(all); return; }
+  var f = all.filter(function(c) {
+    return c.name.toLowerCase().includes(q)
+      || (c.specialty || '').toLowerCase().includes(q)
+      || (c.description || '').toLowerCase().includes(q)
+      || (c.id || '').toLowerCase().includes(q);
+  });
+  if (!f.length) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--mu)">Aucun résultat pour « ' + q + ' »</div>';
+    return;
+  }
+  renderClinicianCards(f);
+}
+
+function clearClinicianFilter() {
+  var s = document.getElementById('clinicianSearch');
+  if (s) s.value = '';
+  filterClinicians();
+}
