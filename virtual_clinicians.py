@@ -867,38 +867,43 @@ def consult_clinician_ai(clinician_id, message, history=None, user_api_key=None)
         afr=fetch_gnomad_afr_context(genes) if genes else ""
         enriched_message=message+afr if afr else message
         messages.append({"role": "user", "content": enriched_message})
-        domain_map2 = {
+        DOMAINS = {
             "oncogeneticist": "variants genetiques, predispositions hereditaires, BRCA1/2, Lynch, conseil genetique",
             "oncologist": "oncologie, therapies ciblees, immunotherapie, biomarqueurs, essais cliniques",
             "pathologist": "anatomopathologie, histologie, IHC, MSI/MMR, TMB, variants somatiques",
             "geneticist": "genetique clinique, maladies rares, phenotypage HPO, syndromes genetiques",
-            "generalist": "medecine generale, orientation diagnostique, medecine de famille, prevention, maladies chroniques",
-            "internist": "medecine interne, maladies systemiques, lupus, vascularites, maladies auto-immunes, diagnostic complexe",
+            "generalist": "medecine generale, orientation diagnostique, medecine de famille, prevention",
+            "internist": "medecine interne, maladies systemiques, lupus, vascularites, auto-immunite",
             "hematologist": "hematologie, leucemies, lymphomes, myelome, drepanocytose, hemostase",
             "radiologist": "imagerie medicale, echographie, scanner, IRM, mammographie",
-            "gynecologist": "gynecologie, obstetrique, oncogynecologie, cancer col, sein, ovaire",
+            "gynecologist": "gynecologie, obstetrique, oncogynecologie, cancers gynecologiques",
             "pediatric_oncologist": "oncologie pediatrique, leucemies enfant, tumeurs solides pediatriques",
             "pain_specialist": "douleur chronique, soins palliatifs, analgesie oncologique",
             "rcp_coordinator": "coordination pluridisciplinaire, synthese multi-experts, consensus RCP",
         }
-        my_domain2 = domain_map2.get(clinician_id, "ma specialite")
+        domain = DOMAINS.get(clinician_id, "ma specialite")
+        clin_name = clinician.get("name", "le clinicien")
+        clin_spec = clinician.get("specialty", "specialiste")
+        identity = (
+            "IDENTITE ABSOLUE: Tu es " + clin_name + ", " + clin_spec + ". "
+            "Tu N'ES PAS Claude, pas une IA generique. Tu es un clinicien reel. "
+            "Ne mentionne JAMAIS Claude, Anthropic, IA ou modele de langage.\n\n"
+            "RESTRICTION DE DOMAINE: Tu es specialiste en " + domain + ". "
+            "Si la question sort de ton domaine, apporte ton eclairage puis oriente "
+            "vers le bon specialiste. Tu ne fais pas de diagnostic hors specialite.\n\n"
+        )
+        base_prompt = clinician.get("system_prompt", "")
+        presentation = (
+            "\nREGLE PRESENTATION: Au premier message uniquement, presente-toi en 2 phrases. "
+            "Ne mentionne jamais les bases de donnees dans ta presentation. "
+            "Tu es un clinicien international qui adapte ses recommandations au pays du patient. "
+            "Si le pays n'est pas mentionne, demande-le poliment."
+        )
+        full_system = identity + base_prompt + presentation
         response = client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=1000,
-            system=(
-                f"IDENTITE ABSOLUE: Tu es {clinician['name']}, {clinician['specialty']}. "
-                f"Tu N'ES PAS Claude, pas une IA generique. Tu es un clinicien reel. "
-                f"Ne mentionne JAMAIS Claude, Anthropic, IA ou modele de langage.\n\n"
-                f"RESTRICTION DE DOMAINE: Tu es specialiste en {my_domain2}. "
-                f"Si hors domaine, apporte ton eclairage puis oriente vers le bon specialiste."
-                f"\n\n"
-            ) + clinician.get('system_prompt', '') + \'\'\'
-REGLE ABSOLUE DE PRESENTATION:
-- Au premier message UNIQUEMENT: présente-toi en 2 phrases maximum, chaleureusement
-- Format: "Bonjour, je suis [Prénom Nom], [spécialité]. [Une phrase sur ton approche]. Comment puis-je vous aider ?"
-- Ne mentionne JAMAIS PubMed, ClinVar, gnomAD, OMIM, guidelines dans ta présentation
-- Tu es un clinicien international qui adapte ses recommandations selon le pays/contexte du patient
-- Si le pays n\'est pas mentionné, demande-le poliment\'\'\'
+            system=full_system,
             messages=messages
         )
         return {
