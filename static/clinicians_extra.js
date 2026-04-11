@@ -150,7 +150,7 @@ async function showPatientDossier(patientId, patientName) {
       + '<div style="padding:16px 20px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center;background:var(--s2)">'
       + '<div style="font-size:15px;font-weight:600">📋 Dossier patient</div>'
       + '<div style="display:flex;gap:8px">'
-      + '<button onclick="exportPatientPDF(' + p.id + ',&quot;' + p.nom + ' ' + p.prenom + '&quot;)" style="padding:6px 12px;border-radius:7px;border:1px solid var(--bd);background:var(--sf);font-size:12px;cursor:pointer">📄 Exporter PDF</button>'
+      + '<button onclick="exportPatientPDFFull(' + p.id + ',&quot;' + p.nom + ' ' + p.prenom + '&quot;)" style="padding:6px 12px;border-radius:7px;border:1px solid var(--bd);background:var(--sf);font-size:12px;cursor:pointer">📄 Exporter PDF</button>'
       + '<button onclick="document.getElementById(&quot;dossierModal&quot;).remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--mu)">×</button></div></div>'
       // Patient info card
       + '<div style="padding:16px 20px;border-bottom:1px solid var(--bd)">'
@@ -163,7 +163,7 @@ async function showPatientDossier(patientId, patientName) {
       + (p.notes ? '<div style="margin-top:12px;padding:10px 12px;background:var(--s2);border-radius:8px;border-left:3px solid #0891b2;font-size:12px;color:var(--mu)">' + p.notes + '</div>' : '')
       // Edit button
       + '<div style="margin-top:10px;display:flex;gap:8px">'
-      + '<button onclick="editPatient(' + p.id + ')" style="padding:5px 12px;border-radius:7px;border:1px solid var(--bd);background:var(--sf);font-size:11px;cursor:pointer">✏️ Modifier</button>'
+      + '<button onclick="editPatientForm(' + p.id + ')" style="padding:5px 12px;border-radius:7px;border:1px solid var(--bd);background:var(--sf);font-size:11px;cursor:pointer">✏️ Modifier</button>'
       + '<button onclick="selectPatient(' + p.id + ',&quot;' + p.nom + ' ' + p.prenom + '&quot;)" style="padding:5px 12px;border-radius:7px;border:none;background:#0d9488;color:white;font-size:11px;cursor:pointer">👤 Consulter avec ce patient</button>'
       + '</div></div>'
       // Consultations
@@ -189,4 +189,89 @@ async function exportPatientPDF(patientId, patientName) {
 
 function editPatient(pid) {
   alert('Modification patient — fonctionnalité à venir');
+}
+
+// ══ MODIFICATION PATIENT ══════════════════════════════════════
+
+async function editPatientForm(pid) {
+  try {
+    const r = await fetch('/patients/' + pid);
+    const d = await r.json();
+    if (!d.success) throw new Error(d.error);
+    const p = d.patient;
+    const existing = document.getElementById('dossierModal');
+    if (existing) existing.remove();
+    const m = document.createElement('div');
+    m.id = 'editPatientModal';
+    m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+    m.innerHTML = '<div style="background:var(--bg);border-radius:14px;width:100%;max-width:480px;border:0.5px solid var(--bd);overflow:hidden">'
+      + '<div style="padding:14px 20px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center;background:var(--s2)">'
+      + '<div style="font-size:14px;font-weight:600">✏️ Modifier le patient</div>'
+      + '<button onclick="document.getElementById(\'editPatientModal\').remove()" style="background:none;border:none;font-size:20px;cursor:pointer">×</button></div>'
+      + '<div style="padding:20px;display:flex;flex-direction:column;gap:10px">'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
+      + '<div><label style="font-size:11px;color:var(--mu);font-weight:500">Nom *</label><input id="epNom" value="' + (p.nom||'') + '" style="width:100%;padding:7px 10px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px;box-sizing:border-box;margin-top:3px"></div>'
+      + '<div><label style="font-size:11px;color:var(--mu);font-weight:500">Prénom</label><input id="epPrenom" value="' + (p.prenom||'') + '" style="width:100%;padding:7px 10px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px;box-sizing:border-box;margin-top:3px"></div>'
+      + '<div><label style="font-size:11px;color:var(--mu);font-weight:500">N° dossier</label><input id="epDossier" value="' + (p.numero_dossier||'') + '" style="width:100%;padding:7px 10px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px;box-sizing:border-box;margin-top:3px"></div>'
+      + '<div><label style="font-size:11px;color:var(--mu);font-weight:500">Date naissance</label><input id="epDob" type="date" value="' + (p.date_naissance||'') + '" style="width:100%;padding:7px 10px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px;box-sizing:border-box;margin-top:3px"></div>'
+      + '</div>'
+      + '<div><label style="font-size:11px;color:var(--mu);font-weight:500">Diagnostic principal</label><input id="epDiag" value="' + (p.diagnostic||'') + '" style="width:100%;padding:7px 10px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px;box-sizing:border-box;margin-top:3px"></div>'
+      + '<div><label style="font-size:11px;color:var(--mu);font-weight:500">Notes cliniques</label><textarea id="epNotes" rows="3" style="width:100%;padding:7px 10px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px;box-sizing:border-box;margin-top:3px;resize:vertical">' + (p.notes||'') + '</textarea></div>'
+      + '<button onclick="savePatientEdit(' + pid + ')" style="padding:10px;border-radius:8px;border:none;background:#0d9488;color:white;font-size:13px;font-weight:500;cursor:pointer">💾 Sauvegarder</button>'
+      + '</div></div>';
+    document.body.appendChild(m);
+  } catch(e) { alert('Erreur: ' + e.message); }
+}
+
+async function savePatientEdit(pid) {
+  const data = {
+    nom: (document.getElementById('epNom')||{value:''}).value.trim(),
+    prenom: (document.getElementById('epPrenom')||{value:''}).value,
+    date_naissance: (document.getElementById('epDob')||{value:''}).value,
+    numero_dossier: (document.getElementById('epDossier')||{value:''}).value,
+    diagnostic: (document.getElementById('epDiag')||{value:''}).value,
+    notes: (document.getElementById('epNotes')||{value:''}).value,
+  };
+  if (!data.nom) { alert('Le nom est requis'); return; }
+  try {
+    const r = await fetch('/patients/' + pid, {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    });
+    const res = await r.json();
+    if (!res.success) throw new Error(res.error);
+    const m = document.getElementById('editPatientModal');
+    if (m) m.remove();
+    // Rafraîchir le badge si actif
+    if (currentPatient && currentPatient.id === pid) {
+      const badge = document.getElementById('activePatientBadge');
+      if (badge) badge.querySelector('span').textContent = data.nom + ' ' + data.prenom;
+    }
+    alert('Patient mis à jour');
+  } catch(e) { alert('Erreur: ' + e.message); }
+}
+
+// ══ EXPORT PDF DOSSIER COMPLET ══════════════════════════════
+
+async function exportPatientPDFFull(patientId, patientName) {
+  try {
+    const btn = event.target;
+    btn.textContent = '...';
+    btn.disabled = true;
+    const r = await fetch('/patients/' + patientId + '/export_pdf');
+    if (!r.ok) { const e = await r.json(); throw new Error(e.error || 'Erreur'); }
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'dossier_' + (patientName||'patient').replace(/\s/g,'_') + '.pdf';
+    a.click();
+    URL.revokeObjectURL(url);
+    btn.textContent = '📄 Exporter PDF';
+    btn.disabled = false;
+  } catch(e) {
+    alert('Erreur export: ' + e.message);
+    if (event.target) { event.target.textContent = '📄 Exporter PDF'; event.target.disabled = false; }
+  }
 }

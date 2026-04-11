@@ -1957,3 +1957,118 @@ def attach_patient():
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
+
+@app.route('/patients/<int:pid>/export_pdf')
+@login_required
+def export_patient_pdf(pid):
+    """Exporte le dossier complet d'un patient en PDF."""
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import cm
+        from reportlab.lib import colors
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+        from reportlab.lib.enums import TA_LEFT, TA_CENTER
+        import io, json
+        from datetime import datetime
+
+        uid = session['user_id']
+        conn, _db = get_conn()
+        cur = conn.cursor()
+        ph = "%s" if _db == "pg" else "?"
+
+        cur.execute(f"SELECT id,nom,prenom,date_naissance,numero_dossier,diagnostic,notes,created_at FROM patients WHERE id={ph} AND user_id={ph}", (pid, uid))
+        p = cur.fetchone()
+        if not p:
+            return jsonify({"success": False, "error": "Patient non trouve"}), 404
+
+        cur.execute(f"SELECT id,clinician_name,clinician_specialty,title,messages,updated_at FROM consultations WHERE patient_id={ph} AND user_id={ph} ORDER BY updated_at ASC", (pid, uid))
+        consults = cur.fetchall()
+        conn.close()
+
+        buf = io.BytesIO()
+        doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=2*cm, bottomMargin=2*cm, leftMargin=2*cm, rightMargin=2*cm)
+        styles = getSampleStyleSheet()
+        story = []
+
+        # Titre
+        title_style = ParagraphStyle('title', fontSize=20, fontName='Helvetica-Bold', textColor=colors.HexColor('#0d9488'), spaceAfter=6)
+        sub_style = ParagraphStyle('sub', fontSize=11, fontName='Helvetica', textColor=colors.HexColor('#64748b'), spaceAfter=16)
+        h2_style = ParagraphStyle('h2', fontSize=13, fontName='Helvetica-Bold', textColor=colors.HexColor('#1e293b'), spaceBefore=14, spaceAfter=8)
+        body_style = ParagraphStyle('body', fontSize=10, fontName='Helvetica', textColor=colors.HexColor('#374151'), spaceAfter=4, leading=14)
+        label_style = ParagraphStyle('label', fontSize=9, fontName='Helvetica-Bold', textColor=colors.HexColor('#6b7280'), spaceAfter=2)
+        msg_user_style = ParagraphStyle('mu', fontSize=9, fontName='Helvetica', textColor=colors.HexColor('#1e40af'), spaceAfter=4, leftIndent=20, leading=13)
+        msg_ai_style = ParagraphStyle('ma', fontSize=9, fontName='Helvetica', textColor=colors.HexColor('#374151'), spaceAfter=8, leftIndent=20, leading=13)
+
+        story.append(Paragraph("SenGenoScope", title_style))
+        story.append(Paragraph("Dossier Patient — Oncogénomique Clinique", sub_style))
+        story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#e2e8f0')))
+        story.append(Spacer(1, 12))
+
+        # Infos patient
+        story.append(Paragraph("Informations Patient", h2_style))
+        nom_complet = (p[1] or '') + ' ' + (p[2] or '')
+        data_table = [
+            ['Nom complet', nom_complet.strip()],
+            ['Date de naissance', p[3] or 'Non renseignée'],
+            ['N° dossier', p[4] or 'Non renseigné'],
+            ['Diagnostic principal', p[5] or 'Non renseigné'],
+            ['Notes', p[6] or ''],
+            ['Dossier créé le', str(p[7])[:10] if p[7] else ''],
+        ]
+        t = Table(data_table, colWidths=[4*cm, 13*cm])
+        t.setStyle(TableStyle([
+            ('FONTNAME', (0,0), (0,-1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0,0), (-1,-1), 9),
+            ('TEXTCOLOR', (0,0), (0,-1), colors.HexColor('#6b7280')),
+            ('TEXTCOLOR', (1,0), (1,-1), colors.HexColor('#1e293b')),
+            ('ROWBACKGROUNDS', (0,0), (-1,-1), [colors.HexColor('#f8fafc'), colors.white]),
+            ('TOPPADDING', (0,0), (-1,-1), 5),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 5),
+            ('LEFTPADDING', (0,0), (-1,-1), 8),
+        ]))
+        story.append(t)
+        story.append(Spacer(1, 16))
+
+        # Consultations
+        story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#e2e8f0')))
+        story.append(Paragraph(f"Consultations ({len(consults)})", h2_style))
+
+        if not consults:
+            story.append(Paragraph("Aucune consultation associée à ce patient.", body_style))
+        else:
+            for i, c in enumerate(consults):
+                cid, clin_name, clin_spec, title, messages_json, updated_at = c
+                story.append(Spacer(1, 8))
+                story.append(Paragraph(f"Consultation {i+1} — {clin_name}", ParagraphStyle('ch', fontSize=11, fontName='Helvetica-Bold', textColor=colors.HexColor('#0d9488'), spaceAfter=2)))
+                story.append(Paragraph(f"{clin_spec or ''} · {str(updated_at)[:10]}", label_style))
+                if title:
+                    story.append(Paragraph(f"Sujet: {title}", label_style))
+                story.append(Spacer(1, 4))
+                try:
+                    msgs = json.loads(messages_json) if messages_json else []
+                    for msg in msgs[:20]:
+                        role = msg.get('role', '')
+                        content = (msg.get('content', '') or '')[:500]
+                        content = content.replace('<', '&lt;').replace('>', '&gt;').replace('**', '').replace('*', '')
+                        if role == 'user':
+                            story.append(Paragraph(f"<b>Patient:</b> {content}", msg_user_style))
+                        elif role == 'assistant':
+                            story.append(Paragraph(f"<b>{clin_name}:</b> {content}", msg_ai_style))
+                except:
+                    pass
+                story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#f1f5f9')))
+
+        story.append(Spacer(1, 20))
+        story.append(Paragraph(f"Généré le {datetime.now().strftime('%d/%m/%Y à %H:%M')} — SenGenoScope v1.0", ParagraphStyle('footer', fontSize=8, textColor=colors.HexColor('#94a3b8'), alignment=TA_CENTER)))
+
+        doc.build(story)
+        buf.seek(0)
+        from flask import send_file
+        safe_name = (p[1] or 'patient').replace(' ', '_')
+        return send_file(buf, mimetype='application/pdf', as_attachment=True, download_name=f'dossier_{safe_name}_{pid}.pdf')
+
+    except Exception as e:
+        logging.error(f"Export PDF patient: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
