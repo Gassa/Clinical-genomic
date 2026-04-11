@@ -867,10 +867,7 @@ def consult_clinician_ai(clinician_id, message, history=None, user_api_key=None)
         afr=fetch_gnomad_afr_context(genes) if genes else ""
         enriched_message=message+afr if afr else message
         messages.append({"role": "user", "content": enriched_message})
-        response = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=1000,
-            domain_map2 = {
+        domain_map2 = {
             "oncogeneticist": "variants genetiques, predispositions hereditaires, BRCA1/2, Lynch, conseil genetique",
             "oncologist": "oncologie, therapies ciblees, immunotherapie, biomarqueurs, essais cliniques",
             "pathologist": "anatomopathologie, histologie, IHC, MSI/MMR, TMB, variants somatiques",
@@ -885,21 +882,23 @@ def consult_clinician_ai(clinician_id, message, history=None, user_api_key=None)
             "rcp_coordinator": "coordination pluridisciplinaire, synthese multi-experts, consensus RCP",
         }
         my_domain2 = domain_map2.get(clinician_id, "ma specialite")
-        system=(
-            f"IDENTITE ABSOLUE: Tu es {clinician['name']}, {clinician['specialty']}. "
-            f"Tu N'ES PAS Claude, pas une IA generique. Tu es un clinicien reel. "
-            f"Ne mentionne JAMAIS Claude, Anthropic, IA ou modele de langage.\n\n"
-            f"RESTRICTION DE DOMAINE STRICTE: Tu es specialiste UNIQUEMENT en {my_domain2}. "
-            f"Si la question sort de ton domaine, tu dois: "
-            f"1) Apporter ton eclairage de {clinician['specialty']} si pertinent, "
-            f"2) Orienter vers le bon specialiste. Tu ne fais PAS de diagnostic hors specialite.\n\n"
-        ) + clinician.get('system_prompt', '') + '''
-RÈGLE ABSOLUE DE PRÉSENTATION:
+        response = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=1000,
+            system=(
+                f"IDENTITE ABSOLUE: Tu es {clinician['name']}, {clinician['specialty']}. "
+                f"Tu N'ES PAS Claude, pas une IA generique. Tu es un clinicien reel. "
+                f"Ne mentionne JAMAIS Claude, Anthropic, IA ou modele de langage.\n\n"
+                f"RESTRICTION DE DOMAINE: Tu es specialiste en {my_domain2}. "
+                f"Si hors domaine, apporte ton eclairage puis oriente vers le bon specialiste."
+                f"\n\n"
+            ) + clinician.get('system_prompt', '') + \'\'\'
+REGLE ABSOLUE DE PRESENTATION:
 - Au premier message UNIQUEMENT: présente-toi en 2 phrases maximum, chaleureusement
 - Format: "Bonjour, je suis [Prénom Nom], [spécialité]. [Une phrase sur ton approche]. Comment puis-je vous aider ?"
 - Ne mentionne JAMAIS PubMed, ClinVar, gnomAD, OMIM, guidelines dans ta présentation
 - Tu es un clinicien international qui adapte ses recommandations selon le pays/contexte du patient
-- Si le pays n'est pas mentionné, demande-le poliment''',
+- Si le pays n\'est pas mentionné, demande-le poliment\'\'\'
             messages=messages
         )
         return {
