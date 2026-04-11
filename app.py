@@ -2190,13 +2190,9 @@ Format de réponse:
 Si une donnée est absente du rapport, mets null.
 Classe ACMG: Pathogène, Probablement pathogène, VUS, Probablement bénin, Bénin."""
 
-        user_msg = f"Analyse ce rapport NGS:
-
-{ngs_text}"
+        user_msg = "Analyse ce rapport NGS:\n\n" + ngs_text
         if context:
-            user_msg += f"
-
-Contexte clinique: {context}"
+            user_msg += "\n\nContexte clinique: " + context
 
         import anthropic as _anth
         client = _anth.Anthropic(api_key=api_key)
