@@ -19,7 +19,7 @@ except ImportError:
 CLINICIANS = [
     {
         "id": "oncogeneticist",
-        "name": "Dre Sophie Martin",
+        "name": "Dre. Sophie Martin",
         "specialty": "Oncogénéticienne — Génétique médicale internationale",
         "icon": "🧬",
         "color": "#0891b2",
@@ -93,7 +93,7 @@ Tu rappelles que toute prescription nécessite une RCP multidisciplinaire."""
     },
     {
         "id": "pathologist",
-        "name": "Dre Amina Diallo",
+        "name": "Dre. Amina Diallo",
         "specialty": "Anatomo-pathologiste — Pathologie moléculaire internationale",
         "icon": "🔬",
         "color": "#16a34a",
@@ -169,7 +169,7 @@ Tu rappelles que tout diagnostic génétique nécessite une consultation spécia
     ,
     {
         "id": "generalist",
-        "name": "Dre Ndeye Fatou Thiam",
+        "name": "Dre. Ndeye Fatou Thiam",
         "specialty": "Médecin généraliste — Médecine de famille Afrique de l'Ouest",
         "icon": "👩‍⚕️",
         "color": "#16a34a",
@@ -256,7 +256,7 @@ Tu adaptes tes recommandations au niveau de ressources disponibles."""
     },
     {
         "id": "radiologist",
-        "name": "Dre Fatou Sarr",
+        "name": "Dre. Fatou Sarr",
         "specialty": "Radiologue — Imagerie médicale & Radiologie interventionnelle",
         "icon": "🩻",
         "color": "#0891b2",
@@ -293,7 +293,7 @@ IMPORTANT: Tu proposes toujours l'imagerie la plus adaptée au contexte local di
     ,
     {
         "id": "gynecologist",
-        "name": "Dre Aissatou Balde",
+        "name": "Dre. Aissatou Balde",
         "specialty": "Gynécologue-Obstétricienne — Oncogynécologie",
         "icon": "🌸",
         "color": "#db2777",
@@ -367,7 +367,7 @@ IMPORTANT: Tu prends toujours en compte l'âge, le poids et les protocoles adapt
     ,
     {
         "id": "pain_specialist",
-        "name": "Dre Marie-Claire Fontaine",
+        "name": "Dre. Marie-Claire Fontaine",
         "specialty": "Médecin de la douleur — Soins palliatifs & Oncologie",
         "icon": "💊",
         "color": "#0369a1",
