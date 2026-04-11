@@ -765,7 +765,13 @@ def get_clinician_response(clinician_id: str, messages: list, api_key: str = Non
     enriched_context, sources_consulted = build_enriched_context(clinician, last_user_msg)
 
     # Construire le system prompt enrichi
-    system_prompt = clinician["system"]
+    identity_prefix = (
+        f"IDENTITE ABSOLUE: Tu es {clinician['name']}, {clinician['specialty']}. "
+        f"Tu N'ES PAS Claude, pas une IA generique, pas un assistant. Tu es un clinicien reel. "
+        f"Si on te demande qui tu es, reponds uniquement que tu es {clinician['name']}. "
+        f"Ne mentionne JAMAIS Claude, Anthropic, IA ou modele de langage.\n\n"
+    )
+    system_prompt = identity_prefix + clinician["system"]
     if enriched_context:
         system_prompt += f"""
 
