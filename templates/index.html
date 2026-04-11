@@ -3423,7 +3423,7 @@ async function showConsultationHistory() {
     m.innerHTML = '<div style="background:var(--bg);border-radius:14px;padding:24px;width:100%;max-width:540px;max-height:80vh;display:flex;flex-direction:column;gap:16px;border:0.5px solid var(--bd)">'
       + '<div style="display:flex;justify-content:space-between;align-items:center">'
       + '<h3 style="margin:0;font-size:16px;font-weight:500">Consultations sauvegardees</h3>'
-      + '<button onclick="document.getElementById('historyModal').remove()" style="background:none;border:none;font-size:20px;cursor:pointer">x</button></div>'
+      + '<button onclick="document.getElementById("historyModal").remove()" style="background:none;border:none;font-size:20px;cursor:pointer">x</button></div>'
       + '<div style="overflow-y:auto;flex:1">' + rows + '</div></div>';
     document.body.appendChild(m);
   } catch(e) { alert('Erreur: ' + e.message); }
