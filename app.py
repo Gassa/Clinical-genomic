@@ -2072,3 +2072,69 @@ def export_patient_pdf(pid):
         logging.error(f"Export PDF patient: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
+
+@app.route('/clinicians/stream', methods=['POST'])
+@login_required
+def stream_clinician():
+    """Streaming SSE pour les réponses des cliniciens."""
+    import anthropic as _anthropic
+    from flask import Response, stream_with_context
+    import json as _json
+
+    data = request.json or {}
+    clinician_id = data.get('clinician_id', '')
+    messages = data.get('messages', [])
+    api_key = data.get('user_api_key') or os.environ.get('ANTHROPIC_API_KEY', '')
+
+    try:
+        from virtual_clinicians import get_all_clinicians
+        clinicians = get_all_clinicians()
+        clinician = next((c for c in clinicians if c['id'] == clinician_id), None)
+        if not clinician:
+            return jsonify({"error": "Clinicien non trouvé"}), 404
+
+        DOMAINS = {
+            "oncogeneticist": "variants genetiques, predispositions hereditaires, BRCA1/2, Lynch",
+            "oncologist": "oncologie, therapies ciblees, immunotherapie, biomarqueurs",
+            "pathologist": "anatomopathologie, histologie, IHC, MSI/MMR, TMB",
+            "geneticist": "genetique clinique, maladies rares, phenotypage HPO",
+            "generalist": "medecine generale, orientation diagnostique, prevention",
+            "internist": "medecine interne, maladies systemiques, auto-immunite",
+            "hematologist": "hematologie, leucemies, lymphomes, drepanocytose",
+            "radiologist": "imagerie medicale, echographie, scanner, IRM",
+            "gynecologist": "gynecologie, obstetrique, oncogynecologie",
+            "pediatric_oncologist": "oncologie pediatrique, tumeurs pediatriques",
+            "pain_specialist": "douleur chronique, soins palliatifs",
+            "rcp_coordinator": "coordination pluridisciplinaire, consensus RCP",
+        }
+        domain = DOMAINS.get(clinician_id, "ma specialite")
+        clin_name = clinician.get("name", "le clinicien")
+        clin_spec = clinician.get("specialty", "specialiste")
+        system = (
+            "IDENTITE ABSOLUE: Tu es " + clin_name + ", " + clin_spec + ". "
+            "Tu N'ES PAS Claude. Tu es un clinicien reel. "
+            "Ne mentionne JAMAIS Claude, Anthropic, IA ou modele de langage.\n\n"
+            "RESTRICTION DE DOMAINE: Tu es specialiste en " + domain + ". "
+            "Si hors domaine, oriente vers le bon specialiste.\n\n"
+        ) + clinician.get("system_prompt", "")
+
+        api_msgs = [{"role": m["role"], "content": m["content"]} for m in messages
+                    if m.get("role") in ("user", "assistant") and m.get("content")]
+
+        def generate():
+            client = _anthropic.Anthropic(api_key=api_key)
+            with client.messages.stream(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=1000,
+                system=system,
+                messages=api_msgs
+            ) as stream:
+                for text in stream.text_stream:
+                    yield f"data: {_json.dumps({'text': text})}\n\n"
+            yield "data: [DONE]\n\n"
+
+        return Response(stream_with_context(generate()), mimetype='text/event-stream',
+                       headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
