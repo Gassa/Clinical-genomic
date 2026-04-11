@@ -105,8 +105,20 @@ def init_db():
             clinician_specialty TEXT DEFAULT '',
             title TEXT DEFAULT '',
             messages TEXT NOT NULL,
+            patient_id INTEGER DEFAULT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )""")
+        cur.execute("""CREATE TABLE IF NOT EXISTS patients (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            nom TEXT NOT NULL,
+            prenom TEXT DEFAULT '',
+            date_naissance TEXT DEFAULT '',
+            numero_dossier TEXT DEFAULT '',
+            diagnostic TEXT DEFAULT '',
+            notes TEXT DEFAULT '',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )""")
     else:
         cur.execute("""CREATE TABLE IF NOT EXISTS users (
@@ -135,8 +147,20 @@ def init_db():
             clinician_specialty TEXT DEFAULT '',
             title TEXT DEFAULT '',
             messages TEXT NOT NULL,
+            patient_id INTEGER DEFAULT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )""")
+        cur.execute("""CREATE TABLE IF NOT EXISTS patients (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            nom TEXT NOT NULL,
+            prenom TEXT DEFAULT '',
+            date_naissance TEXT DEFAULT '',
+            numero_dossier TEXT DEFAULT '',
+            diagnostic TEXT DEFAULT '',
+            notes TEXT DEFAULT '',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )""")
     conn.commit()
     conn.close()
