@@ -372,10 +372,11 @@ async function analyzeNGSAI() {
   resDiv.innerHTML = '<div style="text-align:center;padding:20px;color:var(--mu)"><div style="display:inline-block;width:24px;height:24px;border:3px solid var(--bd);border-top-color:#0d9488;border-radius:50%;animation:spin 1s linear infinite"></div><div style="margin-top:8px;font-size:13px">Analyse IA en cours...</div></div>';
 
   try {
+    var userKey = localStorage.getItem('sgs_api_key') || '';
     var r = await fetch('/interpret_ngs', {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({text: text, context: context, user_api_key: localStorage.getItem('sgs_api_key') || ''})
+      headers: {'Content-Type': 'application/json', 'X-User-Api-Key': userKey},
+      body: JSON.stringify({text: text, context: context, user_api_key: userKey})
     });
     var d = await r.json();
     if (!d.success) throw new Error(d.error);

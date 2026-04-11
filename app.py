@@ -2145,8 +2145,11 @@ def stream_clinician():
 def interpret_ngs():
     """Interpréter un rapport NGS avec classification ACMG et recommandations."""
     try:
-        api_key = os.environ.get('ANTHROPIC_API_KEY', '')
         data = request.json or {}
+        user_api_key = (request.headers.get('X-User-Api-Key', '') or data.get('user_api_key', '')).strip()
+        api_key = user_api_key or os.environ.get('ANTHROPIC_API_KEY', '')
+        if not api_key:
+            return jsonify({"success": False, "error": "Clé API manquante. Configurez votre clé via le bouton Clé API."})
         ngs_text = data.get('text', '').strip()
         context = data.get('context', '')
 
