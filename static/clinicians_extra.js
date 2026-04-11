@@ -375,7 +375,7 @@ async function analyzeNGSAI() {
     var r = await fetch('/interpret_ngs', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({text: text, context: context})
+      body: JSON.stringify({text: text, context: context, user_api_key: localStorage.getItem('sgs_api_key') || ''})
     });
     var d = await r.json();
     if (!d.success) throw new Error(d.error);
