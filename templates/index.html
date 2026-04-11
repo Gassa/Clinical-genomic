@@ -697,7 +697,7 @@ function qs(q){document.getElementById('query').value=q;if(typeof runSearch==='f
               placeholder="Rechercher phénotype HPO…"
               data-ph-fr="Rechercher phénotype HPO…"
               data-ph-en="Search HPO phenotype…"
-              oninput="sHPO(this.value)" autocomplete="off"/>
+              oninput="if(typeof sHPO==='function')sHPO(this.value)" autocomplete="off"/>
             <div class="hd" id="hpoDd"></div>
           </div>
           <div class="hts" id="hpoSel"></div>
@@ -3412,7 +3412,7 @@ async function showConsultationHistory() {
     const rows = d.consultations.length ? d.consultations.map(function(c) {
       const col = CC[c.clinician_id] || '#888';
       const dt = new Date(c.updated_at).toLocaleDateString('fr-FR', {day:'2-digit',month:'short',year:'numeric'});
-      return '<div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:8px;border:0.5px solid var(--bd);margin-bottom:8px;background:var(--s2);cursor:pointer" onclick="loadConsultation(' + c.id + ');document.getElementById('historyModal').remove()">'
+      return '<div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:8px;border:0.5px solid var(--bd);margin-bottom:8px;background:var(--s2);cursor:pointer" onclick="loadConsultation(' + c.id + ');document.getElementById("historyModal").remove()">'
         + '<div style="width:8px;height:8px;border-radius:50%;background:' + col + ';flex-shrink:0"></div>'
         + '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (c.title || 'Sans titre') + '</div>'
         + '<div style="font-size:11px;color:var(--mu)">' + c.clinician_name + ' - ' + dt + '</div></div>'
