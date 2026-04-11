@@ -3369,6 +3369,205 @@ async function appendClinicianMsg(role, content) {
   document.getElementById('clinicianChat').scrollTop = 9999;
 }
 
+
+function showSaveToast(ok) {
+  let t = document.getElementById('saveToast');
+  if (!t) {
+    t = document.createElement('div'); t.id = 'saveToast';
+    t.style.cssText = 'position:fixed;bottom:24px;right:24px;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:500;z-index:9999;transition:opacity .3s;pointer-events:none';
+    document.body.appendChild(t);
+  }
+  t.style.background = ok ? '#E1F5EE' : '#FCEBEB';
+  t.style.color = ok ? '#085041' : '#7F1D1D';
+  t.style.border = '1px solid ' + (ok ? '#9FE1CB' : '#F09595');
+  t.textContent = ok ? 'Consultation sauvegardee' : 'Echec sauvegarde';
+  t.style.opacity = '1'; clearTimeout(t._t); t._t = setTimeout(function(){ t.style.opacity = '0'; }, 2500);
+}
+let currentConsultationId = null;
+let autoSaveTimer = null;
+async function saveConsultation() {
+  if (!activeClinician || !clinicianHistory.length) return;
+  try {
+    const payload = {id: currentConsultationId, clinician_id: activeClinician.id,
+      clinician_name: activeClinician.name, clinician_specialty: activeClinician.specialty || '',
+      messages: clinicianHistory};
+    const r = await fetch('/consultations/save', {method:'POST',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+    if (r.ok) { const d = await r.json(); if (d.id) currentConsultationId = d.id; showSaveToast(true); }
+    else showSaveToast(false);
+  } catch(e) { showSaveToast(false); }
+}
+function scheduleAutoSave() {
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(saveConsultation, 3000);
+}
+async function showConsultationHistory() {
+  try {
+    const r = await fetch('/consultations/list');
+    const d = await r.json();
+    if (!d.success) throw new Error(d.error);
+    const CC = {'oncogenetics':'#0d9488','oncologist':'#7c3aed','pathologist':'#b45309',
+      'geneticist':'#c2410c','generalist':'#16a34a','internist':'#0284c7',
+      'hematologist':'#dc2626','radiologist':'#4338ca','gynecologist':'#db2777',
+      'pediatric_oncologist':'#d97706','rcp_coordinator':'#0891b2'};
+    const rows = d.consultations.length ? d.consultations.map(function(c) {
+      const col = CC[c.clinician_id] || '#888';
+      const dt = new Date(c.updated_at).toLocaleDateString('fr-FR', {day:'2-digit',month:'short',year:'numeric'});
+      return '<div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:8px;border:0.5px solid var(--bd);margin-bottom:8px;background:var(--s2);cursor:pointer" onclick="loadConsultation(' + c.id + ');document.getElementById('historyModal').remove()">'
+        + '<div style="width:8px;height:8px;border-radius:50%;background:' + col + ';flex-shrink:0"></div>'
+        + '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (c.title || 'Sans titre') + '</div>'
+        + '<div style="font-size:11px;color:var(--mu)">' + c.clinician_name + ' - ' + dt + '</div></div>'
+        + '<button onclick="event.stopPropagation();deleteConsultation(' + c.id + ',this.parentElement)" style="padding:4px 8px;border-radius:6px;border:0.5px solid var(--bd);background:transparent;font-size:11px;cursor:pointer">X</button></div>';
+    }).join('') : '<div style="text-align:center;padding:40px;color:var(--mu)">Aucune consultation</div>';
+    const m = document.createElement('div'); m.id = 'historyModal';
+    m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+    m.innerHTML = '<div style="background:var(--bg);border-radius:14px;padding:24px;width:100%;max-width:540px;max-height:80vh;display:flex;flex-direction:column;gap:16px;border:0.5px solid var(--bd)">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center">'
+      + '<h3 style="margin:0;font-size:16px;font-weight:500">Consultations sauvegardees</h3>'
+      + '<button onclick="document.getElementById('historyModal').remove()" style="background:none;border:none;font-size:20px;cursor:pointer">x</button></div>'
+      + '<div style="overflow-y:auto;flex:1">' + rows + '</div></div>';
+    document.body.appendChild(m);
+  } catch(e) { alert('Erreur: ' + e.message); }
+}
+async function loadConsultation(id) {
+  try {
+    const r = await fetch('/consultations/' + id);
+    const d = await r.json();
+    if (!d.success) throw new Error(d.error);
+    const clin = (window._allClinicians || []).find(function(c){ return c.id === d.clinician_id; });
+    if (clin) selectClinician(clin);
+    else { activeClinician = {id:d.clinician_id, name:d.clinician_name, specialty:d.clinician_specialty, icon:'🩺'}; }
+    currentConsultationId = d.id; clinicianHistory = d.messages;
+    document.getElementById('clinicianMessages').innerHTML = '';
+    for (var i=0; i<d.messages.length; i++) await appendClinicianMsg(d.messages[i].role, d.messages[i].content);
+    document.getElementById('consultationPanel').scrollIntoView({behavior:'smooth'});
+  } catch(e) { alert('Erreur: ' + e.message); }
+}
+async function deleteConsultation(id, el) {
+  if (!confirm('Supprimer cette consultation ?')) return;
+  await fetch('/consultations/' + id, {method:'DELETE'});
+  if (el) el.remove();
+}
+async function generateSOAP() {
+  if (!activeClinician) { alert('Choisissez un clinicien.'); return; }
+  if (!clinicianHistory || clinicianHistory.length < 2) { alert('Pas assez d echanges (minimum 2 messages).'); return; }
+  const btn = document.getElementById('clinSoapBtn');
+  if (btn) { btn.textContent = '...'; btn.disabled = true; }
+  try {
+    const r = await fetch('/consultations/soap', {method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({clinician_id:activeClinician.id, clinician_name:activeClinician.name,
+        messages:clinicianHistory, user_api_key:localStorage.getItem('sgs_api_key')||''})});
+    const d = await r.json();
+    if (!d.success) throw new Error(d.error || 'Erreur serveur');
+    const m = document.createElement('div');
+    m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+    m.innerHTML = '<div style="background:var(--bg);border-radius:14px;width:100%;max-width:640px;max-height:85vh;display:flex;flex-direction:column;border:0.5px solid var(--bd);overflow:hidden">'
+      + '<div style="padding:16px 20px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center;background:var(--s2)">'
+      + '<div style="font-size:15px;font-weight:600">Resume SOAP - ' + activeClinician.name + '</div>'
+      + '<div style="display:flex;gap:8px">'
+      + '<button onclick="navigator.clipboard.writeText(this.closest('[style*=fixed]').querySelector('pre').textContent);this.textContent='Copie!';setTimeout(function(){this.textContent='Copier';}.bind(this),2000)" style="padding:6px 12px;border-radius:6px;border:1px solid var(--bd);background:var(--sf);font-size:12px;cursor:pointer">Copier</button>'
+      + '<button onclick="this.closest('[style*=fixed]').remove()" style="background:none;border:none;font-size:20px;cursor:pointer">x</button></div></div>'
+      + '<div style="overflow-y:auto;padding:20px;flex:1"><pre style="white-space:pre-wrap;font-family:inherit;font-size:13px;line-height:1.7;margin:0">' + d.soap + '</pre></div>'
+      + '<div style="padding:12px 20px;border-top:1px solid var(--bd);background:var(--s2);font-size:11px;color:var(--mu)">Resume IA - a valider par le clinicien responsable</div></div>';
+    document.body.appendChild(m);
+  } catch(e) { alert('Erreur SOAP: ' + e.message); }
+  finally { if (btn) { btn.innerHTML = 'SOAP'; btn.disabled = false; } }
+}
+async function exportClinicianPDF() {
+  if (!activeClinician) { alert('Choisissez un clinicien.'); return; }
+  if (!clinicianHistory || !clinicianHistory.length) { alert('Aucun echange a exporter.'); return; }
+  const btn = document.getElementById('clinPdfBtn');
+  if (btn) { btn.textContent = '...'; btn.disabled = true; }
+  try {
+    const r = await fetch('/export_clinician_pdf', {method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({clinician_id:activeClinician.id, clinician_name:activeClinician.name,
+        clinician_specialty:activeClinician.specialty||'', messages:clinicianHistory,
+        patient_context:(document.getElementById('clinicianInput')||{value:''}).value.slice(0,300)||''})});
+    if (!r.ok) { const e = await r.json(); throw new Error(e.error||'Erreur'); }
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url;
+    a.download = 'consultation_' + activeClinician.name.replace(/\s/g,'_') + '_' + new Date().toISOString().slice(0,10) + '.pdf';
+    a.click(); URL.revokeObjectURL(url);
+  } catch(e) { alert('Erreur PDF: ' + e.message); }
+  finally { if (btn) { btn.innerHTML = 'PDF'; btn.disabled = false; } }
+}
+async function attachVcfToConsultation(input) {
+  const file = input.files[0]; if (!file) return;
+  try {
+    const text = await file.text();
+    const lines = text.split('
+').filter(function(l){ return l.trim() && !l.startsWith('##'); });
+    const preview = lines.slice(0,30).join('
+');
+    const ta = document.getElementById('clinicianInput');
+    if (ta) ta.value = (ta.value.trim() || 'Analyse ce fichier :') + '
+
+--- ' + file.name + ' ---
+' + preview;
+  } catch(e) { alert('Erreur lecture: ' + e.message); }
+  finally { input.value = ''; }
+}
+function rateMessage(idx, value, btn) {
+  const p = btn.closest('.msg-rating');
+  if (p) p.querySelectorAll('button').forEach(function(b){ b.style.opacity = '.3'; });
+  btn.style.opacity = '1'; btn.style.background = value === 1 ? '#E1F5EE' : '#FCEBEB';
+  if (currentConsultationId) {
+    fetch('/consultations/rate', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({consultation_id:currentConsultationId, msg_index:idx, rating:value})
+    }).catch(function(){});
+  }
+}
+function filterClinicians() {
+  const q = ((document.getElementById('clinicianSearch')||{value:''}).value || '').toLowerCase();
+  const all = window._allClinicians || [];
+  const grid = document.getElementById('clinicianCards'); if (!grid) return;
+  const f = all.filter(function(c){ return !q || c.name.toLowerCase().includes(q) || c.specialty.toLowerCase().includes(q) || (c.description||'').toLowerCase().includes(q); });
+  if (!f.length) { grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--mu)">Aucun resultat</div>'; return; }
+  renderClinicianCards(f);
+}
+function clearClinicianFilter() {
+  const s = document.getElementById('clinicianSearch'); if (s) s.value = '';
+  filterClinicians();
+}
+async function loadDashboard() {
+  const c = document.getElementById('dashboardContent'); if (!c) return;
+  c.innerHTML = '<div style="text-align:center;padding:30px;color:var(--mu)">Chargement...</div>';
+  try {
+    const r = await fetch('/stats/dashboard');
+    const d = await r.json(); if (!d.success) throw new Error(d.error);
+    const CC = {'oncogenetics':'#0d9488','oncologist':'#7c3aed','hematologist':'#dc2626',
+      'generalist':'#16a34a','internist':'#0284c7','gynecologist':'#db2777','rcp_coordinator':'#0891b2'};
+    const sat = d.satisfaction !== null ? d.satisfaction + '%' : 'N/A';
+    const satC = d.satisfaction >= 80 ? '#16a34a' : d.satisfaction >= 50 ? '#d97706' : '#dc2626';
+    const metrics = [
+      {label:'Mes consultations', value:d.my_consultations, color:'#0d9488'},
+      {label:'Cette semaine', value:d.week_count, color:'#7c3aed'},
+      {label:'Messages', value:d.total_messages, color:'#0284c7'},
+      {label:'Satisfaction', value:sat, color:d.satisfaction !== null ? satC : '#888'}
+    ];
+    const mH = metrics.map(function(m){ return '<div style="background:var(--s2);border-radius:10px;padding:14px;border:0.5px solid var(--bd)"><div style="font-size:11px;color:var(--mu);font-weight:500;margin-bottom:4px;text-transform:uppercase">' + m.label + '</div><div style="font-size:28px;font-weight:700;color:' + m.color + '">' + m.value + '</div></div>'; }).join('');
+    const maxC = Math.max.apply(null, [1].concat(d.by_clinician.map(function(x){return x.count;})));
+    const bars = d.by_clinician.slice(0,8).map(function(x){
+      const pct = Math.round(x.count/maxC*100); const col = CC[x.id]||'#888';
+      return '<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span>' + x.name + '</span><span style="color:var(--mu)">' + x.count + '</span></div><div style="background:var(--bd);border-radius:4px;height:7px;overflow:hidden"><div style="width:' + pct + '%;background:' + col + ';height:100%;border-radius:4px"></div></div></div>';
+    }).join('');
+    const days = d.by_day;
+    let spark = '<div style="color:var(--mu);text-align:center;padding:20px">Aucune activite recente</div>';
+    if (days.length) {
+      const maxD = Math.max.apply(null, [1].concat(days.map(function(x){return x.count;}))), W=480, H=60, p=4;
+      const pts = days.map(function(x,i){ return (p+(i/Math.max(1,days.length-1))*(W-2*p))+','+(H-p-(x.count/maxD)*(H-2*p)); }).join(' ');
+      spark = '<svg width="100%" viewBox="0 0 ' + W + ' ' + H + '"><polyline points="' + pts + '" fill="none" stroke="#0891b2" stroke-width="2" stroke-linejoin="round"/></svg>'
+        + '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--mu);margin-top:4px"><span>' + days[0].day + '</span><span>' + days[days.length-1].day + '</span></div>';
+    }
+    c.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px">' + mH + '</div>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">'
+      + '<div><div style="font-size:13px;font-weight:600;margin-bottom:12px">Cliniciens les plus consultes</div>' + (bars||'<div style="color:var(--mu)">Aucune donnee</div>') + '</div>'
+      + '<div><div style="font-size:13px;font-weight:600;margin-bottom:12px">Activite 30 jours</div>' + spark + '</div></div>';
+  } catch(e) { c.innerHTML = '<div style="color:var(--mu);text-align:center;padding:30px">Erreur: ' + e.message + '</div>'; }
+}
 async function sendClinicianMessage() {
   if (!activeClinician) return;
   const input = document.getElementById('clinicianInput');
