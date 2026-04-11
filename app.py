@@ -64,53 +64,80 @@ def get_conn():
     if USE_POSTGRES:
         import psycopg2
         try:
-            conn = psycopg2.connect(
-                DATABASE_URL,
-                sslmode="require",
-                connect_timeout=10
-            )
+            conn = psycopg2.connect(DATABASE_URL, sslmode="require", connect_timeout=10)
             return conn, "pg"
         except Exception as e:
             logging.error(f"[DB] PostgreSQL indisponible: {e} — fallback SQLite")
-            conn = sqlite3.connect(DB_PATH)
-            conn.row_factory = sqlite3.Row
-            return conn, "sqlite"
-    else:
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
-        return conn, "sqlite"
+    conn = sqlite3.connect(DB_PATH, timeout=30, check_same_thread=False)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA busy_timeout=30000")
+    conn.row_factory = sqlite3.Row
+    return conn, "sqlite"
+
 
 def init_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.execute("""CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        institution TEXT DEFAULT '',
-        email TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        last_login TIMESTAMP
-    )""")
-    conn.execute("""CREATE TABLE IF NOT EXISTS login_logs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        name TEXT,
-        email TEXT,
-        ip TEXT,
-        user_agent TEXT,
-        login_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )""")
-    conn.execute("""CREATE TABLE IF NOT EXISTS consultations (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        clinician_id TEXT NOT NULL,
-        clinician_name TEXT NOT NULL,
-        clinician_specialty TEXT DEFAULT '',
-        title TEXT DEFAULT '',
-        messages TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )""")
+    conn, db_type = get_conn()
+    cur = conn.cursor()
+    if db_type == "pg":
+        cur.execute("""CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            name TEXT NOT NULL,
+            institution TEXT DEFAULT '',
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_login TIMESTAMP
+        )""")
+        cur.execute("""CREATE TABLE IF NOT EXISTS login_logs (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER,
+            name TEXT,
+            email TEXT,
+            ip TEXT,
+            user_agent TEXT,
+            login_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )""")
+        cur.execute("""CREATE TABLE IF NOT EXISTS consultations (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            clinician_id TEXT NOT NULL,
+            clinician_name TEXT NOT NULL,
+            clinician_specialty TEXT DEFAULT '',
+            title TEXT DEFAULT '',
+            messages TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )""")
+    else:
+        cur.execute("""CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            institution TEXT DEFAULT '',
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_login TIMESTAMP
+        )""")
+        cur.execute("""CREATE TABLE IF NOT EXISTS login_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            name TEXT,
+            email TEXT,
+            ip TEXT,
+            user_agent TEXT,
+            login_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )""")
+        cur.execute("""CREATE TABLE IF NOT EXISTS consultations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            clinician_id TEXT NOT NULL,
+            clinician_name TEXT NOT NULL,
+            clinician_specialty TEXT DEFAULT '',
+            title TEXT DEFAULT '',
+            messages TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )""")
     conn.commit()
     conn.close()
 
@@ -120,6 +147,29 @@ def init_db():
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+
+def db_execute(conn, db_type, sql, params=()):
+    """Execute SQL compatible SQLite (?) et PostgreSQL (%s)."""
+    cur = conn.cursor()
+    if db_type == "pg":
+        sql = sql.replace("?", "%s")
+    cur.execute(sql, params)
+    return cur
+
+def db_fetchone(conn, db_type, sql, params=()):
+    cur = db_execute(conn, db_type, sql, params)
+    row = cur.fetchone()
+    if row and db_type == "pg":
+        # psycopg2 retourne des tuples, pas sqlite3.Row
+        return row
+    return row
+
+def db_lastrowid(cur, conn, db_type):
+    if db_type == "pg":
+        cur.execute("SELECT LASTVAL()")
+        return cur.fetchone()[0]
+    return cur.lastrowid
+
 
 def send_admin_email(subject, body):
     """Envoie un email d'alerte à l'admin."""
@@ -1100,7 +1150,7 @@ def admin_logs():
         </form>""", 401
     
     import sqlite3
-    conn = sqlite3.connect("users.db")
+    conn = sqlite3.connect(DB_PATH, timeout=30)
     
     logs = conn.execute("""
         SELECT login_at, name, email, ip, user_agent 
@@ -1457,7 +1507,7 @@ def save_consultation():
         if not clin_id or not msgs: return jsonify({"error":"requis"}),400
         title = data.get('title','') or next((m['content'] for m in msgs if m.get('role')=='user'),'')[:60]
         mj = J.dumps(msgs, ensure_ascii=False)
-        conn = sqlite3.connect(DB_PATH)
+        conn, _db = get_conn()
         if cid:
             conn.execute("UPDATE consultations SET messages=?,title=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND user_id=?",(mj,title,cid,uid))
             conn.commit(); conn.close(); return jsonify({"success":True,"id":cid})
@@ -1471,8 +1521,11 @@ def save_consultation():
 def list_consultations():
     try:
         uid=session.get('user_id'); lim=min(int(request.args.get('limit',20)),50)
-        conn=sqlite3.connect(DB_PATH)
-        rows=conn.execute("SELECT id,clinician_id,clinician_name,clinician_specialty,title,created_at,updated_at FROM consultations WHERE user_id=? ORDER BY updated_at DESC LIMIT ?",(uid,lim)).fetchall()
+        conn,_db=get_conn()
+        cur=conn.cursor()
+        ph="%s" if _db=="pg" else "?"
+        cur.execute(f"SELECT id,clinician_id,clinician_name,clinician_specialty,title,created_at,updated_at FROM consultations WHERE user_id={ph} ORDER BY updated_at DESC LIMIT {ph}",(uid,lim))
+        rows=cur.fetchall()
         conn.close()
         return jsonify({"success":True,"consultations":[{"id":r[0],"clinician_id":r[1],"clinician_name":r[2],"clinician_specialty":r[3],"title":r[4],"created_at":r[5],"updated_at":r[6]} for r in rows]})
     except Exception as e: return jsonify({"error":str(e)}),500
@@ -1482,8 +1535,11 @@ def list_consultations():
 def get_consultation(cid):
     try:
         import json as J; uid=session.get('user_id')
-        conn=sqlite3.connect(DB_PATH)
-        row=conn.execute("SELECT id,clinician_id,clinician_name,clinician_specialty,title,messages,created_at,updated_at FROM consultations WHERE id=? AND user_id=?",(cid,uid)).fetchone()
+        conn,_db=get_conn()
+        cur=conn.cursor()
+        ph="%s" if _db=="pg" else "?"
+        cur.execute(f"SELECT id,clinician_id,clinician_name,clinician_specialty,title,messages,created_at,updated_at FROM consultations WHERE id={ph} AND user_id={ph}",(cid,uid))
+        row=cur.fetchone()
         conn.close()
         if not row: return jsonify({"error":"introuvable"}),404
         return jsonify({"success":True,"id":row[0],"clinician_id":row[1],"clinician_name":row[2],"clinician_specialty":row[3],"title":row[4],"messages":J.loads(row[5]),"created_at":row[6],"updated_at":row[7]})
@@ -1493,8 +1549,10 @@ def get_consultation(cid):
 @login_required
 def delete_consultation(cid):
     try:
-        uid=session.get('user_id'); conn=sqlite3.connect(DB_PATH)
-        conn.execute("DELETE FROM consultations WHERE id=? AND user_id=?",(cid,uid)); conn.commit(); conn.close()
+        uid=session.get('user_id'); conn,_db=get_conn()
+        cur=conn.cursor()
+        ph="%s" if _db=="pg" else "?"
+        cur.execute(f"DELETE FROM consultations WHERE id={ph} AND user_id={ph}",(cid,uid)); conn.commit(); conn.close()
         return jsonify({"success":True})
     except Exception as e: return jsonify({"error":str(e)}),500
 
@@ -1505,8 +1563,11 @@ def rate_consultation_message():
         import json as J; data=request.get_json() or {}
         cid=data.get('consultation_id'); idx=data.get('msg_index'); rating=data.get('rating')
         if not cid or idx is None or rating not in (1,-1): return jsonify({"error":"invalide"}),400
-        uid=session.get('user_id'); conn=sqlite3.connect(DB_PATH)
-        row=conn.execute("SELECT messages FROM consultations WHERE id=? AND user_id=?",(cid,uid)).fetchone()
+        uid=session.get('user_id'); conn,_db=get_conn()
+        cur=conn.cursor()
+        ph="%s" if _db=="pg" else "?"
+        cur.execute(f"SELECT messages FROM consultations WHERE id={ph} AND user_id={ph}",(cid,uid))
+        row=cur.fetchone()
         if not row: conn.close(); return jsonify({"error":"introuvable"}),404
         msgs=J.loads(row[0])
         if 0<=idx<len(msgs): msgs[idx]['rating']=rating
@@ -1557,8 +1618,10 @@ def generate_soap_summary():
 @login_required
 def stats_dashboard():
     try:
-        import json as J; conn=sqlite3.connect(DB_PATH)
-        total=conn.execute("SELECT COUNT(*) FROM consultations").fetchone()[0]
+        import json as J; conn,_db=get_conn()
+        cur=conn.cursor()
+        cur.execute("SELECT COUNT(*) FROM consultations")
+        total=cur.fetchone()[0]
         by_clin=conn.execute("SELECT clinician_name,clinician_id,COUNT(*) FROM consultations GROUP BY clinician_id ORDER BY COUNT(*) DESC").fetchall()
         by_day=conn.execute("SELECT DATE(created_at),COUNT(*) FROM consultations WHERE created_at>=DATE('now','-30 days') GROUP BY DATE(created_at) ORDER BY DATE(created_at)").fetchall()
         all_m=conn.execute("SELECT messages FROM consultations").fetchall()
@@ -1593,7 +1656,7 @@ if __name__ == "__main__":
 def users_count():
     """Nombre d'utilisateurs inscrits (public, sans données perso)."""
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn, _db = get_conn()
         count = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
         conn.close()
         return jsonify({"count": count})
