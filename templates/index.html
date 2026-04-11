@@ -1275,6 +1275,7 @@ function qs(q){document.getElementById('query').value=q;if(typeof runSearch==='f
             <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;flex-wrap:wrap;gap:7px">
               <div style="display:flex;gap:6px;flex-wrap:wrap">
                 <div id="clinicianExampleBtns" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+                <button class="btn bgh2 bsm" onclick="showPatientSelector()" style="background:var(--s2);border-color:#0d9488;color:#0d9488">👤 Patient</button>
                 <button class="btn bgh2 bsm" onclick="resetClinicianChat()">🔄 Nouvelle consultation</button>
                 <button class="btn bgh2 bsm" id="clinPdfBtn" onclick="exportClinicianPDF()" style="background:var(--s2);border-color:#0891b2;color:#0891b2">📄 PDF</button>
                 <button class="btn bgh2 bsm" id="clinSoapBtn" onclick="generateSOAP()" style="background:var(--s2);border-color:#c2410c;color:#c2410c">📋 SOAP</button>
