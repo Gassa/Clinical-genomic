@@ -997,6 +997,77 @@ MSI: MSS" style="width:100%;padding:10px;border:1px solid var(--bd);border-radiu
     </div>
   </div>
 
+  
+    <!-- CNV ANALYZER -->
+    <div class="card" style="margin-top:14px">
+      <div class="ch"><span class="ct2">🔢 Analyse CNV — Amplifications &amp; Délétions</span></div>
+      <div style="padding:14px">
+        <div style="font-size:13px;color:var(--mu);background:var(--s2);padding:10px 13px;border-radius:7px;margin-bottom:12px">
+          Collez vos données CNV (texte, TSV, VCF) — l'IA détecte amplifications, délétions et leurs cibles thérapeutiques.
+        </div>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:10px;margin-bottom:10px;align-items:end">
+          <input id="cnvContext" placeholder="Contexte clinique (optionnel)..." style="padding:7px 10px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px">
+          <div style="display:flex;gap:6px">
+            <label style="padding:8px 12px;border-radius:7px;border:1px solid var(--bd);background:var(--sf);font-size:12px;cursor:pointer">📁 Fichier<input type="file" accept=".txt,.tsv,.vcf,.csv" onchange="handleCNVUpload(this)" style="display:none"></label>
+            <button onclick="analyzeCNVAI()" style="padding:8px 16px;border-radius:7px;border:none;background:#7c3aed;color:white;font-size:13px;font-weight:500;cursor:pointer">🔢 Analyser</button>
+          </div>
+        </div>
+        <textarea id="cnvAIInput" rows="6" placeholder="Ex:
+ERBB2  17q12  CN=12  log2=2.58  amplification
+PTEN   10q23  CN=0   log2=-3.21  deletion_homozygote
+CDKN2A 9p21   CN=0   log2=-2.87  deletion_homozygote
+MDM2   12q15  CN=8   log2=1.89   amplification" style="width:100%;padding:10px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px;box-sizing:border-box;resize:vertical;font-family:monospace"></textarea>
+        <div id="cnvAIResult" style="margin-top:12px"></div>
+      </div>
+    </div>
+
+    <!-- FUSIONS GÉNIQUES -->
+    <div class="card" style="margin-top:14px">
+      <div class="ch"><span class="ct2">🔀 Fusions Géniques — ALK · ROS1 · NTRK · RET</span></div>
+      <div style="padding:14px">
+        <div style="font-size:13px;color:var(--mu);background:var(--s2);padding:10px 13px;border-radius:7px;margin-bottom:12px">
+          Collez votre rapport de fusions (RNA-seq, panel ADN) — l'IA identifie les fusions oncogéniques et les thérapies ciblées.
+        </div>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:10px;margin-bottom:10px;align-items:end">
+          <input id="fusionContext" placeholder="Contexte clinique (optionnel)..." style="padding:7px 10px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px">
+          <div style="display:flex;gap:6px">
+            <label style="padding:8px 12px;border-radius:7px;border:1px solid var(--bd);background:var(--sf);font-size:12px;cursor:pointer">📁 Fichier<input type="file" accept=".txt,.tsv,.vcf,.csv" onchange="handleFusionUpload(this)" style="display:none"></label>
+            <button onclick="analyzeFusionsAI()" style="padding:8px 16px;border-radius:7px;border:none;background:#2563eb;color:white;font-size:13px;font-weight:500;cursor:pointer">🔀 Analyser</button>
+          </div>
+        </div>
+        <textarea id="fusionAIInput" rows="6" placeholder="Ex:
+EML4-ALK  fusion  VAF:18%  reads:45  Tier:I
+ROS1-CD74  fusion  VAF:12%  reads:32  Tier:I
+NTRK1-LMNA  fusion  VAF:8%  reads:21  Tier:II" style="width:100%;padding:10px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px;box-sizing:border-box;resize:vertical;font-family:monospace"></textarea>
+        <div id="fusionAIResult" style="margin-top:12px"></div>
+      </div>
+    </div>
+
+    <!-- SIGNATURES MUTATIONNELLES -->
+    <div class="card" style="margin-top:14px">
+      <div class="ch"><span class="ct2">✍️ Signatures Mutationnelles COSMIC</span></div>
+      <div style="padding:14px">
+        <div style="font-size:13px;color:var(--mu);background:var(--s2);padding:10px 13px;border-radius:7px;margin-bottom:12px">
+          Collez vos données de signatures (SBS, DBS, ID) — l'IA prédit la sensibilité à l'immunothérapie et aux inhibiteurs PARP.
+        </div>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:10px;margin-bottom:10px;align-items:end">
+          <input id="sigContext" placeholder="Contexte clinique (optionnel)..." style="padding:7px 10px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px">
+          <div style="display:flex;gap:6px">
+            <label style="padding:8px 12px;border-radius:7px;border:1px solid var(--bd);background:var(--sf);font-size:12px;cursor:pointer">📁 Fichier<input type="file" accept=".txt,.tsv,.vcf,.csv" onchange="handleSigUpload(this)" style="display:none"></label>
+            <button onclick="analyzeSignaturesAI()" style="padding:8px 16px;border-radius:7px;border:none;background:#059669;color:white;font-size:13px;font-weight:500;cursor:pointer">✍️ Analyser</button>
+          </div>
+        </div>
+        <textarea id="sigAIInput" rows="6" placeholder="Ex:
+SBS3   42.5%  HRR deficiency BRCA1/BRCA2
+SBS2   28.3%  APOBEC cytidine deaminase
+SBS13  18.1%  APOBEC cytidine deaminase
+SBS1    8.7%  Spontaneous deamination
+TMB: 12.4 mut/Mb  HRD-score: 42  MSI: MSS" style="width:100%;padding:10px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px;box-sizing:border-box;resize:vertical;font-family:monospace"></textarea>
+        <div id="sigAIResult" style="margin-top:12px"></div>
+      </div>
+    </div>
+
+
   <!-- ACMG -->
   <div id="sec-acmg" style="display:none">
     <div class="card"><div class="ch"><span class="ct2">⚖️ Classificateur ACMG/AMP 2015 — Richards S et al. Genetics in Medicine 2015;17:405-424</span></div>

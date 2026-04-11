@@ -478,3 +478,159 @@ async function exportNGSPDF() {
   } catch(e) { alert('Erreur: ' + e.message); }
   finally { if (btn) { btn.textContent = 'PDF'; btn.disabled = false; } }
 }
+
+
+// ══ CNV ANALYZER ══
+var _lastCNVResult = null;
+async function analyzeCNVAI() {
+  var text=(document.getElementById('cnvAIInput')||{}).value||'';
+  var context=(document.getElementById('cnvContext')||{}).value||'';
+  var resDiv=document.getElementById('cnvAIResult');
+  if(!resDiv)return;
+  if(!text.trim()){resDiv.innerHTML='<div style="color:#dc2626;padding:10px;background:#fef2f2;border-radius:8px">Collez des donnees CNV.</div>';return;}
+  resDiv.innerHTML='<div style="text-align:center;padding:20px"><div style="display:inline-block;width:24px;height:24px;border:3px solid var(--bd);border-top-color:#7c3aed;border-radius:50%;animation:spin 1s linear infinite"></div><div style="margin-top:8px;font-size:13px;color:var(--mu)">Analyse CNV...</div></div>';
+  try {
+    var userKey=localStorage.getItem('sgs_api_key')||'';
+    var r=await fetch('/analyze_cnv',{method:'POST',headers:{'Content-Type':'application/json','X-User-Api-Key':userKey},body:JSON.stringify({text:text,context:context,user_api_key:userKey})});
+    var d=await r.json();
+    if(!d.success)throw new Error(d.error);
+    _lastCNVResult=d.result;
+    renderCNVResult(d.result);
+  } catch(e){resDiv.innerHTML='<div style="color:#dc2626;padding:12px;background:#fef2f2;border-radius:8px">Erreur: '+e.message+'</div>';}
+}
+function renderCNVResult(res){
+  var resDiv=document.getElementById('cnvAIResult');
+  if(!resDiv||!res)return;
+  var html='<div style="display:flex;flex-direction:column;gap:12px">';
+  if(res.urgent)html+='<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:14px;color:#dc2626;font-size:13px;font-weight:500">⚠️ '+res.urgent_reason+'</div>';
+  var cnvs=res.cnvs||[];
+  var amps=cnvs.filter(function(c){return c.type==='amplification';}).length;
+  var dels=cnvs.filter(function(c){return c.type&&c.type.includes('delet');}).length;
+  html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">';
+  html+='<div style="background:var(--s2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:700;color:#7c3aed">'+cnvs.length+'</div><div style="font-size:11px;color:var(--mu)">CNV detectes</div></div>';
+  html+='<div style="background:var(--s2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:700;color:#dc2626">'+amps+'</div><div style="font-size:11px;color:var(--mu)">Amplifications</div></div>';
+  html+='<div style="background:var(--s2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:700;color:#ea580c">'+dels+'</div><div style="font-size:11px;color:var(--mu)">Deletions</div></div>';
+  html+='<div style="background:var(--s2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:13px;font-weight:700;color:#0d9488">'+(res.genome_instability||'-')+'</div><div style="font-size:11px;color:var(--mu)">Instabilite</div></div>';
+  html+='</div>';
+  if(res.summary)html+='<div style="background:var(--s2);border-radius:8px;padding:12px"><b>Resume: </b>'+res.summary+'</div>';
+  cnvs.forEach(function(c){
+    var color=c.type==='amplification'?'#dc2626':c.type&&c.type.includes('delet')?'#ea580c':'#0d9488';
+    html+='<div style="border:1px solid var(--bd);border-left:4px solid '+color+';border-radius:8px;padding:12px">';
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
+    html+='<b style="font-size:15px">'+c.gene+'</b><span style="font-size:11px;color:var(--mu)">'+c.chromosome+'</span>';
+    html+='<div style="display:flex;gap:6px"><span style="font-size:12px;background:var(--s2);padding:2px 8px;border-radius:12px">CN: <b>'+(c.copy_number||'-')+'</b></span>';
+    html+='<span style="font-size:11px;background:'+color+'22;color:'+color+';padding:3px 8px;border-radius:10px;font-weight:600">'+c.type+'</span></div></div>';
+    if(c.log2_ratio!=null)html+='<div style="font-size:12px;color:var(--mu);margin-bottom:4px">Log2: <b>'+c.log2_ratio+'</b>'+(c.size_mb?' · '+c.size_mb+' Mb':'')+'</div>';
+    if(c.clinical_significance)html+='<div style="font-size:12px;margin-bottom:6px">'+c.clinical_significance+'</div>';
+    if(c.therapeutic_targets&&c.therapeutic_targets.length){html+='<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">';c.therapeutic_targets.forEach(function(t){html+='<span style="font-size:11px;background:#0d948822;color:#0d9488;padding:2px 8px;border-radius:10px">💊 '+t+'</span>';});html+='</div>';}
+    if(c.action)html+='<div style="font-size:12px;background:#0d948811;border-radius:6px;padding:8px;color:#0d9488">→ '+c.action+'</div>';
+    html+='</div>';
+  });
+  if(res.recommendations&&res.recommendations.length){html+='<div style="background:var(--s2);border-radius:8px;padding:12px"><b style="font-size:12px">Recommandations</b><br>';res.recommendations.forEach(function(r,i){html+='<div style="font-size:13px;padding:4px 0;border-bottom:.5px solid var(--bd)">'+(i+1)+'. '+r+'</div>';});html+='</div>';}
+  html+='</div>';resDiv.innerHTML=html;
+}
+function handleCNVUpload(input){var f=input.files[0];if(!f)return;var rd=new FileReader();rd.onload=function(e){var t=document.getElementById('cnvAIInput');if(t)t.value=e.target.result;};rd.readAsText(f);}
+
+// ══ FUSIONS GÉNIQUES ══
+var _lastFusionResult = null;
+async function analyzeFusionsAI() {
+  var text=(document.getElementById('fusionAIInput')||{}).value||'';
+  var context=(document.getElementById('fusionContext')||{}).value||'';
+  var resDiv=document.getElementById('fusionAIResult');
+  if(!resDiv)return;
+  if(!text.trim()){resDiv.innerHTML='<div style="color:#dc2626;padding:10px;background:#fef2f2;border-radius:8px">Collez des donnees de fusions.</div>';return;}
+  resDiv.innerHTML='<div style="text-align:center;padding:20px"><div style="display:inline-block;width:24px;height:24px;border:3px solid var(--bd);border-top-color:#2563eb;border-radius:50%;animation:spin 1s linear infinite"></div><div style="margin-top:8px;font-size:13px;color:var(--mu)">Analyse fusions...</div></div>';
+  try {
+    var userKey=localStorage.getItem('sgs_api_key')||'';
+    var r=await fetch('/analyze_fusions',{method:'POST',headers:{'Content-Type':'application/json','X-User-Api-Key':userKey},body:JSON.stringify({text:text,context:context,user_api_key:userKey})});
+    var d=await r.json();
+    if(!d.success)throw new Error(d.error);
+    _lastFusionResult=d.result;renderFusionResult(d.result);
+  } catch(e){resDiv.innerHTML='<div style="color:#dc2626;padding:12px;background:#fef2f2;border-radius:8px">Erreur: '+e.message+'</div>';}
+}
+function renderFusionResult(res){
+  var resDiv=document.getElementById('fusionAIResult');
+  if(!resDiv||!res)return;
+  var html='<div style="display:flex;flex-direction:column;gap:12px">';
+  if(res.urgent)html+='<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:14px;color:#dc2626;font-size:13px;font-weight:500">⚠️ '+res.urgent_reason+'</div>';
+  html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">';
+  html+='<div style="background:var(--s2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:700;color:#2563eb">'+(res.total_fusions||0)+'</div><div style="font-size:11px;color:var(--mu)">Fusions</div></div>';
+  html+='<div style="background:var(--s2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:700;color:#dc2626">'+(res.oncogenic_fusions||0)+'</div><div style="font-size:11px;color:var(--mu)">Oncogeniques</div></div>';
+  html+='<div style="background:var(--s2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:700;color:#0d9488">'+(res.actionable_fusions||0)+'</div><div style="font-size:11px;color:var(--mu)">Actionnables</div></div>';
+  html+='</div>';
+  if(res.summary)html+='<div style="background:var(--s2);border-radius:8px;padding:12px"><b>Resume: </b>'+res.summary+'</div>';
+  var fusions=res.fusions||[];
+  fusions.forEach(function(f){
+    var tierColor=f.tier==='Tier I'?'#dc2626':f.tier==='Tier II'?'#ea580c':f.tier==='Tier III'?'#f59e0b':'#6b7280';
+    html+='<div style="border:1px solid var(--bd);border-left:4px solid '+tierColor+';border-radius:8px;padding:12px">';
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
+    html+='<b style="font-size:16px;color:'+tierColor+'">'+(f.name||(f.gene5+'-'+f.gene3))+'</b>';
+    html+='<div style="display:flex;gap:6px">';
+    if(f.tier)html+='<span style="font-size:11px;background:'+tierColor+'22;color:'+tierColor+';padding:3px 8px;border-radius:10px;font-weight:600">'+f.tier+'</span>';
+    if(f.oncogenic)html+='<span style="font-size:11px;background:#dc262622;color:#dc2626;padding:3px 8px;border-radius:10px">Oncogenique</span>';
+    html+='</div></div>';
+    if(f.breakpoint5||f.breakpoint3)html+='<div style="font-size:12px;color:var(--mu);font-family:monospace;margin-bottom:6px">'+(f.gene5||'')+' ['+f.breakpoint5+'] :: '+(f.gene3||'')+' ['+f.breakpoint3+']</div>';
+    if(f.allele_frequency)html+='<div style="font-size:12px;color:var(--mu);margin-bottom:4px">AF: <b>'+f.allele_frequency+'</b>'+(f.read_support?' · Reads: <b>'+f.read_support+'</b>':'')+'</div>';
+    if(f.therapeutic_targets&&f.therapeutic_targets.length){html+='<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">';f.therapeutic_targets.forEach(function(t){html+='<span style="font-size:11px;background:#2563eb22;color:#2563eb;padding:2px 8px;border-radius:10px">💊 '+t+'</span>';});html+='</div>';}
+    if(f.resistance_mechanisms&&f.resistance_mechanisms.length)html+='<div style="font-size:11px;color:#f59e0b;background:#fef3c7;border-radius:6px;padding:6px;margin-bottom:6px">⚠️ Resistances: '+f.resistance_mechanisms.join(', ')+'</div>';
+    if(f.action)html+='<div style="font-size:12px;background:#2563eb11;border-radius:6px;padding:8px;color:#2563eb">→ '+f.action+'</div>';
+    html+='</div>';
+  });
+  if(res.recommendations&&res.recommendations.length){html+='<div style="background:var(--s2);border-radius:8px;padding:12px"><b style="font-size:12px">Recommandations</b><br>';res.recommendations.forEach(function(r,i){html+='<div style="font-size:13px;padding:4px 0;border-bottom:.5px solid var(--bd)">'+(i+1)+'. '+r+'</div>';});html+='</div>';}
+  html+='</div>';resDiv.innerHTML=html;
+}
+function handleFusionUpload(input){var f=input.files[0];if(!f)return;var rd=new FileReader();rd.onload=function(e){var t=document.getElementById('fusionAIInput');if(t)t.value=e.target.result;};rd.readAsText(f);}
+
+// ══ SIGNATURES MUTATIONNELLES ══
+var _lastSigResult = null;
+async function analyzeSignaturesAI() {
+  var text=(document.getElementById('sigAIInput')||{}).value||'';
+  var context=(document.getElementById('sigContext')||{}).value||'';
+  var resDiv=document.getElementById('sigAIResult');
+  if(!resDiv)return;
+  if(!text.trim()){resDiv.innerHTML='<div style="color:#dc2626;padding:10px;background:#fef2f2;border-radius:8px">Collez des donnees de signatures.</div>';return;}
+  resDiv.innerHTML='<div style="text-align:center;padding:20px"><div style="display:inline-block;width:24px;height:24px;border:3px solid var(--bd);border-top-color:#059669;border-radius:50%;animation:spin 1s linear infinite"></div><div style="margin-top:8px;font-size:13px;color:var(--mu)">Analyse signatures...</div></div>';
+  try {
+    var userKey=localStorage.getItem('sgs_api_key')||'';
+    var r=await fetch('/analyze_signatures',{method:'POST',headers:{'Content-Type':'application/json','X-User-Api-Key':userKey},body:JSON.stringify({text:text,context:context,user_api_key:userKey})});
+    var d=await r.json();
+    if(!d.success)throw new Error(d.error);
+    _lastSigResult=d.result;renderSigResult(d.result);
+  } catch(e){resDiv.innerHTML='<div style="color:#dc2626;padding:12px;background:#fef2f2;border-radius:8px">Erreur: '+e.message+'</div>';}
+}
+function renderSigResult(res){
+  var resDiv=document.getElementById('sigAIResult');
+  if(!resDiv||!res)return;
+  var colors=['#059669','#2563eb','#7c3aed','#dc2626','#ea580c','#f59e0b','#0d9488'];
+  var html='<div style="display:flex;flex-direction:column;gap:12px">';
+  if(res.urgent)html+='<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:14px;color:#dc2626;font-size:13px;font-weight:500">⚠️ '+res.urgent_reason+'</div>';
+  html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">';
+  html+='<div style="background:var(--s2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:15px;font-weight:700;color:#059669">'+(res.dominant_signature||'-')+'</div><div style="font-size:11px;color:var(--mu)">Dominante</div></div>';
+  html+='<div style="background:var(--s2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:13px;font-weight:700;color:#7c3aed">'+(res.tmb||'-')+'</div><div style="font-size:11px;color:var(--mu)">TMB</div></div>';
+  html+='<div style="background:var(--s2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:14px;font-weight:700;color:#dc2626">'+(res.hrd_status||'-')+'</div><div style="font-size:11px;color:var(--mu)">HRD</div></div>';
+  html+='<div style="background:var(--s2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:14px;font-weight:700;color:#0d9488">'+(res.msi_predicted||'-')+'</div><div style="font-size:11px;color:var(--mu)">MSI</div></div>';
+  html+='</div>';
+  if(res.summary)html+='<div style="background:var(--s2);border-radius:8px;padding:12px"><b>Resume: </b>'+res.summary+'</div>';
+  if(res.immunotherapy_prediction||res.parp_inhibitor_prediction){
+    html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+    if(res.immunotherapy_prediction)html+='<div style="background:#2563eb11;border:1px solid #2563eb33;border-radius:8px;padding:10px"><div style="font-size:11px;font-weight:600;color:#2563eb;margin-bottom:4px">🧬 Immunotherapie</div><div style="font-size:12px">'+res.immunotherapy_prediction+'</div></div>';
+    if(res.parp_inhibitor_prediction)html+='<div style="background:#05996911;border:1px solid #05996933;border-radius:8px;padding:10px"><div style="font-size:11px;font-weight:600;color:#059669;margin-bottom:4px">💊 Inh. PARP</div><div style="font-size:12px">'+res.parp_inhibitor_prediction+'</div></div>';
+    html+='</div>';
+  }
+  var sigs=res.signatures||[];
+  sigs.forEach(function(s,idx){
+    var col=colors[idx%colors.length];var pct=s.contribution||0;
+    html+='<div style="border:1px solid var(--bd);border-radius:8px;padding:12px">';
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">';
+    html+='<div><span style="font-weight:700;font-size:15px;color:'+col+'">'+s.id+'</span><span style="font-size:12px;color:var(--mu);margin-left:8px">'+s.name+'</span></div>';
+    html+='<b style="color:'+col+'">'+pct+'%</b></div>';
+    html+='<div style="background:var(--bd);border-radius:4px;height:6px;margin-bottom:8px"><div style="background:'+col+';width:'+Math.min(pct,100)+'%;height:100%;border-radius:4px"></div></div>';
+    if(s.etiology)html+='<div style="font-size:12px;margin-bottom:4px">'+s.etiology+'</div>';
+    if(s.clinical_implications)html+='<div style="font-size:12px;color:var(--mu);font-style:italic;margin-bottom:6px">'+s.clinical_implications+'</div>';
+    if(s.therapeutic_targets&&s.therapeutic_targets.length){html+='<div style="display:flex;flex-wrap:wrap;gap:4px">';s.therapeutic_targets.forEach(function(t){html+='<span style="font-size:11px;background:'+col+'22;color:'+col+';padding:2px 8px;border-radius:10px">💊 '+t+'</span>';});html+='</div>';}
+    html+='</div>';
+  });
+  if(res.recommendations&&res.recommendations.length){html+='<div style="background:var(--s2);border-radius:8px;padding:12px"><b style="font-size:12px">Recommandations</b><br>';res.recommendations.forEach(function(r,i){html+='<div style="font-size:13px;padding:4px 0;border-bottom:.5px solid var(--bd)">'+(i+1)+'. '+r+'</div>';});html+='</div>';}
+  html+='</div>';resDiv.innerHTML=html;
+}
+function handleSigUpload(input){var f=input.files[0];if(!f)return;var rd=new FileReader();rd.onload=function(e){var t=document.getElementById('sigAIInput');if(t)t.value=e.target.result;};rd.readAsText(f);}

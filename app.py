@@ -2349,3 +2349,127 @@ def ngs_to_pdf():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+
+
+@app.route('/analyze_cnv', methods=['POST'])
+@login_required
+def analyze_cnv():
+    try:
+        data = request.json or {}
+        user_api_key = (request.headers.get('X-User-Api-Key', '') or data.get('user_api_key', '')).strip()
+        api_key = user_api_key or os.environ.get('ANTHROPIC_API_KEY', '')
+        if not api_key:
+            return jsonify({"success": False, "error": "Cle API manquante."})
+        cnv_text = data.get('text', '').strip()
+        context  = data.get('context', '')
+        if not cnv_text:
+            return jsonify({"success": False, "error": "Aucune donnee CNV fournie."})
+        if len(cnv_text) > 60000:
+            cnv_text = cnv_text[:60000]
+        system_prompt = """Tu es expert en oncogenomique clinique specialise dans les CNV.
+Reponds UNIQUEMENT en JSON valide strict, sans texte avant/apres.
+Format:
+{
+  "cnvs": [{"gene":"ERBB2","chromosome":"17q12","type":"amplification","copy_number":12,"log2_ratio":2.58,"size_mb":1.2,"clinical_significance":"Surexpression HER2","therapeutic_targets":["Trastuzumab","Pertuzumab"],"acmg_class":"Pathogene","databases":["OncoKB Tier 1"],"action":"Test HER2 confirmateur recommande."}],
+  "summary":"Resume clinique","genome_instability":"Elevee",
+  "recommendations":["Recommandation 1"],
+  "urgent":false,"urgent_reason":""
+}
+Types: amplification (CN>4), gain (CN 3-4), perte (CN 1), deletion_homozygote (CN 0).
+Si donnee absente: null."""
+        user_msg = "Analyse ces donnees CNV:\n\n" + cnv_text
+        if context:
+            user_msg += "\n\nContexte: " + context
+        import anthropic as _anth
+        client = _anth.Anthropic(api_key=api_key)
+        response = client.messages.create(model="claude-haiku-4-5-20251001", max_tokens=3000,
+            system=system_prompt, messages=[{"role":"user","content":user_msg}])
+        import json as _json
+        raw = response.content[0].text.strip().replace("```json","").replace("```","").strip()
+        return jsonify({"success": True, "result": _json.loads(raw)})
+    except Exception as e:
+        import logging; logging.error(f"analyze_cnv error: {e}")
+        return jsonify({"success": False, "error": str(e)})
+
+
+@app.route('/analyze_fusions', methods=['POST'])
+@login_required
+def analyze_fusions():
+    try:
+        data = request.json or {}
+        user_api_key = (request.headers.get('X-User-Api-Key', '') or data.get('user_api_key', '')).strip()
+        api_key = user_api_key or os.environ.get('ANTHROPIC_API_KEY', '')
+        if not api_key:
+            return jsonify({"success": False, "error": "Cle API manquante."})
+        fusion_text = data.get('text', '').strip()
+        context     = data.get('context', '')
+        if not fusion_text:
+            return jsonify({"success": False, "error": "Aucune donnee de fusion fournie."})
+        if len(fusion_text) > 60000:
+            fusion_text = fusion_text[:60000]
+        system_prompt = """Tu es expert en fusions geniques oncologiques.
+Reponds UNIQUEMENT en JSON valide strict.
+Format:
+{
+  "fusions":[{"name":"EML4-ALK","gene5":"EML4","gene3":"ALK","breakpoint5":"2p21 exon 13","breakpoint3":"2p23 exon 20","variant_type":"inversion","read_support":45,"allele_frequency":"18%","oncogenic":true,"tier":"Tier I","cancer_types":["NSCLC"],"therapeutic_targets":["Crizotinib","Alectinib"],"resistance_mechanisms":["ALK G1202R"],"databases":["OncoKB Tier 1"],"action":"Eligible inhibiteurs ALK."}],
+  "summary":"Resume","total_fusions":1,"oncogenic_fusions":1,"actionable_fusions":1,
+  "recommendations":["Recommandation 1"],
+  "urgent":false,"urgent_reason":""
+}
+Si donnee absente: null."""
+        user_msg = "Analyse ces donnees de fusions geniques:\n\n" + fusion_text
+        if context:
+            user_msg += "\n\nContexte: " + context
+        import anthropic as _anth
+        client = _anth.Anthropic(api_key=api_key)
+        response = client.messages.create(model="claude-haiku-4-5-20251001", max_tokens=3000,
+            system=system_prompt, messages=[{"role":"user","content":user_msg}])
+        import json as _json
+        raw = response.content[0].text.strip().replace("```json","").replace("```","").strip()
+        return jsonify({"success": True, "result": _json.loads(raw)})
+    except Exception as e:
+        import logging; logging.error(f"analyze_fusions error: {e}")
+        return jsonify({"success": False, "error": str(e)})
+
+
+@app.route('/analyze_signatures', methods=['POST'])
+@login_required
+def analyze_signatures():
+    try:
+        data = request.json or {}
+        user_api_key = (request.headers.get('X-User-Api-Key', '') or data.get('user_api_key', '')).strip()
+        api_key = user_api_key or os.environ.get('ANTHROPIC_API_KEY', '')
+        if not api_key:
+            return jsonify({"success": False, "error": "Cle API manquante."})
+        sig_text = data.get('text', '').strip()
+        context  = data.get('context', '')
+        if not sig_text:
+            return jsonify({"success": False, "error": "Aucune donnee de signature fournie."})
+        if len(sig_text) > 60000:
+            sig_text = sig_text[:60000]
+        system_prompt = """Tu es expert en signatures mutationnelles COSMIC.
+Reponds UNIQUEMENT en JSON valide strict.
+Format:
+{
+  "signatures":[{"id":"SBS3","name":"Deficit HRR","contribution":42.5,"contribution_pct":"42.5%","etiology":"Deficit BRCA1/BRCA2","cancer_types":["Sein","Ovaire"],"clinical_implications":"Sensibilite inhibiteurs PARP","therapeutic_targets":["Olaparib","Niraparib"],"associated_genes":["BRCA1","BRCA2"],"confidence":"Haute"}],
+  "dominant_signature":"SBS3","tmb":"12.4 mut/Mb","tmb_class":"Eleve",
+  "hrd_score":42,"hrd_status":"Positif","msi_predicted":"MSS",
+  "summary":"Resume","immunotherapy_prediction":"Moderee","parp_inhibitor_prediction":"Bonne sensibilite",
+  "recommendations":["Recommandation 1"],
+  "urgent":false,"urgent_reason":""
+}
+Signatures cles: SBS1 horloge | SBS2/13 APOBEC | SBS3 HRR/BRCA | SBS4 tabac | SBS6/15/20/26 MMR | SBS7 UV | SBS10 POLE.
+Si donnee absente: null."""
+        user_msg = "Analyse ces signatures mutationnelles:\n\n" + sig_text
+        if context:
+            user_msg += "\n\nContexte: " + context
+        import anthropic as _anth
+        client = _anth.Anthropic(api_key=api_key)
+        response = client.messages.create(model="claude-haiku-4-5-20251001", max_tokens=3000,
+            system=system_prompt, messages=[{"role":"user","content":user_msg}])
+        import json as _json
+        raw = response.content[0].text.strip().replace("```json","").replace("```","").strip()
+        return jsonify({"success": True, "result": _json.loads(raw)})
+    except Exception as e:
+        import logging; logging.error(f"analyze_signatures error: {e}")
+        return jsonify({"success": False, "error": str(e)})
