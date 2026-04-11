@@ -841,12 +841,6 @@ Cite les PMIDs, NCT et données ClinVar dans ta réponse.
         return {"success": False, "error": f"Erreur API: {str(e)}"}
 
 
-def get_all_clinicians():
-    """Retourne la liste des cliniciens sans system_prompt (pour le front)."""
-    return [
-        {k: v for k, v in c.items() if k != 'system_prompt'}
-        for c in CLINICIANS
-    ]
 
 def consult_clinician_ai(clinician_id, message, history=None, user_api_key=None):
     """Consulte un clinicien virtuel via l'API Anthropic."""
