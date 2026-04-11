@@ -765,11 +765,30 @@ def get_clinician_response(clinician_id: str, messages: list, api_key: str = Non
     enriched_context, sources_consulted = build_enriched_context(clinician, last_user_msg)
 
     # Construire le system prompt enrichi
+    domain_map = {
+        "oncogeneticist": "variants genetiques, predispositions hereditaires, BRCA1/2, Lynch, conseil genetique",
+        "oncologist": "oncologie, therapies ciblees, immunotherapie, biomarqueurs, essais cliniques",
+        "pathologist": "anatomopathologie, histologie, IHC, MSI/MMR, TMB, variants somatiques",
+        "geneticist": "genetique clinique, maladies rares, phenotypage HPO, syndromes genetiques",
+        "generalist": "medecine generale, orientation diagnostique, contexte africain/senegalais",
+        "internist": "medecine interne, maladies systemiques, lupus, vascularites, auto-immunite",
+        "hematologist": "hematologie, leucemies, lymphomes, myelome, drepanocytose, hemostase",
+        "radiologist": "imagerie medicale, echographie, scanner, IRM, mammographie",
+        "gynecologist": "gynecologie, obstetrique, oncogynecologie, cancer col, sein, ovaire",
+        "pediatric_oncologist": "oncologie pediatrique, leucemies enfant, tumeurs solides pediatriques",
+        "pain_specialist": "douleur chronique, soins palliatifs, analgesie oncologique",
+        "rcp_coordinator": "coordination pluridisciplinaire, synthese multi-experts, consensus RCP",
+    }
+    my_domain = domain_map.get(clinician_id, "ma specialite")
     identity_prefix = (
         f"IDENTITE ABSOLUE: Tu es {clinician['name']}, {clinician['specialty']}. "
-        f"Tu N'ES PAS Claude, pas une IA generique, pas un assistant. Tu es un clinicien reel. "
-        f"Si on te demande qui tu es, reponds uniquement que tu es {clinician['name']}. "
+        f"Tu N'ES PAS Claude, pas une IA generique. Tu es un clinicien reel. "
         f"Ne mentionne JAMAIS Claude, Anthropic, IA ou modele de langage.\n\n"
+        f"RESTRICTION DE DOMAINE STRICTE: Tu es specialiste UNIQUEMENT en {my_domain}. "
+        f"Si la question sort de ton domaine, tu dois: "
+        f"1) Repondre brievement sur ce que tu peux apporter de ton point de vue de {clinician['specialty']}, "
+        f"2) Orienter explicitement vers le bon specialiste (ex: 'Pour cette question, je vous recommande de consulter un cardiologue/neurologue/etc.'). "
+        f"Tu ne fais PAS de diagnostic en dehors de ta specialite.\n\n"
     )
     system_prompt = identity_prefix + clinician["system"]
     if enriched_context:
@@ -857,11 +876,29 @@ def consult_clinician_ai(clinician_id, message, history=None, user_api_key=None)
         response = client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=1000,
-            system=(
+            domain_map2 = {
+            "oncogeneticist": "variants genetiques, predispositions hereditaires, BRCA1/2, Lynch, conseil genetique",
+            "oncologist": "oncologie, therapies ciblees, immunotherapie, biomarqueurs, essais cliniques",
+            "pathologist": "anatomopathologie, histologie, IHC, MSI/MMR, TMB, variants somatiques",
+            "geneticist": "genetique clinique, maladies rares, phenotypage HPO, syndromes genetiques",
+            "generalist": "medecine generale, orientation diagnostique, contexte africain/senegalais",
+            "internist": "medecine interne, maladies systemiques, lupus, vascularites, auto-immunite",
+            "hematologist": "hematologie, leucemies, lymphomes, myelome, drepanocytose, hemostase",
+            "radiologist": "imagerie medicale, echographie, scanner, IRM, mammographie",
+            "gynecologist": "gynecologie, obstetrique, oncogynecologie, cancer col, sein, ovaire",
+            "pediatric_oncologist": "oncologie pediatrique, leucemies enfant, tumeurs solides pediatriques",
+            "pain_specialist": "douleur chronique, soins palliatifs, analgesie oncologique",
+            "rcp_coordinator": "coordination pluridisciplinaire, synthese multi-experts, consensus RCP",
+        }
+        my_domain2 = domain_map2.get(clinician_id, "ma specialite")
+        system=(
             f"IDENTITE ABSOLUE: Tu es {clinician['name']}, {clinician['specialty']}. "
-            f"Tu N'ES PAS Claude, pas une IA, pas un assistant. Tu es un vrai clinicien. "
-            f"Si on te demande qui tu es, reponds uniquement que tu es {clinician['name']}. "
+            f"Tu N'ES PAS Claude, pas une IA generique. Tu es un clinicien reel. "
             f"Ne mentionne JAMAIS Claude, Anthropic, IA ou modele de langage.\n\n"
+            f"RESTRICTION DE DOMAINE STRICTE: Tu es specialiste UNIQUEMENT en {my_domain2}. "
+            f"Si la question sort de ton domaine, tu dois: "
+            f"1) Apporter ton eclairage de {clinician['specialty']} si pertinent, "
+            f"2) Orienter vers le bon specialiste. Tu ne fais PAS de diagnostic hors specialite.\n\n"
         ) + clinician.get('system_prompt', '') + '''
 RÈGLE ABSOLUE DE PRÉSENTATION:
 - Au premier message UNIQUEMENT: présente-toi en 2 phrases maximum, chaleureusement
