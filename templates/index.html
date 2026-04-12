@@ -3920,53 +3920,125 @@ async function attachVcfToConsultation(input) {
 // Stubs pour fonctions définies plus tard
 function _showShortcutsHelp() { if(typeof _showShortcutsHelp==='function') _showShortcutsHelp(); }
 function _togglePresentation() { if(typeof _togglePresentation==='function') _togglePresentation(); }
+// ── Cliniciens Virtuels — Microphone complet ──────────────────────────────
+let _clinSeconds = 0, _clinTimerInterval = null, _clinFullTranscript = '';
+
 function clinMicToggle() {
-  const btn = document.getElementById('clinMicBtn');
-  const lbl = document.getElementById('clinMicLbl');
-  const dot = document.getElementById('clinMicDot');
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  
-  if (!SpeechRecognition) {
-    alert('Reconnaissance vocale non supportée sur ce navigateur. Utilisez Chrome.');
-    return;
-  }
-  
-  if (!window._clinRecognition) {
-    window._clinRecording = false;
-  }
+  if (!SpeechRecognition) { alert('Reconnaissance vocale non supportée. Utilisez Chrome.'); return; }
   
   if (window._clinRecording) {
     // Arrêter
-    if (window._clinRecognition) window._clinRecognition.stop();
+    if (window._clinRecognition) { window._clinRecognition.stop(); window._clinRecognition = null; }
     window._clinRecording = false;
-    if (btn) { btn.style.borderColor = '#1D9E75'; btn.style.background = 'var(--s2)'; }
+    clearInterval(_clinTimerInterval);
+    _clinTimerInterval = null;
+    
+    const btn = document.getElementById('clinMicBtn');
+    const lbl = document.getElementById('clinMicLbl');
+    const dot = document.getElementById('clinMicDot');
+    const pauseBtn = document.getElementById('clinMicPauseBtn');
+    const analyzeBtn = document.getElementById('clinAnalyzeBtn');
+    
+    if (btn) { btn.style.borderColor = '#1D9E75'; btn.style.background = 'var(--s2)'; btn.style.color = '#0F6E56'; }
     if (lbl) lbl.textContent = '🎙️ Enregistrer patient';
-    if (dot) dot.style.background = 'currentColor';
+    if (dot) { dot.style.background = 'currentColor'; dot.style.animation = ''; }
+    if (pauseBtn) pauseBtn.style.display = 'none';
+    if (analyzeBtn && _clinFullTranscript) analyzeBtn.style.display = 'block';
+    
+    document.getElementById('clinMicWave') && (document.getElementById('clinMicWave').innerHTML = '');
   } else {
     // Démarrer
+    _clinFullTranscript = '';
+    _clinSeconds = 0;
+    window._clinRecording = true;
+    window._clinPaused = false;
+    
+    const btn = document.getElementById('clinMicBtn');
+    const lbl = document.getElementById('clinMicLbl');
+    const dot = document.getElementById('clinMicDot');
+    const pauseBtn = document.getElementById('clinMicPauseBtn');
+    const transcript = document.getElementById('clinMicTranscript');
+    const analyzeBtn = document.getElementById('clinAnalyzeBtn');
+    
+    if (btn) { btn.style.borderColor = '#dc2626'; btn.style.background = 'rgba(220,38,38,0.08)'; btn.style.color = '#dc2626'; }
+    if (lbl) lbl.textContent = '⏹️ Arrêter';
+    if (dot) { dot.style.background = '#dc2626'; dot.style.animation = 'pulse 1s infinite'; }
+    if (pauseBtn) pauseBtn.style.display = 'flex';
+    if (transcript) transcript.style.display = 'block';
+    if (analyzeBtn) analyzeBtn.style.display = 'none';
+    
+    // Timer
+    _clinTimerInterval = setInterval(() => {
+      if (!window._clinPaused) {
+        _clinSeconds++;
+        const m = String(Math.floor(_clinSeconds/60)).padStart(2,'0');
+        const s = String(_clinSeconds%60).padStart(2,'0');
+        const timer = document.getElementById('clinMicTimer');
+        if (timer) timer.textContent = m+':'+s;
+      }
+    }, 1000);
+    
+    // Ondes visuelles
+    const wave = document.getElementById('clinMicWave');
+    if (wave) {
+      setInterval(() => {
+        if (!window._clinRecording) return;
+        wave.innerHTML = Array.from({length:5}, () => 
+          `<div style="width:3px;height:${4+Math.random()*14}px;background:#dc2626;border-radius:2px;transition:height 0.1s"></div>`
+        ).join('');
+      }, 150);
+    }
+    
+    // Reconnaissance vocale
+    const lang = document.getElementById('clinMicLang');
     const recognition = new SpeechRecognition();
-    recognition.lang = 'fr-FR';
+    recognition.lang = lang ? lang.value : 'fr-FR';
     recognition.continuous = true;
     recognition.interimResults = true;
     window._clinRecognition = recognition;
-    window._clinRecording = true;
-    
-    if (btn) { btn.style.borderColor = '#dc2626'; btn.style.background = 'rgba(220,38,38,0.08)'; }
-    if (lbl) lbl.textContent = '⏹️ Arrêter';
-    if (dot) { dot.style.background = '#dc2626'; dot.style.animation = 'pulse 1s infinite'; }
     
     recognition.onresult = (e) => {
-      let transcript = '';
+      if (window._clinPaused) return;
+      let interim = '', final = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
-        transcript += e.results[i][0].transcript;
+        if (e.results[i].isFinal) final += e.results[i][0].transcript + ' ';
+        else interim += e.results[i][0].transcript;
       }
-      const ta = document.getElementById('clinicianInput');
-      if (ta) ta.value = transcript;
+      if (final) _clinFullTranscript += final;
+      const transcriptDiv = document.getElementById('clinMicTranscript');
+      if (transcriptDiv) transcriptDiv.innerHTML = 
+        `<span style="color:var(--tx)">${_clinFullTranscript}</span><span style="color:var(--mu);font-style:italic">${interim}</span>`;
     };
     
-    recognition.onerror = () => { clinMicToggle(); };
-    recognition.onend = () => { if (window._clinRecording) recognition.start(); };
+    recognition.onerror = (e) => { if (e.error !== 'aborted') clinMicToggle(); };
+    recognition.onend = () => { if (window._clinRecording && !window._clinPaused) recognition.start(); };
     recognition.start();
+  }
+}
+
+function clinMicPause() {
+  const pauseBtn = document.getElementById('clinMicPauseBtn');
+  window._clinPaused = !window._clinPaused;
+  if (window._clinPaused) {
+    if (window._clinRecognition) window._clinRecognition.stop();
+    if (pauseBtn) pauseBtn.textContent = '▶ Reprendre';
+  } else {
+    if (pauseBtn) pauseBtn.textContent = '⏸ Pause';
+    if (window._clinRecognition) window._clinRecognition.start();
+  }
+}
+
+function clinSendTranscript() {
+  const ta = document.getElementById('clinicianInput');
+  if (ta && _clinFullTranscript) {
+    ta.value = (ta.value ? ta.value + '\n\n' : '') + '--- Transcription patient ---\n' + _clinFullTranscript.trim();
+    document.getElementById('clinAnalyzeBtn') && (document.getElementById('clinAnalyzeBtn').style.display = 'none');
+    _clinFullTranscript = '';
+    const transcript = document.getElementById('clinMicTranscript');
+    if (transcript) { transcript.style.display = 'none'; transcript.innerHTML = '<span style="color:var(--mu);font-style:italic">Paroles du patient en temps réel…</span>'; }
+    const timer = document.getElementById('clinMicTimer');
+    if (timer) timer.textContent = '00:00';
   }
 }
 
