@@ -1728,17 +1728,18 @@ def stats_dashboard():
 
 # Exempter les routes API JSON du CSRF (protégées par JWT Supabase)
 if _has_csrf:
-    csrf.exempt(api_login)
-    csrf.exempt(api_register)
-    csrf.exempt(api_logout)
-    csrf.exempt(api_get_patients)
-    csrf.exempt(api_create_patient)
-    csrf.exempt(api_save_analysis)
-    csrf.exempt(interpret_ngs)
-    csrf.exempt(analyze_cnv)
-    csrf.exempt(analyze_fusions)
-    csrf.exempt(analyze_signatures)
-    csrf.exempt(tumor_board)
+    _csrf_exempt_list = [
+        'api_login','api_register','api_logout','log_login',
+        'api_get_patients','api_create_patient','api_save_analysis',
+        'interpret_ngs','analyze_cnv','analyze_fusions',
+        'analyze_signatures','tumor_board','compare_therapeutics',
+        'calculate_hrd','generate_clinical_pdf'
+    ]
+    import sys as _sys
+    _mod = _sys.modules[__name__]
+    for _fname in _csrf_exempt_list:
+        _f = getattr(_mod, _fname, None)
+        if _f: csrf.exempt(_f)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
