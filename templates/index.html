@@ -4125,8 +4125,10 @@ function clinSendTranscript() {
     if (transcript) { transcript.style.display = 'none'; transcript.innerHTML = '<span style="color:var(--mu);font-style:italic">Paroles du patient en temps réel…</span>'; }
     const timer = document.getElementById('clinMicTimer');
     if (timer) timer.textContent = '00:00';
-    // Envoyer automatiquement au clinicien
-    setTimeout(() => sendClinicianMessageStreaming(), 300);
+    // Envoyer automatiquement au clinicien après injection
+    setTimeout(() => {
+      if (ta.value.trim()) sendClinicianMessageStreaming();
+    }, 500);
   }
 }
 
