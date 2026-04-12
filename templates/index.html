@@ -459,7 +459,13 @@ var _pendingCalls = [];
 
 
 function showSec(n, b){ _pendingCalls.push(['showSec', n, b]); }
-document.addEventListener('DOMContentLoaded', function(){ setTimeout(function(){ if(typeof showSec==='function') showSec('search'); }, 100); });
+(function waitForShowSec() {
+  if (typeof _pendingCalls !== 'undefined') {
+    showSec('search');
+  } else {
+    setTimeout(waitForShowSec, 50);
+  }
+})();
 async function openApiSettings(){ _pendingCalls.push(['openApiSettings']); }
 
 
