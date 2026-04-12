@@ -2730,7 +2730,7 @@ def patients_dashboard():
     return render_template('patients_dashboard.html')
 
 @app.route('/dashboard/patient/<patient_id>')
-def patient_detail(patient_id):
+def patient_detail_dashboard(patient_id):
     if not session.get('authenticated'):
         from flask import redirect
         return redirect('/login')
