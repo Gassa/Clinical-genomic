@@ -3920,7 +3920,55 @@ async function attachVcfToConsultation(input) {
 // Stubs pour fonctions définies plus tard
 function _showShortcutsHelp() { if(typeof _showShortcutsHelp==='function') _showShortcutsHelp(); }
 function _togglePresentation() { if(typeof _togglePresentation==='function') _togglePresentation(); }
-function clinMicToggle() { if(typeof _clinMicToggle==='function') _clinMicToggle(); }
+function clinMicToggle() {
+  const btn = document.getElementById('clinMicBtn');
+  const lbl = document.getElementById('clinMicLbl');
+  const dot = document.getElementById('clinMicDot');
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  
+  if (!SpeechRecognition) {
+    alert('Reconnaissance vocale non supportée sur ce navigateur. Utilisez Chrome.');
+    return;
+  }
+  
+  if (!window._clinRecognition) {
+    window._clinRecording = false;
+  }
+  
+  if (window._clinRecording) {
+    // Arrêter
+    if (window._clinRecognition) window._clinRecognition.stop();
+    window._clinRecording = false;
+    if (btn) { btn.style.borderColor = '#1D9E75'; btn.style.background = 'var(--s2)'; }
+    if (lbl) lbl.textContent = '🎙️ Enregistrer patient';
+    if (dot) dot.style.background = 'currentColor';
+  } else {
+    // Démarrer
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'fr-FR';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    window._clinRecognition = recognition;
+    window._clinRecording = true;
+    
+    if (btn) { btn.style.borderColor = '#dc2626'; btn.style.background = 'rgba(220,38,38,0.08)'; }
+    if (lbl) lbl.textContent = '⏹️ Arrêter';
+    if (dot) { dot.style.background = '#dc2626'; dot.style.animation = 'pulse 1s infinite'; }
+    
+    recognition.onresult = (e) => {
+      let transcript = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        transcript += e.results[i][0].transcript;
+      }
+      const ta = document.getElementById('clinicianInput');
+      if (ta) ta.value = transcript;
+    };
+    
+    recognition.onerror = () => { clinMicToggle(); };
+    recognition.onend = () => { if (window._clinRecording) recognition.start(); };
+    recognition.start();
+  }
+}
 
 function showSec(name,btn){
   const SECS=['search','prs','founder','penetrance','tools','ngs','acmg','risk','glcomp','manchester','compvar','pedigree','trajectory','bookmarks','dashboard','about','litimport','ai_chat','ai_upload','ai_pharma','clinicians','morpho','rare','tmb_msi','drug_interactions','esmo_decision','voice_consult'];
