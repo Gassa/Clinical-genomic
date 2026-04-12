@@ -618,7 +618,7 @@ function qs(q){document.getElementById('query').value=q;if(typeof runSearch==='f
         title="Dark/Light mode">🌙</button>
       <div id="userBadge" style="display:flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;background:linear-gradient(135deg,rgba(13,148,136,.15),rgba(8,145,178,.15));border:1px solid rgba(13,148,136,.3);margin-right:4px">
         <div id="userAvatar" style="width:26px;height:26px;border-radius:50%;background:#0d9488;display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:700;flex-shrink:0">?</div>
-        <span id="userName" style="font-size:12px;font-weight:600;color:var(--tx);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">...</span>
+        <span id="userName" onclick="openProfile()" style="font-size:12px;font-weight:600;color:var(--tx);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer" title="Modifier mon profil">...</span>
       </div>
       <div id="userInstitutionBadge" style="display:none;align-items:center;padding:5px 12px;border-radius:20px;background:rgba(8,145,178,.1);border:1px solid rgba(8,145,178,.25);margin-right:8px">
         <span style="font-size:10px;color:#0891b2;margin-right:4px">🏥</span>
@@ -5903,8 +5903,9 @@ document.addEventListener('DOMContentLoaded', function(){
       const initiale = d.name.trim()[0].toUpperCase();
       document.getElementById('userAvatar').textContent = initiale;
       document.title = 'SenGenoScope — ' + d.name;
-      if(d.institution && d.institution.trim()) {
-        document.getElementById('userInstitution').textContent = d.institution;
+      const instText = d.institution && d.institution.trim() ? d.institution : (d.role || '');
+      if(instText) {
+        document.getElementById('userInstitution').textContent = instText;
         document.getElementById('userInstitutionBadge').style.display = 'flex';
       }
     }
@@ -6378,6 +6379,63 @@ function vcInsertTag(tag) {
 }
 </script>
 
+</script>
+
+<script>
+function openProfile() {
+  fetch('/profile').then(r=>r.json()).then(d=>{
+    const m = document.createElement('div');
+    m.id = 'profileModal';
+    m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+    m.innerHTML = `
+      <div style="background:var(--bg);border-radius:14px;width:100%;max-width:420px;border:1px solid var(--bd);overflow:hidden">
+        <div style="padding:16px 20px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center;background:var(--s2)">
+          <div style="font-size:15px;font-weight:600">👤 Mon profil</div>
+          <button onclick="document.getElementById('profileModal').remove()" style="background:none;border:none;font-size:20px;cursor:pointer">×</button>
+        </div>
+        <div style="padding:20px;display:flex;flex-direction:column;gap:12px">
+          <div>
+            <label style="font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase;display:block;margin-bottom:4px">Nom complet</label>
+            <input id="profileName" value="${d.name}" style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--sf);color:var(--tx);font-size:13px;box-sizing:border-box">
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase;display:block;margin-bottom:4px">Institution / Hôpital</label>
+            <input id="profileInstitution" value="${d.institution}" placeholder="Ex: CHU de Dakar, Institut Curie..." style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--sf);color:var(--tx);font-size:13px;box-sizing:border-box">
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase;display:block;margin-bottom:4px">Email</label>
+            <input value="${d.email}" disabled style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--s2);color:var(--mu);font-size:13px;box-sizing:border-box">
+          </div>
+          <button onclick="saveProfile()" style="padding:10px;border-radius:8px;border:none;background:#0d9488;color:white;font-size:13px;font-weight:500;cursor:pointer">💾 Enregistrer</button>
+        </div>
+      </div>`;
+    document.body.appendChild(m);
+  });
+}
+
+async function saveProfile() {
+  const name = document.getElementById('profileName').value.trim();
+  const institution = document.getElementById('profileInstitution').value.trim();
+  if (!name) { alert('Le nom est obligatoire'); return; }
+  try {
+    const r = await fetch('/profile', {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({name, institution})
+    }).then(r=>r.json());
+    if (!r.success) throw new Error(r.error);
+    document.getElementById('userName').textContent = name;
+    document.getElementById('profileModal').remove();
+    if (institution) {
+      document.getElementById('userInstitution').textContent = institution;
+      document.getElementById('userInstitutionBadge').style.display = 'flex';
+    } else {
+      document.getElementById('userInstitutionBadge').style.display = 'none';
+    }
+    const initiale = name.trim()[0].toUpperCase();
+    document.getElementById('userAvatar').textContent = initiale;
+  } catch(e) { alert('Erreur: ' + e.message); }
+}
 </script>
 </body>
 </html>

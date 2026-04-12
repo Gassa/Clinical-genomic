@@ -1005,6 +1005,31 @@ def me():
         "institution": session.get("user_institution", "")
     })
 
+@app.route("/profile", methods=["GET", "PUT"])
+@login_required
+def profile():
+    uid = session['user_id']
+    conn, _db = get_conn()
+    cur = conn.cursor()
+    ph = "%s" if _db == "pg" else "?"
+    if request.method == "GET":
+        cur.execute(f"SELECT name, institution, email FROM users WHERE id={ph}", (uid,))
+        r = cur.fetchone()
+        conn.close()
+        return jsonify({"name": r[0], "institution": r[1] or "", "email": r[2]})
+    else:
+        data = request.json or {}
+        name = data.get("name", "").strip()
+        institution = data.get("institution", "").strip()
+        if not name:
+            return jsonify({"success": False, "error": "Nom requis"})
+        cur.execute(f"UPDATE users SET name={ph}, institution={ph} WHERE id={ph}", (name, institution, uid))
+        conn.commit()
+        conn.close()
+        session["user_name"] = name
+        session["user_institution"] = institution
+        return jsonify({"success": True})
+
 @app.route("/stats")
 def stats():
     record_search("", [])  # ping stats
