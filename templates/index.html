@@ -3664,6 +3664,14 @@ async function sendClinicianMessageStreaming() {
   if (!activeClinician) { alert('Sélectionnez un clinicien d\'abord.'); return; }
   
   const input = document.getElementById('clinicianInput');
+  // Si transcription en cours, l'injecter d'abord
+  if (_clinFullTranscript && _clinFullTranscript.trim()) {
+    const ta = document.getElementById('clinicianInput');
+    if (ta) ta.value = (ta.value ? ta.value + '\n\n' : '') + _clinFullTranscript.trim();
+    _clinFullTranscript = '';
+    const transcript = document.getElementById('clinMicTranscript');
+    if (transcript) transcript.style.display = 'none';
+  }
   const msg = input ? input.value.trim() : '';
   if (!msg) { alert('Veuillez décrire le cas clinique.'); return; }
   
