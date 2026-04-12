@@ -3916,6 +3916,12 @@ async function attachVcfToConsultation(input) {
   } catch(e) { alert('Erreur lecture: ' + e.message); }
   finally { input.value = ''; }
 }
+
+// Stubs pour fonctions définies plus tard
+function _showShortcutsHelp() { if(typeof _showShortcutsHelp==='function') _showShortcutsHelp(); }
+function _togglePresentation() { if(typeof _togglePresentation==='function') _togglePresentation(); }
+function clinMicToggle() { if(typeof _clinMicToggle==='function') _clinMicToggle(); }
+
 function showSec(name,btn){
   const SECS=['search','prs','founder','penetrance','tools','ngs','acmg','risk','glcomp','manchester','compvar','pedigree','trajectory','bookmarks','dashboard','about','litimport','ai_chat','ai_upload','ai_pharma','clinicians','morpho','rare','tmb_msi','drug_interactions','esmo_decision','voice_consult'];
   // Charger modules dynamiques
@@ -5881,7 +5887,7 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.setItem('sgs_last_visit', today);
     setTimeout(() => addNotification(
       'Bienvenue sur SenGenoScope', 
-      'Plateforme d'oncogénomique clinique — Bonne journée !',
+      'Plateforme d\'oncogénomique clinique — Bonne journée !',
       '🧬'
     ), 2000);
   }
