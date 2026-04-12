@@ -459,6 +459,7 @@ var _pendingCalls = [];
 
 
 function showSec(n, b){ _pendingCalls.push(['showSec', n, b]); }
+document.addEventListener('DOMContentLoaded', function(){ setTimeout(function(){ if(typeof showSec==='function') showSec('search'); }, 100); });
 async function openApiSettings(){ _pendingCalls.push(['openApiSettings']); }
 
 
@@ -629,7 +630,7 @@ function qs(q){document.getElementById('query').value=q;if(typeof runSearch==='f
 
 <!-- ══ ARBRE DÉCISIONNEL ESMO ════════════════════════════════════════════ -->
 
-<div id="sec-search">
+<div id="sec-search" style="display:none">
     <div class="qp">
       <div class="qt" data-fr="🔥 Gènes fréquents en oncogénétique — accès rapide" data-en="🔥 Common oncogenetics genes — quick access">🔥 Gènes fréquents en oncogénétique — accès rapide</div>
       <div class="qg">
