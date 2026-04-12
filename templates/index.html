@@ -3667,7 +3667,15 @@ async function sendClinicianMessageStreaming() {
   const msg = input ? input.value.trim() : '';
   if (!msg) { alert('Veuillez décrire le cas clinique.'); return; }
   
-  const apiKey = localStorage.getItem('claude_api_key') || '';
+  // Récupérer la clé API — session serveur en priorité, localStorage en fallback
+  let apiKey = '';
+  try {
+    const keyRes = await fetch('/api/key').then(r=>r.json());
+    apiKey = keyRes.has_key ? '' : (localStorage.getItem('claude_api_key') || '');
+    if (!keyRes.has_key) apiKey = localStorage.getItem('claude_api_key') || '';
+  } catch(e) {
+    apiKey = localStorage.getItem('claude_api_key') || '';
+  }
   if (!apiKey) { alert('Configurez votre clé API Claude (bouton ⚙️ Clé API).'); return; }
   
   // Afficher le message utilisateur
