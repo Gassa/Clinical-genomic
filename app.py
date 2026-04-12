@@ -1080,6 +1080,109 @@ def profile():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+
+@app.route('/patients/<int:pid>/rapport-complet', methods=['GET'])
+@login_required
+def rapport_complet(pid):
+    """Générer un rapport clinique PDF complet pour un patient"""
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import cm
+        from reportlab.lib import colors
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+        from reportlab.lib.enums import TA_CENTER
+        import io, datetime
+
+        uid = session['user_id']
+        conn, _db = get_conn()
+        cur = conn.cursor()
+        ph = "%s" if _db == "pg" else "?"
+
+        cur.execute(f"SELECT nom,prenom,date_naissance,numero_dossier,diagnostic,notes FROM patients WHERE id={ph} AND user_id={ph}", (pid, uid))
+        p = cur.fetchone()
+        if not p:
+            return jsonify({"error": "Patient non trouvé"}), 404
+
+        cur.execute(f"SELECT type_analyse,date_analyse,resultat,notes,statut FROM patient_analyses WHERE patient_id={ph} ORDER BY date_analyse DESC", (pid,))
+        analyses = cur.fetchall()
+        conn.close()
+
+        buf = io.BytesIO()
+        doc = SimpleDocTemplate(buf, pagesize=A4, rightMargin=2*cm, leftMargin=2*cm, topMargin=2*cm, bottomMargin=2*cm)
+        styles = getSampleStyleSheet()
+
+        titre_style = ParagraphStyle('titre', parent=styles['Title'], fontSize=18, textColor=colors.HexColor('#0891b2'), spaceAfter=6, alignment=TA_CENTER)
+        sous_titre = ParagraphStyle('sous', parent=styles['Normal'], fontSize=10, textColor=colors.HexColor('#64748b'), alignment=TA_CENTER, spaceAfter=20)
+        h2_style = ParagraphStyle('h2', parent=styles['Heading2'], fontSize=13, textColor=colors.HexColor('#1e293b'), spaceBefore=14, spaceAfter=6)
+        normal = ParagraphStyle('normal', parent=styles['Normal'], fontSize=10, leading=14, textColor=colors.HexColor('#334155'))
+
+        story = []
+        nom_complet = f"{p[0]} {p[1] or ''}".strip()
+        date_rapport = datetime.datetime.now().strftime('%d/%m/%Y à %H:%M')
+        medecin = session.get('user_name', 'Médecin')
+        institution = session.get('user_institution', '')
+
+        story.append(Paragraph('SenGenoScope', titre_style))
+        story.append(Paragraph("Plateforme d'Oncogénomique Clinique", sous_titre))
+        story.append(HRFlowable(width="100%", thickness=2, color=colors.HexColor('#0891b2')))
+        story.append(Spacer(1, 0.5*cm))
+        story.append(Paragraph('RAPPORT CLINIQUE COMPLET', ParagraphStyle('rc', parent=styles['Title'], fontSize=14, alignment=TA_CENTER, textColor=colors.HexColor('#1e293b'), spaceAfter=4)))
+        story.append(Paragraph(f'Généré le {date_rapport} — {medecin}{" — " + institution if institution else ""}', ParagraphStyle('gen', parent=styles['Normal'], fontSize=9, textColor=colors.HexColor('#94a3b8'), alignment=TA_CENTER, spaceAfter=16)))
+        story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#e2e8f0')))
+        story.append(Spacer(1, 0.4*cm))
+
+        story.append(Paragraph('Identité du Patient', h2_style))
+        patient_data = [['Nom complet', nom_complet], ['Date de naissance', p[2] or 'NR'], ['N° dossier', p[3] or 'NR'], ['Diagnostic', p[4] or 'NR']]
+        t = Table(patient_data, colWidths=[5*cm, 12*cm])
+        t.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (0,-1), colors.HexColor('#f0f9ff')),
+            ('TEXTCOLOR', (0,0), (0,-1), colors.HexColor('#0891b2')),
+            ('FONTNAME', (0,0), (0,-1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0,0), (-1,-1), 10),
+            ('ROWBACKGROUNDS', (0,0), (-1,-1), [colors.white, colors.HexColor('#f8fafc')]),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#e2e8f0')),
+            ('PADDING', (0,0), (-1,-1), 8),
+        ]))
+        story.append(t)
+        if p[5]:
+            story.append(Spacer(1, 0.3*cm))
+            story.append(Paragraph('Notes : ' + p[5], normal))
+
+        story.append(Spacer(1, 0.5*cm))
+        story.append(Paragraph(f'Analyses Génomiques ({len(analyses)})', h2_style))
+        if analyses:
+            ana_data = [['Type', 'Date', 'Statut', 'Résultat']]
+            for a in analyses:
+                ana_data.append([a[0] or '-', str(a[1] or '-'), a[4] or '-', (str(a[2] or '') + ' ' + str(a[3] or ''))[:80] or '-'])
+            ta = Table(ana_data, colWidths=[3.5*cm, 2.5*cm, 2.5*cm, 8.5*cm])
+            ta.setStyle(TableStyle([
+                ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#0891b2')),
+                ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+                ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0,0), (-1,-1), 9),
+                ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor('#f8fafc')]),
+                ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#e2e8f0')),
+                ('PADDING', (0,0), (-1,-1), 6),
+                ('VALIGN', (0,0), (-1,-1), 'TOP'),
+            ]))
+            story.append(ta)
+        else:
+            story.append(Paragraph('Aucune analyse enregistrée.', normal))
+
+        story.append(Spacer(1, 1*cm))
+        story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#e2e8f0')))
+        story.append(Paragraph('Document confidentiel — SenGenoScope · Oncogénomique Clinique · Usage médical exclusif',
+            ParagraphStyle('footer', parent=styles['Normal'], fontSize=8, textColor=colors.HexColor('#94a3b8'), alignment=TA_CENTER, spaceBefore=8)))
+
+        doc.build(story)
+        buf.seek(0)
+        from flask import send_file
+        filename = f"rapport_{nom_complet.replace(' ','_')}_{datetime.datetime.now().strftime('%Y%m%d')}.pdf"
+        return send_file(buf, mimetype='application/pdf', as_attachment=True, download_name=filename)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route("/stats")
 def stats():
     record_search("", [])  # ping stats
