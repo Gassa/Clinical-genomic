@@ -3729,6 +3729,8 @@ Format: analyse clinique → recommandations → références.`;
     if (typeof addNotification === 'function') {
       addNotification(activeClinician.name, 'Réponse reçue', activeClinician.icon);
     }
+    // Synthèse vocale de la réponse
+    clinSpeak(reply, activeClinician.color);
   } catch(e) {
     bubble.innerHTML = '<span style="color:#dc2626">Erreur: ' + e.message + '</span>';
   } finally {
@@ -3762,7 +3764,11 @@ function selectClinician(c) {
       </div>
     </div>
     <button onclick="activeClinician=null;document.getElementById('consultationPanel').style.display='none'"
-      style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:18px;color:var(--mu)">✕</button>`;
+      style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:18px;color:var(--mu)">✕</button>
+    <button id="clinTTSBtn" onclick="clinToggleTTS()" title="Activer/désactiver la voix du clinicien"
+      style="background:none;border:none;cursor:pointer;font-size:18px" title="Voix">🔊</button>
+    <button onclick="clinStopSpeaking()" title="Arrêter la lecture"
+      style="background:none;border:none;cursor:pointer;font-size:16px">⏹</button>\`;
 
   // Message de bienvenue
   appendClinicianMsg('assistant',
@@ -4109,14 +4115,59 @@ function clinMicPause() {
 function clinSendTranscript() {
   const ta = document.getElementById('clinicianInput');
   if (ta && _clinFullTranscript) {
-    ta.value = (ta.value ? ta.value + '\n\n' : '') + '--- Transcription patient ---\n' + _clinFullTranscript.trim();
+    // Injecter la transcription dans le textarea
+    ta.value = (ta.value ? ta.value + '\n\n' : '') + _clinFullTranscript.trim();
+    // Réinitialiser
     document.getElementById('clinAnalyzeBtn') && (document.getElementById('clinAnalyzeBtn').style.display = 'none');
     _clinFullTranscript = '';
     const transcript = document.getElementById('clinMicTranscript');
     if (transcript) { transcript.style.display = 'none'; transcript.innerHTML = '<span style="color:var(--mu);font-style:italic">Paroles du patient en temps réel…</span>'; }
     const timer = document.getElementById('clinMicTimer');
     if (timer) timer.textContent = '00:00';
+    // Envoyer automatiquement au clinicien
+    setTimeout(() => sendClinicianMessageStreaming(), 300);
   }
+}
+
+// ── Synthèse vocale du clinicien ──────────────────────────────────────────
+let _clinTTSEnabled = true;
+let _clinTTSUtterance = null;
+
+function clinSpeak(text, color) {
+  if (!_clinTTSEnabled) return;
+  if (!window.speechSynthesis) return;
+  
+  // Arrêter la lecture en cours
+  window.speechSynthesis.cancel();
+  
+  // Nettoyer le texte (enlever markdown)
+  const clean = text.replace(/\*\*|\*|#{1,6}\s|`{1,3}/g, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').substring(0, 600);
+  
+  const utterance = new SpeechSynthesisUtterance(clean);
+  utterance.lang = 'fr-FR';
+  utterance.rate = 0.95;
+  utterance.pitch = 1.0;
+  utterance.volume = 1.0;
+  
+  // Choisir une voix française si disponible
+  const voices = window.speechSynthesis.getVoices();
+  const frVoice = voices.find(v => v.lang.startsWith('fr') && v.localService) || 
+                  voices.find(v => v.lang.startsWith('fr'));
+  if (frVoice) utterance.voice = frVoice;
+  
+  _clinTTSUtterance = utterance;
+  window.speechSynthesis.speak(utterance);
+}
+
+function clinToggleTTS() {
+  _clinTTSEnabled = !_clinTTSEnabled;
+  const btn = document.getElementById('clinTTSBtn');
+  if (btn) btn.innerHTML = _clinTTSEnabled ? '🔊' : '🔇';
+  if (!_clinTTSEnabled) window.speechSynthesis && window.speechSynthesis.cancel();
+}
+
+function clinStopSpeaking() {
+  window.speechSynthesis && window.speechSynthesis.cancel();
 }
 
 function showSec(name,btn){
