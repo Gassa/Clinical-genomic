@@ -3576,3 +3576,4 @@ def generate_trajectory_pdf(pid):
         import traceback
         return f"Erreur PDF: {str(e)}\n{traceback.format_exc()}", 500
 
+# force redeploy dim. 12 avr. 2026 10:28:05 EDT
