@@ -5543,7 +5543,19 @@ async function vcSendToAI() {
   
   const patient = document.getElementById('vc_patient').value.trim();
   const type = document.getElementById('vc_type').value;
-  const apiKey = localStorage.getItem('claude_api_key') || '';
+  // Récupérer la clé API depuis la session serveur
+  let apiKey = '';
+  try {
+    const keyRes = await fetch('/api/key').then(r=>r.json());
+    if (!keyRes.has_key) {
+      // Fallback localStorage pour compatibilité
+      apiKey = localStorage.getItem('claude_api_key') || '';
+    } else {
+      apiKey = session_api_key || localStorage.getItem('claude_api_key') || '';
+    }
+  } catch(e) {
+    apiKey = localStorage.getItem('claude_api_key') || '';
+  }
   
   if (!apiKey) {
     alert('Veuillez configurer votre clé API Claude (bouton ⚙️ Clé API).');

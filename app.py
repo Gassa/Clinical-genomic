@@ -51,6 +51,14 @@ except Exception:
 import requests as req
 import io, csv, os, json, base64
 import sqlite3, hashlib
+import html as html_module
+
+def sanitize_input(s, max_len=500):
+    """Nettoyer et limiter les inputs utilisateur"""
+    if not isinstance(s, str):
+        return ''
+    s = s.strip()[:max_len]
+    return html_module.escape(s)
 from datetime import timedelta, datetime
 from werkzeug.utils import secure_filename
 
@@ -997,6 +1005,26 @@ def compare_variants():
     return jsonify(compare_two_variants(v1, v2))
 
 # ── Statistiques dashboard ────────────────────────────────────────────────────
+@app.route("/api/key", methods=["GET", "POST", "DELETE"])
+@login_required
+def api_key_store():
+    """Stocker la clé API Claude côté serveur dans la session (chiffrée)"""
+    if request.method == "POST":
+        data = request.json or {}
+        key = data.get("key", "").strip()
+        if key and not key.startswith("sk-ant-"):
+            return jsonify({"success": False, "error": "Clé API invalide"})
+        session["claude_api_key"] = key
+        return jsonify({"success": True})
+    elif request.method == "DELETE":
+        session.pop("claude_api_key", None)
+        return jsonify({"success": True})
+    else:
+        key = session.get("claude_api_key", "")
+        # Masquer la clé sauf les 8 derniers chars
+        masked = ("*" * (len(key)-8) + key[-8:]) if len(key) > 8 else ""
+        return jsonify({"has_key": bool(key), "masked": masked})
+
 @app.route("/me")
 @login_required
 def me():
