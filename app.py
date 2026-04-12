@@ -3,12 +3,12 @@ app.py — SenGenoScope v1.0
 Flask backend complet — sans clé API Claude requise
 """
 import logging
-from flask import Flask
+from flask import Flask, render_template, request, jsonify, send_file, Response, session, redirect, url_for
 try:
     from flask_wtf.csrf import CSRFProtect
     _has_csrf = True
 except ImportError:
-    _has_csrf = False, render_template, request, jsonify, send_file, Response, session, redirect, url_for
+    _has_csrf = False
 
 # CORS — autoriser seulement le domaine de production
 from flask_cors import CORS
