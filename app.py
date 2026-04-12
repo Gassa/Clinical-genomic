@@ -1000,10 +1000,27 @@ def compare_variants():
 @app.route("/me")
 @login_required
 def me():
-    return jsonify({
-        "name": session.get("user_name", ""),
-        "institution": session.get("user_institution", "")
-    })
+    uid = session.get('user_id')
+    conn, _db = get_conn()
+    cur = conn.cursor()
+    ph = "%s" if _db == "pg" else "?"
+    try:
+        cur.execute(f"SELECT name, institution FROM users WHERE id={ph}", (uid,))
+        r = cur.fetchone()
+        conn.close()
+        if r:
+            session["user_name"] = r[0] or ""
+            session["user_institution"] = r[1] or ""
+        return jsonify({
+            "name": session.get("user_name", ""),
+            "institution": session.get("user_institution", "")
+        })
+    except Exception as e:
+        conn.close()
+        return jsonify({
+            "name": session.get("user_name", ""),
+            "institution": session.get("user_institution", "")
+        })
 
 @app.route("/profile", methods=["GET", "PUT"])
 @login_required
