@@ -3772,7 +3772,7 @@ function selectClinician(c) {
 
   // Message de bienvenue
   appendClinicianMsg('assistant',
-    `Bonjour, je suis ${c.name} — ${c.specialty}. Comment puis-je vous aider ?`
+    'Bonjour, je suis ' + c.name + ' — ' + c.specialty + '. Comment puis-je vous aider ?'
   );
 
   // Boutons exemples dynamiques selon le clinicien
@@ -5445,7 +5445,7 @@ function pedCanvasRightClick(e){
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', function(){
-  showSec('search');
+  setTimeout(() => { if(typeof showSec === 'function') showSec('search'); }, 100);
   // Charger le nom de l'utilisateur connecté
   fetch('/me').then(r=>r.json()).then(d=>{
     if(d.name) {
