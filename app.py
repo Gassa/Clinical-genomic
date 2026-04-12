@@ -997,6 +997,14 @@ def compare_variants():
     return jsonify(compare_two_variants(v1, v2))
 
 # ── Statistiques dashboard ────────────────────────────────────────────────────
+@app.route("/me")
+@login_required
+def me():
+    return jsonify({
+        "name": session.get("user_name", ""),
+        "institution": session.get("user_institution", "")
+    })
+
 @app.route("/stats")
 def stats():
     record_search("", [])  # ping stats
