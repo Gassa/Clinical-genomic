@@ -1093,6 +1093,60 @@ TMB: 12.4 mut/Mb  HRD-score: 42  MSI: MSS" style="width:100%;padding:10px;border
     </div>
 
 
+  
+    <!-- COMPARATEUR THÉRAPEUTIQUE IA -->
+    <div class="card" style="margin-top:14px">
+      <div class="ch"><span class="ct2">💊 Comparateur Thérapeutique IA</span></div>
+      <div style="padding:14px">
+        <div style="font-size:13px;color:var(--mu);background:var(--s2);padding:10px 13px;border-radius:7px;margin-bottom:12px">
+          Entrez un profil génomique — l'IA compare toutes les options thérapeutiques disponibles avec niveaux de preuve, taux de réponse et guidelines ESMO/NCCN.
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+          <div>
+            <label style="font-size:11px;color:var(--mu);font-weight:500">Type de cancer</label>
+            <input id="therapyCancer" placeholder="Ex: NSCLC, Cancer sein, Colorectal..." style="width:100%;margin-top:4px;padding:7px 10px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px;box-sizing:border-box">
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--mu);font-weight:500">Contexte clinique</label>
+            <input id="therapyContext" placeholder="Ex: Stade IV, PS 1, 2ème ligne..." style="width:100%;margin-top:4px;padding:7px 10px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px;box-sizing:border-box">
+          </div>
+        </div>
+        <textarea id="therapyProfile" rows="5" placeholder="Profil génomique complet:
+Ex:
+BRCA1 c.5266dupC — Pathogène
+TP53 c.817C>T — Probablement pathogène
+HER2: négatif, PD-L1: 45%, TMB: 8.2 mut/Mb, MSI: MSS
+HRD score: 42 (positif)" style="width:100%;padding:10px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px;box-sizing:border-box;resize:vertical;font-family:monospace;margin-bottom:10px"></textarea>
+        <div style="text-align:right">
+          <button onclick="compareTherapeutics()" style="padding:9px 20px;border-radius:7px;border:none;background:#7c3aed;color:white;font-size:13px;font-weight:500;cursor:pointer">💊 Comparer les thérapies</button>
+        </div>
+        <div id="therapyResult" style="margin-top:12px"></div>
+      </div>
+    </div>
+
+    <!-- SCORE HRD AVANCÉ -->
+    <div class="card" style="margin-top:14px">
+      <div class="ch"><span class="ct2">🧮 Score HRD Avancé — LOH · TAI · LST</span></div>
+      <div style="padding:14px">
+        <div style="font-size:13px;color:var(--mu);background:var(--s2);padding:10px 13px;border-radius:7px;margin-bottom:12px">
+          Calculez le score HRD complet (LOH + TAI + LST) depuis vos données CNV — détermine l'éligibilité aux inhibiteurs PARP et la sensibilité au platine.
+        </div>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:10px;margin-bottom:10px;align-items:end">
+          <input id="hrdContext" placeholder="Contexte clinique (ex: Cancer sein triple négatif, BRCA2 muté)..." style="padding:7px 10px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px">
+          <button onclick="calculateHRD()" style="padding:8px 18px;border-radius:7px;border:none;background:#dc2626;color:white;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap">🧮 Calculer HRD</button>
+        </div>
+        <textarea id="hrdCNVInput" rows="6" placeholder="Données CNV pour calcul HRD:
+Ex:
+LOH_segments: 18  (regions perte heterozygosité)
+TAI_count: 12    (telomeric allelic imbalance)
+LST_count: 15    (large-scale state transitions)
+Genome_fraction_LOH: 0.35
+CNV_data: PTEN del, RB1 del, CDKN2A del, ERBB2 amp..." style="width:100%;padding:10px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px;box-sizing:border-box;resize:vertical;font-family:monospace"></textarea>
+        <div id="hrdResult" style="margin-top:12px"></div>
+      </div>
+    </div>
+
+
   <!-- ACMG -->
   <div id="sec-acmg" style="display:none">
     <div class="card"><div class="ch"><span class="ct2">⚖️ Classificateur ACMG/AMP 2015 — Richards S et al. Genetics in Medicine 2015;17:405-424</span></div>

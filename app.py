@@ -2800,3 +2800,429 @@ def api_delete_patient(patient_id):
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
+
+
+# ════════════════════════════════════════════════════════
+# PDF CLINIQUE AVANCÉ — avec QR code, en-tête institution
+# ════════════════════════════════════════════════════════
+@app.route('/generate_clinical_pdf', methods=['POST'])
+def generate_clinical_pdf():
+    try:
+        import io, qrcode
+        from datetime import datetime
+        from reportlab.lib import colors
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.units import cm
+        from reportlab.lib.styles import ParagraphStyle
+        from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable, Image as RLImage
+        from reportlab.pdfgen import canvas as rl_canvas
+
+        data = request.json or {}
+        patient     = data.get('patient', {})
+        analyses    = data.get('analyses', [])
+        institution = data.get('institution', 'SenGenoScope — Oncogénomique Clinique')
+        physician   = data.get('physician', session.get('user_name', 'Médecin traitant'))
+        report_id   = data.get('report_id', f"SGS-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
+
+        buf = io.BytesIO()
+        doc = SimpleDocTemplate(buf, pagesize=A4,
+            leftMargin=2*cm, rightMargin=2*cm,
+            topMargin=2.5*cm, bottomMargin=2.5*cm)
+
+        # Styles
+        teal   = colors.HexColor('#0d9488')
+        navy   = colors.HexColor('#1e3a5f')
+        gray   = colors.HexColor('#64748b')
+        red    = colors.HexColor('#dc2626')
+        orange = colors.HexColor('#ea580c')
+        light  = colors.HexColor('#f8fafc')
+
+        h1 = ParagraphStyle('h1', fontSize=18, fontName='Helvetica-Bold', textColor=navy, spaceAfter=4)
+        h2 = ParagraphStyle('h2', fontSize=13, fontName='Helvetica-Bold', textColor=teal, spaceAfter=6, spaceBefore=12)
+        h3 = ParagraphStyle('h3', fontSize=11, fontName='Helvetica-Bold', textColor=navy, spaceAfter=4)
+        body = ParagraphStyle('body', fontSize=9, fontName='Helvetica', textColor=colors.HexColor('#374151'), spaceAfter=4, leading=14)
+        small = ParagraphStyle('small', fontSize=8, fontName='Helvetica', textColor=gray, spaceAfter=2)
+        center = ParagraphStyle('center', fontSize=9, fontName='Helvetica', alignment=TA_CENTER, textColor=gray)
+        bold_body = ParagraphStyle('bold_body', fontSize=9, fontName='Helvetica-Bold', textColor=navy, spaceAfter=4)
+
+        story = []
+
+        # ── EN-TÊTE ──
+        header_data = [[
+            Paragraph(f"<b>{institution}</b>", ParagraphStyle('inst', fontSize=11, fontName='Helvetica-Bold', textColor=navy)),
+            Paragraph(f"<b>RAPPORT GÉNOMIQUE CLINIQUE</b><br/><font size=8 color='#64748b'>Confidentiel — Usage médical exclusif</font>",
+                ParagraphStyle('rtype', fontSize=11, fontName='Helvetica-Bold', textColor=teal, alignment=TA_RIGHT))
+        ]]
+        header_table = Table(header_data, colWidths=[9*cm, 8*cm])
+        header_table.setStyle(TableStyle([
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('LINEBELOW', (0,0), (-1,0), 1.5, teal),
+            ('BOTTOMPADDING', (0,0), (-1,0), 8),
+        ]))
+        story.append(header_table)
+        story.append(Spacer(1, 0.4*cm))
+
+        # ── INFOS RAPPORT ──
+        now_str = datetime.now().strftime('%d/%m/%Y à %H:%M')
+        info_data = [
+            ['N° Rapport', report_id, 'Date', now_str],
+            ['Médecin', physician, 'Patient', patient.get('patient_code', '—')],
+        ]
+        info_table = Table(info_data, colWidths=[3*cm, 7*cm, 2.5*cm, 4.5*cm])
+        info_table.setStyle(TableStyle([
+            ('FONTNAME', (0,0), (0,-1), 'Helvetica-Bold'),
+            ('FONTNAME', (2,0), (2,-1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0,0), (-1,-1), 8),
+            ('TEXTCOLOR', (0,0), (0,-1), gray),
+            ('TEXTCOLOR', (2,0), (2,-1), gray),
+            ('BACKGROUND', (0,0), (-1,-1), light),
+            ('ROWBACKGROUNDS', (0,0), (-1,-1), [light, colors.white]),
+            ('TOPPADDING', (0,0), (-1,-1), 5),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 5),
+            ('LEFTPADDING', (0,0), (-1,-1), 8),
+            ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor('#e2e8f0')),
+        ]))
+        story.append(info_table)
+        story.append(Spacer(1, 0.3*cm))
+
+        # ── INFOS PATIENT ──
+        if patient:
+            story.append(Paragraph("Informations patient", h2))
+            name = ' '.join(filter(None, [patient.get('first_name',''), patient.get('last_name','')])) or 'Anonyme'
+            pat_data = [
+                ['Nom', name, 'Sexe', patient.get('sex','—')],
+                ['Cancer', patient.get('cancer_type','—'), 'Stade', patient.get('stage','—')],
+                ['Code', patient.get('patient_code','—'), 'Notes', (patient.get('notes','—') or '—')[:60]],
+            ]
+            pat_table = Table(pat_data, colWidths=[2.5*cm, 6.5*cm, 2.5*cm, 5.5*cm])
+            pat_table.setStyle(TableStyle([
+                ('FONTNAME', (0,0), (0,-1), 'Helvetica-Bold'),
+                ('FONTNAME', (2,0), (2,-1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0,0), (-1,-1), 9),
+                ('TEXTCOLOR', (0,0), (0,-1), gray),
+                ('TEXTCOLOR', (2,0), (2,-1), gray),
+                ('TOPPADDING', (0,0), (-1,-1), 5),
+                ('BOTTOMPADDING', (0,0), (-1,-1), 5),
+                ('LEFTPADDING', (0,0), (-1,-1), 6),
+                ('ROWBACKGROUNDS', (0,0), (-1,-1), [light, colors.white]),
+                ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor('#e2e8f0')),
+                ('INNERGRID', (0,0), (-1,-1), 0.3, colors.HexColor('#e2e8f0')),
+            ]))
+            story.append(pat_table)
+            story.append(Spacer(1, 0.3*cm))
+
+        # ── ANALYSES ──
+        import json as _json
+        type_labels = {'ngs':'Variants NGS / ACMG','cnv':'CNV — Amplifications & Délétions',
+                       'fusions':'Fusions Géniques','signatures':'Signatures Mutationnelles COSMIC','mtb':'Tumeur Board IA — Décision RCP'}
+        type_colors = {'ngs':teal,'cnv':colors.HexColor('#7c3aed'),'fusions':colors.HexColor('#2563eb'),
+                       'signatures':colors.HexColor('#059669'),'mtb':navy}
+
+        for analysis in analyses:
+            atype = analysis.get('analysis_type','ngs')
+            label = type_labels.get(atype, atype.upper())
+            col   = type_colors.get(atype, teal)
+            result = analysis.get('result', {})
+            if isinstance(result, str):
+                try: result = _json.loads(result)
+                except: result = {}
+
+            story.append(HRFlowable(width="100%", thickness=1, color=col))
+            story.append(Paragraph(label, h2))
+
+            # Contexte
+            if analysis.get('context'):
+                story.append(Paragraph(f"<b>Contexte:</b> {analysis['context']}", body))
+
+            # Résumé
+            summary = result.get('summary') or result.get('patient_summary') or ''
+            if summary:
+                story.append(Paragraph(f"<b>Résumé clinique:</b> {summary}", body))
+
+            # Alerte urgente
+            if result.get('urgent') and result.get('urgent_reason'):
+                urgent_data = [[Paragraph(f"⚠️ ALERTE: {result['urgent_reason']}", ParagraphStyle('urg', fontSize=9, fontName='Helvetica-Bold', textColor=red))]]
+                urgent_table = Table(urgent_data, colWidths=[17*cm])
+                urgent_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#fef2f2')),
+                    ('BOX', (0,0), (-1,-1), 1, colors.HexColor('#fecaca')),
+                    ('TOPPADDING', (0,0), (-1,-1), 8),
+                    ('BOTTOMPADDING', (0,0), (-1,-1), 8),
+                    ('LEFTPADDING', (0,0), (-1,-1), 10),
+                ]))
+                story.append(urgent_table)
+                story.append(Spacer(1, 0.2*cm))
+
+            # Variants NGS
+            if atype == 'ngs' and result.get('variants'):
+                variants = result['variants'][:8]
+                v_data = [['Gène', 'Variant', 'Classification', 'VAF', 'Profondeur']]
+                for v in variants:
+                    acmg = v.get('acmg_classification','—')
+                    acmg_col = red if 'Pathog' in acmg else orange if 'Probable' in acmg else gray
+                    v_data.append([
+                        Paragraph(f"<b>{v.get('gene','—')}</b>", ParagraphStyle('g', fontSize=8, fontName='Helvetica-Bold', textColor=navy)),
+                        Paragraph(v.get('hgvsc','—') or '—', ParagraphStyle('hg', fontSize=7, fontName='Helvetica', textColor=gray)),
+                        Paragraph(acmg, ParagraphStyle('ac', fontSize=8, fontName='Helvetica-Bold', textColor=acmg_col)),
+                        str(v.get('vaf','—')),
+                        str(v.get('depth','—'))
+                    ])
+                v_table = Table(v_data, colWidths=[2.5*cm,5*cm,4*cm,2.5*cm,3*cm])
+                v_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0,0), (-1,0), teal),
+                    ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+                    ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0,0), (-1,-1), 8),
+                    ('ROWBACKGROUNDS', (0,1), (-1,-1), [light, colors.white]),
+                    ('TOPPADDING', (0,0), (-1,-1), 4),
+                    ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+                    ('LEFTPADDING', (0,0), (-1,-1), 6),
+                    ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor('#e2e8f0')),
+                    ('INNERGRID', (0,0), (-1,-1), 0.3, colors.HexColor('#e2e8f0')),
+                ]))
+                story.append(v_table)
+                story.append(Spacer(1, 0.2*cm))
+
+            # CNV
+            if atype == 'cnv' and result.get('cnvs'):
+                cnvs = result['cnvs'][:6]
+                c_data = [['Gène', 'Chr', 'Type', 'CN', 'Log2', 'Action']]
+                for c in cnvs:
+                    c_data.append([
+                        Paragraph(f"<b>{c.get('gene','—')}</b>", ParagraphStyle('cg', fontSize=8, fontName='Helvetica-Bold', textColor=navy)),
+                        c.get('chromosome','—'),
+                        Paragraph(c.get('type','—'), ParagraphStyle('ct', fontSize=8, fontName='Helvetica', textColor=red if 'amp' in str(c.get('type','')).lower() else orange)),
+                        str(c.get('copy_number','—')),
+                        str(c.get('log2_ratio','—')),
+                        Paragraph((c.get('action','—') or '—')[:50], ParagraphStyle('ca', fontSize=7, fontName='Helvetica', textColor=teal)),
+                    ])
+                c_table = Table(c_data, colWidths=[2.5*cm,2.5*cm,3*cm,1.5*cm,1.5*cm,6*cm])
+                c_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#7c3aed')),
+                    ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+                    ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0,0), (-1,-1), 8),
+                    ('ROWBACKGROUNDS', (0,1), (-1,-1), [light, colors.white]),
+                    ('TOPPADDING', (0,0), (-1,-1), 4),
+                    ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+                    ('LEFTPADDING', (0,0), (-1,-1), 6),
+                    ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor('#e2e8f0')),
+                    ('INNERGRID', (0,0), (-1,-1), 0.3, colors.HexColor('#e2e8f0')),
+                ]))
+                story.append(c_table)
+                story.append(Spacer(1, 0.2*cm))
+
+            # MTB / RCP
+            if atype == 'mtb':
+                if result.get('rcp_recommendation'):
+                    rcp_data = [[Paragraph(f"<b>RECOMMANDATION RCP:</b><br/>{result['rcp_recommendation']}",
+                        ParagraphStyle('rcp', fontSize=9, fontName='Helvetica', textColor=colors.HexColor('#166534'), leading=14))]]
+                    rcp_table = Table(rcp_data, colWidths=[17*cm])
+                    rcp_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#f0fdf4')),
+                        ('BOX', (0,0), (-1,-1), 1, colors.HexColor('#bbf7d0')),
+                        ('TOPPADDING', (0,0), (-1,-1), 10),
+                        ('BOTTOMPADDING', (0,0), (-1,-1), 10),
+                        ('LEFTPADDING', (0,0), (-1,-1), 12),
+                    ]))
+                    story.append(rcp_table)
+                    story.append(Spacer(1, 0.2*cm))
+                if result.get('therapeutic_priorities'):
+                    story.append(Paragraph("Priorités thérapeutiques", h3))
+                    for t in result['therapeutic_priorities'][:4]:
+                        story.append(Paragraph(f"<b>#{t.get('rank','')} {t.get('therapy','')}</b> — {t.get('rationale','')} [Niveau {t.get('evidence_level','')}]", body))
+
+            # Recommandations
+            recs = result.get('recommendations', [])
+            if recs:
+                story.append(Paragraph("Recommandations", h3))
+                for i, r in enumerate(recs[:6], 1):
+                    story.append(Paragraph(f"{i}. {r}", body))
+
+            story.append(Spacer(1, 0.3*cm))
+
+        # ── QR CODE ──
+        story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#e2e8f0')))
+        story.append(Spacer(1, 0.3*cm))
+
+        try:
+            qr = qrcode.QRCode(version=1, box_size=3, border=2)
+            qr_data = f"SenGenoScope|{report_id}|{patient.get('patient_code','—')}|{now_str}"
+            qr.add_data(qr_data)
+            qr.make(fit=True)
+            qr_img = qr.make_image(fill_color='#0d9488', back_color='white')
+            qr_buf = io.BytesIO()
+            qr_img.save(qr_buf, format='PNG')
+            qr_buf.seek(0)
+            qr_rl = RLImage(qr_buf, width=2.5*cm, height=2.5*cm)
+
+            footer_data = [[
+                qr_rl,
+                Paragraph(
+                    f"<b>SenGenoScope v1.0</b> — Plateforme d'Oncogénomique Clinique<br/>"
+                    f"Rapport N° {report_id} — Généré le {now_str}<br/>"
+                    f"<font color='#dc2626'><b>CONFIDENTIEL — Usage clinique exclusif</b></font><br/>"
+                    f"<font size=7 color='#94a3b8'>Ce rapport est généré par IA et doit être validé par un professionnel de santé qualifié</font>",
+                    ParagraphStyle('footer', fontSize=8, fontName='Helvetica', textColor=gray, leading=12))
+            ]]
+            footer_table = Table(footer_data, colWidths=[3*cm, 14*cm])
+            footer_table.setStyle(TableStyle([
+                ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+                ('LEFTPADDING', (0,0), (-1,-1), 0),
+            ]))
+            story.append(footer_table)
+        except Exception:
+            story.append(Paragraph(
+                f"SenGenoScope v1.0 — Rapport {report_id} — {now_str} — CONFIDENTIEL",
+                center))
+
+        doc.build(story)
+        buf.seek(0)
+        from flask import send_file
+        fname = f"rapport_SGS_{patient.get('patient_code','patient')}_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
+        return send_file(buf, mimetype='application/pdf', as_attachment=True, download_name=fname)
+
+    except Exception as e:
+        import logging; logging.error(f"generate_clinical_pdf error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ════════════════════════════════════════════════════════
+# COMPARATEUR THÉRAPEUTIQUE IA
+# ════════════════════════════════════════════════════════
+@app.route('/compare_therapeutics', methods=['POST'])
+def compare_therapeutics():
+    try:
+        data = request.json or {}
+        user_api_key = (request.headers.get('X-User-Api-Key','') or data.get('user_api_key','')).strip()
+        api_key = user_api_key or os.environ.get('ANTHROPIC_API_KEY','')
+        if not api_key:
+            return jsonify({"success": False, "error": "Cle API manquante."})
+
+        genomic_profile = data.get('genomic_profile','').strip()
+        cancer_type     = data.get('cancer_type','').strip()
+        context         = data.get('context','').strip()
+
+        if not genomic_profile:
+            return jsonify({"success": False, "error": "Profil genomique manquant."})
+
+        import anthropic as _anth, json as _json
+        system_prompt = """Tu es expert en oncologie de precision et pharmacogenomique clinique.
+Compare les options therapeutiques disponibles pour ce profil genomique.
+Reponds UNIQUEMENT en JSON valide strict.
+
+Format:
+{
+  "therapies": [
+    {
+      "rank": 1,
+      "name": "Olaparib (Lynparza)",
+      "class": "Inhibiteur PARP",
+      "biomarker": "BRCA1 c.5266dupC pathogene",
+      "evidence_level": "IA",
+      "indication": "Cancer du sein HER2- avec mutation BRCA germinale",
+      "response_rate": "60%",
+      "pfs_median": "7.0 mois vs 4.2 (HR 0.58)",
+      "os_benefit": "Oui — OS superieur vs chimiotherapie",
+      "side_effects": ["Nausees", "Anemie", "Fatigue"],
+      "contraindications": ["Insuffisance renale severe"],
+      "clinical_trial": "NCT01064102 — OlympiAD",
+      "guideline": "ESMO 2023 — Recommandation Grade A",
+      "availability": "AMM Europe — remboursable",
+      "score": 95
+    }
+  ],
+  "comparison_summary": "Resume comparatif en 3-4 phrases",
+  "best_option": "Nom de la meilleure option",
+  "best_rationale": "Pourquoi cette option est prioritaire",
+  "combination_options": ["Option combinaison 1"],
+  "resistance_mechanisms": ["Mecanisme de resistance possible"],
+  "monitoring": ["Bilan J0: HNF, NFS, creatinine", "IRM J90"],
+  "genetic_counseling_needed": true
+}"""
+
+        user_msg = f"Profil genomique: {genomic_profile}"
+        if cancer_type: user_msg += f"\nType de cancer: {cancer_type}"
+        if context: user_msg += f"\nContexte: {context}"
+
+        client = _anth.Anthropic(api_key=api_key)
+        response = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=4000,
+            system=system_prompt,
+            messages=[{"role":"user","content":user_msg}]
+        )
+        raw = response.content[0].text.strip().replace("```json","").replace("```","").strip()
+        result = _json.loads(raw)
+        return jsonify({"success": True, "result": result})
+    except Exception as e:
+        import logging; logging.error(f"compare_therapeutics error: {e}")
+        return jsonify({"success": False, "error": str(e)})
+
+
+# ════════════════════════════════════════════════════════
+# SCORE HRD AVANCÉ (LOH + TAI + LST)
+# ════════════════════════════════════════════════════════
+@app.route('/calculate_hrd', methods=['POST'])
+def calculate_hrd():
+    try:
+        data = request.json or {}
+        user_api_key = (request.headers.get('X-User-Api-Key','') or data.get('user_api_key','')).strip()
+        api_key = user_api_key or os.environ.get('ANTHROPIC_API_KEY','')
+        if not api_key:
+            return jsonify({"success": False, "error": "Cle API manquante."})
+
+        cnv_data  = data.get('cnv_data','').strip()
+        context   = data.get('context','').strip()
+
+        if not cnv_data:
+            return jsonify({"success": False, "error": "Donnees CNV manquantes."})
+
+        import anthropic as _anth, json as _json
+        system_prompt = """Tu es expert en instabilite genomique et score HRD (Homologous Recombination Deficiency).
+Calcule le score HRD complet depuis les donnees CNV fournies.
+Reponds UNIQUEMENT en JSON valide strict.
+
+Format:
+{
+  "loh_score": 18,
+  "tai_score": 12,
+  "lst_score": 15,
+  "hrd_total": 45,
+  "hrd_status": "Positif",
+  "hrd_threshold": 42,
+  "interpretation": "HRD positif (score 45 > seuil 42) — deficit de reparation homologue probable",
+  "brca_like": true,
+  "parp_eligibility": "Eligible",
+  "parp_drugs": ["Olaparib", "Niraparib", "Rucaparib"],
+  "platinum_sensitivity": "Haute",
+  "confidence": "Moderee",
+  "loh_details": "18 regions LOH detectees (seuil: 15)",
+  "tai_details": "12 transitions allele-specifiques (seuil: 11)",
+  "lst_details": "15 transitions large-scale (seuil: 10)",
+  "genomic_instability": "Elevee",
+  "recommendations": [
+    "Eligibilite inhibiteurs PARP confirmee (score HRD 45)",
+    "Test BRCA germinal complementaire recommande",
+    "Chimiotherapie a base de platine en premiere intention"
+  ],
+  "caveats": "Score calcule par IA depuis donnees CNV — validation bioinformatique recommandee"
+}"""
+
+        user_msg = "Calcule le score HRD depuis ces donnees CNV:\n\n" + cnv_data
+        if context: user_msg += "\n\nContexte: " + context
+
+        client = _anth.Anthropic(api_key=api_key)
+        response = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=2000,
+            system=system_prompt,
+            messages=[{"role":"user","content":user_msg}]
+        )
+        raw = response.content[0].text.strip().replace("```json","").replace("```","").strip()
+        result = _json.loads(raw)
+        return jsonify({"success": True, "result": result})
+    except Exception as e:
+        import logging; logging.error(f"calculate_hrd error: {e}")
+        return jsonify({"success": False, "error": str(e)})

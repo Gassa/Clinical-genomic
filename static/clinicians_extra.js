@@ -837,3 +837,193 @@ function getPatientBadge() {
     '<span style="cursor:pointer;opacity:.7" onclick="localStorage.removeItem(\'sgs_current_patient\');localStorage.removeItem(\'sgs_current_patient_code\');location.reload()">✕</span>' +
     '</div>';
 }
+
+
+// ══ COMPARATEUR THÉRAPEUTIQUE IA ══
+var _lastTherapyResult = null;
+async function compareTherapeutics() {
+  var profile = (document.getElementById('therapyProfile')||{}).value||'';
+  var cancer  = (document.getElementById('therapyCancer')||{}).value||'';
+  var ctx     = (document.getElementById('therapyContext')||{}).value||'';
+  var resDiv  = document.getElementById('therapyResult');
+  if (!resDiv) return;
+  if (!profile.trim()) { resDiv.innerHTML='<div style="color:#dc2626;padding:10px;background:#fef2f2;border-radius:8px">Entrez un profil génomique.</div>'; return; }
+  resDiv.innerHTML='<div style="text-align:center;padding:20px"><div style="display:inline-block;width:24px;height:24px;border:3px solid var(--bd);border-top-color:#7c3aed;border-radius:50%;animation:spin 1s linear infinite"></div><div style="margin-top:8px;font-size:13px;color:var(--mu)">Comparaison thérapeutique en cours...</div></div>';
+  try {
+    var userKey = localStorage.getItem('sgs_api_key')||'';
+    var r = await fetch('/compare_therapeutics', {
+      method:'POST', headers:{'Content-Type':'application/json','X-User-Api-Key':userKey},
+      body: JSON.stringify({genomic_profile:profile, cancer_type:cancer, context:ctx, user_api_key:userKey})
+    });
+    var d = await r.json();
+    if (!d.success) throw new Error(d.error);
+    _lastTherapyResult = d.result;
+    renderTherapyResult(d.result);
+  } catch(e) { resDiv.innerHTML='<div style="color:#dc2626;padding:12px;background:#fef2f2;border-radius:8px">Erreur: '+e.message+'</div>'; }
+}
+
+function renderTherapyResult(res) {
+  var resDiv = document.getElementById('therapyResult');
+  if (!resDiv||!res) return;
+  var html = '<div style="display:flex;flex-direction:column;gap:12px">';
+
+  // Meilleure option
+  if (res.best_option) {
+    html += '<div style="background:linear-gradient(135deg,#1e3a5f,#0d9488);border-radius:10px;padding:14px;color:white">';
+    html += '<div style="font-size:11px;opacity:.8;margin-bottom:4px">MEILLEURE OPTION</div>';
+    html += '<div style="font-size:16px;font-weight:700">'+res.best_option+'</div>';
+    if (res.best_rationale) html += '<div style="font-size:12px;opacity:.9;margin-top:6px">'+res.best_rationale+'</div>';
+    html += '</div>';
+  }
+
+  if (res.comparison_summary) html += '<div style="background:var(--s2);border-radius:8px;padding:12px;font-size:13px">'+res.comparison_summary+'</div>';
+
+  // Thérapies
+  var therapies = res.therapies||[];
+  if (therapies.length) {
+    html += '<div style="font-size:12px;font-weight:600;color:var(--mu)">OPTIONS THÉRAPEUTIQUES ('+therapies.length+')</div>';
+    therapies.forEach(function(t) {
+      var score = t.score||0;
+      var scoreColor = score>=80?'#059669':score>=60?'#f59e0b':'#dc2626';
+      var evColor = t.evidence_level==='IA'?'#dc2626':t.evidence_level==='IB'?'#ea580c':t.evidence_level==='IIA'?'#f59e0b':'#6b7280';
+      html += '<div style="border:1px solid var(--bd);border-left:4px solid '+scoreColor+';border-radius:8px;padding:12px">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">';
+      html += '<div><span style="font-size:14px;font-weight:700">#'+t.rank+' '+t.name+'</span>';
+      html += '<span style="font-size:12px;color:var(--mu);margin-left:8px">'+t.class+'</span></div>';
+      html += '<div style="display:flex;gap:6px">';
+      html += '<span style="font-size:11px;background:'+evColor+'22;color:'+evColor+';padding:3px 8px;border-radius:8px;font-weight:600">'+t.evidence_level+'</span>';
+      html += '<span style="font-size:13px;font-weight:700;color:'+scoreColor+'">'+score+'/100</span>';
+      html += '</div></div>';
+      if (t.biomarker) html += '<div style="font-size:12px;color:var(--mu);margin-bottom:4px">Biomarqueur: <b>'+t.biomarker+'</b></div>';
+      if (t.response_rate) html += '<div style="font-size:12px;margin-bottom:2px">Taux de réponse: <b>'+t.response_rate+'</b>'+(t.pfs_median?' | PFS: '+t.pfs_median:'')+'</div>';
+      if (t.guideline) html += '<div style="font-size:11px;color:#0d9488;background:#0d948811;border-radius:6px;padding:5px 8px;margin-top:6px;margin-bottom:6px">📋 '+t.guideline+'</div>';
+      if (t.side_effects&&t.side_effects.length) {
+        html += '<div style="font-size:11px;color:#f59e0b;margin-bottom:4px">⚠️ Effets: '+t.side_effects.slice(0,3).join(', ')+'</div>';
+      }
+      if (t.clinical_trial) html += '<div style="font-size:11px;color:#2563eb">🔬 '+t.clinical_trial+'</div>';
+      html += '</div>';
+    });
+  }
+
+  // Monitoring + Résistances
+  if (res.monitoring&&res.monitoring.length) {
+    html += '<div style="background:var(--s2);border-radius:8px;padding:12px"><div style="font-size:12px;font-weight:600;margin-bottom:6px">Plan de monitoring</div>';
+    res.monitoring.forEach(function(m){ html += '<div style="font-size:12px;padding:2px 0">• '+m+'</div>'; });
+    html += '</div>';
+  }
+
+  html += '</div>';
+  resDiv.innerHTML = html;
+}
+
+
+// ══ SCORE HRD AVANCÉ ══
+var _lastHRDResult = null;
+async function calculateHRD() {
+  var cnv   = (document.getElementById('hrdCNVInput')||{}).value||'';
+  var ctx   = (document.getElementById('hrdContext')||{}).value||'';
+  var resDiv = document.getElementById('hrdResult');
+  if (!resDiv) return;
+  if (!cnv.trim()) { resDiv.innerHTML='<div style="color:#dc2626;padding:10px;background:#fef2f2;border-radius:8px">Entrez des données CNV.</div>'; return; }
+  resDiv.innerHTML='<div style="text-align:center;padding:20px"><div style="display:inline-block;width:24px;height:24px;border:3px solid var(--bd);border-top-color:#dc2626;border-radius:50%;animation:spin 1s linear infinite"></div><div style="margin-top:8px;font-size:13px;color:var(--mu)">Calcul score HRD en cours...</div></div>';
+  try {
+    var userKey = localStorage.getItem('sgs_api_key')||'';
+    var r = await fetch('/calculate_hrd', {
+      method:'POST', headers:{'Content-Type':'application/json','X-User-Api-Key':userKey},
+      body: JSON.stringify({cnv_data:cnv, context:ctx, user_api_key:userKey})
+    });
+    var d = await r.json();
+    if (!d.success) throw new Error(d.error);
+    _lastHRDResult = d.result;
+    renderHRDResult(d.result);
+  } catch(e) { resDiv.innerHTML='<div style="color:#dc2626;padding:12px;background:#fef2f2;border-radius:8px">Erreur: '+e.message+'</div>'; }
+}
+
+function renderHRDResult(res) {
+  var resDiv = document.getElementById('hrdResult');
+  if (!resDiv||!res) return;
+  var isPos = res.hrd_status === 'Positif';
+  var hrdColor = isPos ? '#dc2626' : '#059669';
+  var html = '<div style="display:flex;flex-direction:column;gap:12px">';
+
+  // Score global
+  html += '<div style="background:var(--s2);border-radius:12px;padding:16px">';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">';
+  html += '<div><div style="font-size:13px;color:var(--mu)">Score HRD total</div>';
+  html += '<div style="font-size:36px;font-weight:700;color:'+hrdColor+'">'+res.hrd_total+'</div>';
+  html += '<div style="font-size:12px;color:var(--mu)">Seuil: '+res.hrd_threshold+'</div></div>';
+  html += '<div style="text-align:right"><span style="font-size:16px;font-weight:700;background:'+hrdColor+'22;color:'+hrdColor+';padding:8px 16px;border-radius:10px">'+res.hrd_status+'</span></div>';
+  html += '</div>';
+
+  // Composantes LOH + TAI + LST
+  html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">';
+  var components = [
+    {label:'LOH', value:res.loh_score, detail:res.loh_details, color:'#7c3aed'},
+    {label:'TAI', value:res.tai_score, detail:res.tai_details, color:'#2563eb'},
+    {label:'LST', value:res.lst_score, detail:res.lst_details, color:'#ea580c'},
+  ];
+  components.forEach(function(c) {
+    html += '<div style="background:white;border:1px solid var(--bd);border-radius:8px;padding:10px;text-align:center">';
+    html += '<div style="font-size:11px;color:var(--mu);font-weight:600">'+c.label+'</div>';
+    html += '<div style="font-size:24px;font-weight:700;color:'+c.color+'">'+c.value+'</div>';
+    if (c.detail) html += '<div style="font-size:10px;color:var(--mu);margin-top:2px">'+c.detail+'</div>';
+    html += '</div>';
+  });
+  html += '</div></div>';
+
+  // PARP eligibility
+  if (res.parp_eligibility) {
+    var parpColor = res.parp_eligibility.includes('Eligible') ? '#059669' : '#dc2626';
+    html += '<div style="border:1px solid '+parpColor+'44;background:'+parpColor+'11;border-radius:8px;padding:12px">';
+    html += '<div style="font-size:12px;font-weight:600;color:'+parpColor+';margin-bottom:6px">💊 Inhibiteurs PARP: '+res.parp_eligibility+'</div>';
+    if (res.parp_drugs&&res.parp_drugs.length) {
+      html += '<div style="display:flex;flex-wrap:wrap;gap:4px">';
+      res.parp_drugs.forEach(function(d){ html += '<span style="font-size:11px;background:'+parpColor+'22;color:'+parpColor+';padding:2px 8px;border-radius:8px">'+d+'</span>'; });
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+
+  if (res.interpretation) html += '<div style="background:var(--s2);border-radius:8px;padding:12px;font-size:13px"><b>Interprétation:</b> '+res.interpretation+'</div>';
+
+  if (res.recommendations&&res.recommendations.length) {
+    html += '<div style="background:var(--s2);border-radius:8px;padding:12px"><div style="font-size:12px;font-weight:600;margin-bottom:6px">Recommandations</div>';
+    res.recommendations.forEach(function(r,i){ html += '<div style="font-size:12px;padding:3px 0">'+( i+1)+'. '+r+'</div>'; });
+    html += '</div>';
+  }
+
+  if (res.caveats) html += '<div style="font-size:11px;color:var(--mu);font-style:italic;padding:6px">⚠️ '+res.caveats+'</div>';
+
+  html += '</div>';
+  resDiv.innerHTML = html;
+}
+
+
+// ══ PDF CLINIQUE AVANCÉ ══
+async function generateClinicalPDF(patientId) {
+  if (!patientId) { alert('Aucun patient actif. Définissez un patient dans le dashboard.'); return; }
+  var btn = document.getElementById('pdfClinicalBtn');
+  if (btn) { btn.textContent = 'Génération...'; btn.disabled = true; }
+  try {
+    var rp = await fetch('/api/patients/' + patientId);
+    var dp = await rp.json();
+    if (!dp.success) throw new Error(dp.error);
+    var r = await fetch('/generate_clinical_pdf', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        patient: dp.patient,
+        analyses: dp.analyses||[],
+        institution: 'SenGenoScope — Oncogénomique Clinique',
+        physician: localStorage.getItem('sgs_user_name')||'Médecin traitant'
+      })
+    });
+    if (!r.ok) throw new Error('Erreur génération PDF');
+    var blob = await r.blob();
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href=url; a.download='rapport_clinique_'+patientId+'.pdf'; a.click();
+    URL.revokeObjectURL(url);
+  } catch(e) { alert('Erreur PDF: '+e.message); }
+  if (btn) { btn.textContent = '📄 PDF Clinique'; btn.disabled = false; }
+}
