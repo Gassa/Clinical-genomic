@@ -458,16 +458,7 @@ canvas{max-width:100%;border-radius:5px;}
 var _pendingCalls = [];
 
 
-function showSec(n, b){
-  // Cacher toutes les sections
-  document.querySelectorAll('[id^="sec-"]').forEach(function(s){ s.style.display='none'; });
-  // Afficher la section demandée
-  var el = document.getElementById('sec-'+n);
-  if(el) el.style.display='block';
-  // Mettre à jour le menu actif
-  document.querySelectorAll('.ni').forEach(function(btn){ btn.classList.remove('active'); });
-  if(b) b.classList.add('active');
-}
+function showSec(n, b){ /* défini plus bas — version complète */ }
 async function openApiSettings(){ _pendingCalls.push(['openApiSettings']); }
 
 
@@ -619,7 +610,7 @@ function qs(q){document.getElementById('query').value=q;if(typeof runSearch==='f
     <div class="tr2">
       <span class="bg2 bc" data-fr="⚕ Usage Clinique" data-en="⚕ Clinical Use">⚕ Usage Clinique</span>
       <span class="bg2 bp2">✅ v1.0</span>
-      <span class="bg2 bv" data-fr="🧪 20 modules" data-en="🧪 20 modules">🧪 20 modules</span>
+      <span class="bg2 bv" data-fr="🧪 21 modules" data-en="🧪 21 modules">🧪 21 modules</span>
       <button class="btn bpu2 bsm" id="pdfBtn" onclick="expPDF()" style="display:none" data-fr="📄 PDF" data-en="📄 PDF">📄 PDF</button>
       <button class="btn bt2 bsm" id="csvBtn" onclick="expCSV()" style="display:none" data-fr="📊 CSV" data-en="📊 CSV">📊 CSV</button>
       <button id="themeToggleBtn" onclick="toggleTheme()"
@@ -2345,7 +2336,7 @@ window.showSec = function(n, b) {
       <div class="abtt" data-fr="Plateforme d'oncogénomique et oncopharmacogénomique clinique" data-en="Clinical Oncogenomics and Oncopharmacogenomics Platform">Plateforme d'oncogénomique et oncopharmacogénomique clinique</div>
       <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,.8);margin-top:10px" data-fr="Moustapha Gassama, oncogénéticien médical | Public Health Data Scientist | Pathologie Computationnelle | Junior Researcher in Medical AI" data-en="Moustapha Gassama, oncogeneticist | Public Health Data Scientist | Computational Pathology | Junior Researcher in Medical AI">Moustapha Gassama, oncogénéticien médical | Public Health Data Scientist | Pathologie Computationnelle | Junior Researcher in Medical AI</div>
       <div style="font-size:13px;color:rgba(255,255,255,.65);margin-top:16px;line-height:1.9;text-align:justify;border-top:1px solid rgba(255,255,255,.1);padding-top:14px;hyphens:auto;word-spacing:0.05em">
-        SenGenoScope est une plateforme clinique intégrée d'oncogénomique et d'oncopharmacogénomique, conçue pour accompagner les cliniciens, oncogénéticiens et chercheurs dans l'interprétation clinique des données génomiques complexes. Développée avec un focus particulier sur les populations africaines et sénégalaises, elle intègre 20 modules spécialisés couvrant l'ensemble du workflow de médecine génomique de précision : classification des variants selon les critères ACMG/AMP 2015, interprétation des rapports NGS en langage clinique, analyse des CNV, fusions géniques et signatures mutationnelles COSMIC, calcul du score HRD (LOH·TAI·LST) pour l'éligibilité aux inhibiteurs PARP, évaluation des risques héréditaires de cancer (BRCA1/2, Lynch, TP53, RB1…), calcul des scores polygéniques (PRS) pour 5 types de cancers, et annotation multi-bases simultanée (PubMed, ClinVar, gnomAD v4, OMIM, COSMIC, ClinicalTrials.gov). Le module de pharmacogénomique IA analyse les implications thérapeutiques des variants selon les guidelines CPIC/DPWG/FDA. Le comparateur thérapeutique IA synthétise les options de traitement avec niveaux de preuve ESMO/NCCN. La corrélation morphologie–génétique intègre l'analyse d'images histologiques par IA pour les cancers du sein, de la prostate et les tumeurs pédiatriques. Le Tumeur Board IA génère automatiquement des synthèses multi-omiques structurées pour la Réunion de Concertation Pluridisciplinaire (RCP). L'ensemble est propulsé par l'intelligence artificielle Claude (Anthropic), permettant une analyse contextuelle profonde, une synthèse automatisée de la littérature scientifique et la génération de rapports cliniques structurés prêts à l'emploi.
+        SenGenoScope est une plateforme clinique intégrée d'oncogénomique et d'oncopharmacogénomique, conçue pour accompagner les cliniciens, oncogénéticiens et chercheurs dans l'interprétation clinique des données génomiques complexes. Développée avec un focus particulier sur les populations africaines et sénégalaises, elle intègre 21 modules spécialisés couvrant l'ensemble du workflow de médecine génomique de précision : classification des variants selon les critères ACMG/AMP 2015, interprétation des rapports NGS en langage clinique, analyse des CNV, fusions géniques et signatures mutationnelles COSMIC, calcul du score HRD (LOH·TAI·LST) pour l'éligibilité aux inhibiteurs PARP, évaluation des risques héréditaires de cancer (BRCA1/2, Lynch, TP53, RB1…), calcul des scores polygéniques (PRS) pour 5 types de cancers, et annotation multi-bases simultanée (PubMed, ClinVar, gnomAD v4, OMIM, COSMIC, ClinicalTrials.gov). Le module de pharmacogénomique IA analyse les implications thérapeutiques des variants selon les guidelines CPIC/DPWG/FDA. Le comparateur thérapeutique IA synthétise les options de traitement avec niveaux de preuve ESMO/NCCN. La corrélation morphologie–génétique intègre l'analyse d'images histologiques par IA pour les cancers du sein, de la prostate et les tumeurs pédiatriques. Le Tumeur Board IA génère automatiquement des synthèses multi-omiques structurées pour la Réunion de Concertation Pluridisciplinaire (RCP). L'ensemble est propulsé par l'intelligence artificielle Claude (Anthropic), permettant une analyse contextuelle profonde, une synthèse automatisée de la littérature scientifique et la génération de rapports cliniques structurés prêts à l'emploi.
       </div>
     </div>
     <div class="rmg">
@@ -2353,6 +2344,8 @@ window.showSec = function(n, b) {
         <div class="rmit rmd">✅ Recherche PubMed sans limite d'articles</div>
         <div class="rmit rmd">✅ VEP Ensembl API (PolyPhen/SIFT/CADD)</div>
         <div class="rmit rmd">✅ Classificateur ACMG 2015 complet</div>
+        <div class="rmit rmd">✅ Trajectoire de soin patient</div>
+        <div class="rmit rmd">✅ Dashboard analytique temps réel</div>
         <div class="rmit rmd" data-fr="✅ Score polygénique PRS (5 cancers)" data-en="✅ Polygenic Risk Score PRS (5 cancers)">✅ Score polygénique PRS (5 cancers)</div>
         <div class="rmit rmd">✅ Mutations fondatrices (6 populations)</div>
         <div class="rmit rmd" data-fr="✅ Pénétrance par âge (BRCA/Lynch/TP53)" data-en="✅ Penetrance by age (BRCA/Lynch/TP53)">✅ Pénétrance par âge (BRCA/Lynch/TP53)</div>
@@ -4599,6 +4592,8 @@ Arbre décisionnel ESMO 2023-2024:
 // ══ NAVIGATION SECTIONS ══════════════════════════════════════════════════
 function showSec(name,btn){
   const SECS=['search','prs','founder','penetrance','tools','ngs','acmg','risk','glcomp','manchester','compvar','pedigree','trajectory','bookmarks','dashboard','about','litimport','ai_chat','ai_upload','ai_pharma','clinicians','morpho','rare','tmb_msi','drug_interactions','esmo_decision','voice_consult'];
+  // Charger modules dynamiques
+  if(name==='dashboard') { setTimeout(()=>{ if(typeof loadDashboard==='function') loadDashboard(); },50); }
   SECS.forEach(s=>{
     const el=document.getElementById('sec-'+s);
     if(el) el.style.display=(s===name)?'block':'none';
