@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SenGenoScope — Dossier patient</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8fafc;min-height:100vh}
+.topbar{background:white;border-bottom:1px solid #e2e8f0;padding:12px 24px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-size:18px;font-weight:700;color:#0f172a}.logo span{color:#0d9488}
+.back-btn{font-size:13px;color:#0d9488;text-decoration:none;padding:6px 12px;border:1px solid #0d9488;border-radius:8px;margin-right:10px}
+.container{max-width:1000px;margin:0 auto;padding:24px;display:grid;grid-template-columns:300px 1fr;gap:20px}
+.card{background:white;border:1px solid #e2e8f0;border-radius:12px;padding:18px}
+.avatar{width:56px;height:56px;border-radius:50%;background:#0d948822;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px;color:#0d9488;margin-bottom:12px}
+.patient-name{font-size:18px;font-weight:700;color:#0f172a;margin-bottom:4px}
+.patient-code{font-size:12px;color:#64748b;margin-bottom:14px}
+.info-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:13px}
+.info-label{color:#64748b}
+.info-value{font-weight:500;color:#0f172a}
+.btn{padding:8px 16px;border-radius:8px;border:none;font-size:13px;font-weight:500;cursor:pointer;margin-top:10px;width:100%}
+.btn-primary{background:#0d9488;color:white}
+.btn-danger{background:#fef2f2;color:#dc2626;border:1px solid #fecaca}
+.section-title{font-size:14px;font-weight:600;color:#0f172a;margin-bottom:14px}
+.analysis-item{border:1px solid #e2e8f0;border-radius:10px;padding:14px;margin-bottom:10px;cursor:pointer;transition:border-color .2s}
+.analysis-item:hover{border-color:#0d9488}
+.analysis-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.analysis-type{font-size:13px;font-weight:600}
+.analysis-date{font-size:11px;color:#64748b}
+.analysis-summary{font-size:12px;color:#374151;line-height:1.5}
+.type-badge{font-size:11px;padding:3px 9px;border-radius:8px;font-weight:500}
+.empty-analyses{text-align:center;padding:40px;color:#94a3b8}
+.use-btn{font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #0d9488;background:white;color:#0d9488;cursor:pointer;margin-top:8px}
+.use-btn:hover{background:#0d9488;color:white}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div style="display:flex;align-items:center">
+    <a href="/dashboard/patients" class="back-btn">← Dossiers</a>
+    <div class="logo">Sen<span>Geno</span>Scope</div>
+  </div>
+  <a href="/app" style="font-size:13px;color:#0d9488;text-decoration:none">🚀 Lancer une analyse</a>
+</div>
+
+<div class="container">
+  <!-- Fiche patient -->
+  <div>
+    <div class="card" id="patient-card">
+      <div style="text-align:center;padding:20px;color:#94a3b8">Chargement...</div>
+    </div>
+  </div>
+
+  <!-- Analyses -->
+  <div>
+    <div class="card">
+      <div class="section-title" id="analyses-title">Analyses genomiques</div>
+      <div id="analyses-container"><div class="empty-analyses">Chargement...</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+var PATIENT_ID = '{{ patient_id }}';
+var typeColors = {ngs:'#0d9488',cnv:'#7c3aed',fusions:'#2563eb',signatures:'#059669',mtb:'#1e3a5f'};
+var typeLabels = {ngs:'NGS / Variants',cnv:'CNV',fusions:'Fusions géniques',signatures:'Signatures COSMIC',mtb:'Tumeur Board MTB'};
+
+async function loadPatient() {
+  try {
+    var r = await fetch('/api/patients/' + PATIENT_ID);
+    var d = await r.json();
+    if (!d.success) { document.getElementById('patient-card').innerHTML = '<p style="color:#dc2626">' + d.error + '</p>'; return; }
+    renderPatient(d.patient);
+    renderAnalyses(d.analyses || []);
+  } catch(e) {
+    document.getElementById('patient-card').innerHTML = '<p style="color:#dc2626">' + e.message + '</p>';
+  }
+}
+
+function renderPatient(p) {
+  var initials = ((p.first_name||'?')[0] + (p.last_name||'?')[0]).toUpperCase();
+  var name = [p.first_name, p.last_name].filter(Boolean).join(' ') || 'Patient anonyme';
+  var age = '';
+  if (p.date_of_birth) age = (new Date().getFullYear() - new Date(p.date_of_birth).getFullYear()) + ' ans';
+  document.getElementById('patient-card').innerHTML =
+    '<div style="text-align:center;margin-bottom:16px">' +
+    '<div class="avatar" style="margin:0 auto 10px">' + initials + '</div>' +
+    '<div class="patient-name">' + name + '</div>' +
+    '<div class="patient-code">Code: ' + p.patient_code + '</div>' +
+    '</div>' +
+    '<div class="info-row"><span class="info-label">Cancer</span><span class="info-value">' + (p.cancer_type||'—') + '</span></div>' +
+    '<div class="info-row"><span class="info-label">Stade</span><span class="info-value">' + (p.stage||'—') + '</span></div>' +
+    '<div class="info-row"><span class="info-label">Sexe</span><span class="info-value">' + (p.sex==='M'?'Homme':p.sex==='F'?'Femme':p.sex||'—') + '</span></div>' +
+    '<div class="info-row"><span class="info-label">Âge</span><span class="info-value">' + (age||'—') + '</span></div>' +
+    '<div class="info-row"><span class="info-label">Créé le</span><span class="info-value">' + new Date(p.created_at).toLocaleDateString('fr-FR') + '</span></div>' +
+    (p.notes ? '<div style="margin-top:12px;padding:10px;background:#f8fafc;border-radius:8px;font-size:12px;color:#374151">' + p.notes + '</div>' : '') +
+    '<button class="btn btn-primary" onclick="setActivePatient(\'' + p.id + '\',\'' + p.patient_code + '\')" style="margin-top:14px">Définir comme patient actif</button>' +
+    '<a href="/app" class="btn btn-primary" style="display:block;text-align:center;text-decoration:none;margin-top:8px;background:#7c3aed">+ Nouvelle analyse</a>' +
+    '<button class="btn btn-danger" onclick="deletePatient()" style="margin-top:8px">Supprimer le dossier</button>';
+}
+
+function renderAnalyses(analyses) {
+  document.getElementById('analyses-title').textContent = 'Analyses génomiques (' + analyses.length + ')';
+  if (!analyses.length) {
+    document.getElementById('analyses-container').innerHTML = '<div class="empty-analyses"><p>Aucune analyse sauvegardée.</p><p style="margin-top:8px;font-size:12px">Lancez une analyse NGS, CNV, Fusions ou Signatures depuis la plateforme et cliquez sur 💾 Sauvegarder.</p></div>';
+    return;
+  }
+  var html = '';
+  analyses.forEach(function(a) {
+    var col = typeColors[a.analysis_type] || '#64748b';
+    var label = typeLabels[a.analysis_type] || a.analysis_type;
+    var summary = '';
+    if (a.result) {
+      var res = typeof a.result === 'string' ? JSON.parse(a.result) : a.result;
+      summary = res.summary || res.patient_summary || res.rcp_recommendation || '';
+      if (summary && summary.length > 150) summary = summary.substring(0,150) + '...';
+    }
+    var dateStr = new Date(a.created_at).toLocaleDateString('fr-FR') + ' ' + new Date(a.created_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    html += '<div class="analysis-item">';
+    html += '<div class="analysis-header">';
+    html += '<span class="type-badge" style="background:' + col + '22;color:' + col + '">' + label + '</span>';
+    html += '<span class="analysis-date">' + dateStr + '</span>';
+    html += '</div>';
+    if (a.context) html += '<div style="font-size:12px;color:#64748b;margin-bottom:4px">Contexte: ' + a.context + '</div>';
+    if (summary) html += '<div class="analysis-summary">' + summary + '</div>';
+    html += '</div>';
+  });
+  document.getElementById('analyses-container').innerHTML = html;
+}
+
+function setActivePatient(id, code) {
+  localStorage.setItem('sgs_current_patient', id);
+  localStorage.setItem('sgs_current_patient_code', code);
+  alert('Patient ' + code + ' défini comme actif. Les prochaines analyses seront sauvegardées dans ce dossier.');
+}
+
+async function deletePatient() {
+  if (!confirm('Supprimer ce dossier et toutes ses analyses ? Cette action est irréversible.')) return;
+  try {
+    var r = await fetch('/api/patients/' + PATIENT_ID, {method:'DELETE'});
+    var d = await r.json();
+    if (d.success) window.location.href = '/dashboard/patients';
+    else alert('Erreur: ' + d.error);
+  } catch(e) { alert(e.message); }
+}
+
+loadPatient();
+</script>
+</body>
+</html>

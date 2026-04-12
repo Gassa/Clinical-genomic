@@ -2717,3 +2717,64 @@ Format de réponse:
     except Exception as e:
         import logging; logging.error(f"tumor_board error: {e}")
         return jsonify({"success": False, "error": str(e)})
+
+
+# ════════════════════════════════════════════════════════
+# DASHBOARD PATIENTS
+# ════════════════════════════════════════════════════════
+@app.route('/dashboard/patients')
+def patients_dashboard():
+    if not session.get('authenticated'):
+        from flask import redirect
+        return redirect('/login')
+    return render_template('patients_dashboard.html')
+
+@app.route('/dashboard/patient/<patient_id>')
+def patient_detail(patient_id):
+    if not session.get('authenticated'):
+        from flask import redirect
+        return redirect('/login')
+    return render_template('patient_detail.html', patient_id=patient_id)
+
+@app.route('/api/patients/<patient_id>', methods=['GET'])
+def api_get_patient(patient_id):
+    try:
+        from supabase_client import get_supabase
+        if not session.get('user_id'):
+            return jsonify({"success": False, "error": "Non authentifie"}), 401
+        sb = get_supabase()
+        res = sb.table('patients').select('*').eq('id', patient_id).execute()
+        if not res.data:
+            return jsonify({"success": False, "error": "Patient non trouve"})
+        analyses = sb.table('analyses').select('*').eq('patient_id', patient_id).order('created_at', desc=True).execute()
+        return jsonify({"success": True, "patient": res.data[0], "analyses": analyses.data})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route('/api/patients/<patient_id>', methods=['PUT'])
+def api_update_patient(patient_id):
+    try:
+        from supabase_client import get_supabase
+        if not session.get('user_id'):
+            return jsonify({"success": False, "error": "Non authentifie"}), 401
+        data = request.json or {}
+        sb = get_supabase()
+        allowed = ['first_name','last_name','cancer_type','stage','notes','sex','date_of_birth']
+        update = {k: data[k] for k in allowed if k in data}
+        res = sb.table('patients').update(update).eq('id', patient_id).execute()
+        return jsonify({"success": True, "patient": res.data[0] if res.data else {}})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route('/api/patients/<patient_id>', methods=['DELETE'])
+def api_delete_patient(patient_id):
+    try:
+        from supabase_client import get_supabase
+        if not session.get('user_id'):
+            return jsonify({"success": False, "error": "Non authentifie"}), 401
+        sb = get_supabase()
+        sb.table('analyses').delete().eq('patient_id', patient_id).execute()
+        sb.table('patients').delete().eq('id', patient_id).execute()
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
