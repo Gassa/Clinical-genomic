@@ -1616,7 +1616,7 @@ async function loadDashboard() {
           <div style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--tx)">🕐 Recherches récentes</div>
           ${(s.recent_searches||[]).length ? [...(s.recent_searches||[])].reverse().map(q=>`
             <div style="padding:6px 10px;background:var(--sf);border-radius:7px;margin-bottom:6px;font-size:12px;color:var(--tx);cursor:pointer;border:1px solid var(--bd)"
-              onclick="qs && qs('${q.replace(/'/g,"\'")}')">
+              onclick="qs && qs('${String(q).replace(/'/g,"\'")}')">
               🔍 ${q}
             </div>
           `).join('') : '<div style="color:var(--mu);font-size:12px;text-align:center;padding:20px">Aucune recherche récente</div>'}
@@ -6159,5 +6159,56 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <script>
 
+<script>
+// ══ TMB / MSI / SIGNATURES ══════════════════════════════════════
+async function analyzeTMB() {
+  const tmb = document.getElementById('tmbValue').value;
+  const msi = document.getElementById('msiStatus').value;
+  const tumor = document.getElementById('tmbTumorType').value;
+  const sigs = document.getElementById('mutSigs').value;
+  const res = document.getElementById('tmbResult');
+  if (!tmb && !msi) { res.innerHTML='<div style="color:red;padding:10px">Veuillez entrer TMB ou MSI</div>'; return; }
+  res.innerHTML = '<div style="padding:10px;color:var(--mu)">⏳ Analyse en cours...</div>';
+  const prompt = 'Interprétez ces biomarqueurs tumoraux selon ESMO/ASCO 2022:\nTMB: '+(tmb||'N/A')+' mut/Mb\nMSI: '+(msi||'N/A')+'\nType tumoral: '+(tumor||'N/A')+'\nSignatures: '+(sigs||'N/A')+'\n\n1. Interprétation clinique TMB/MSI\n2. Immunothérapie éligibilité\n3. Signatures mutationnelles\n4. Guidelines ESMO 2023\n5. Contexte africain';
+  try {
+    const r = await aiFetch('/ai/chat', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:prompt})});
+    const d = await r.json();
+    res.innerHTML = d.response ? '<div class="card" style="margin-top:8px;padding:14px">'+(typeof marked!=='undefined'?marked.parse(d.response):d.response)+'</div>' : '<div style="color:red;padding:10px">'+(d.error||'Erreur')+'</div>';
+  } catch(e) { res.innerHTML = '<div style="color:red;padding:10px">'+e.message+'</div>'; }
+}
+
+// ══ INTERACTIONS CPIC ════════════════════════════════════════════
+async function analyzeCPIC() {
+  const gene = document.getElementById('cpicGene').value;
+  const drug = document.getElementById('cpicDrug').value;
+  const res = document.getElementById('cpicResult');
+  if (!gene) { res.innerHTML='<div style="color:red;padding:10px">Sélectionnez un gène</div>'; return; }
+  res.innerHTML = '<div style="padding:10px;color:var(--mu)">⏳ Vérification CPIC...</div>';
+  const cpic = {'CYP2D6_PM':'Métaboliseur lent CYP2D6','CYP2D6_UM':'Métaboliseur ultra-rapide CYP2D6','CYP2C19_PM':'Métaboliseur lent CYP2C19','CYP2C19_RM':'Métaboliseur rapide CYP2C19','DPYD_def':'Déficit DPYD — CONTRE-INDICATION 5-FU','TPMT_def':'Déficit TPMT — réduire thiopurines','UGT1A1_28':'UGT1A1*28 — réduire irinotécan','SLCO1B1_def':'Déficit SLCO1B1 — risque statines','G6PD_def':'Déficit G6PD — éviter hémolytiques'};
+  const prompt = 'Pharmacogénomicien CPIC:\nProfil: '+gene+'\nInfo: '+(cpic[gene]||'')+'\nMédicament: '+(drug||'N/A')+'\n\n1. Niveau CPIC (A/B/C/D)\n2. Interaction spécifique\n3. Alternative thérapeutique\n4. Ajustement posologique\n5. Références FDA/CPIC';
+  try {
+    const r = await aiFetch('/ai/chat', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:prompt})});
+    const d = await r.json();
+    res.innerHTML = d.response ? '<div class="card" style="margin-top:8px;padding:14px">'+(typeof marked!=='undefined'?marked.parse(d.response):d.response)+'</div>' : '<div style="color:red;padding:10px">'+(d.error||'Erreur')+'</div>';
+  } catch(e) { res.innerHTML = '<div style="color:red;padding:10px">'+e.message+'</div>'; }
+}
+
+// ══ ARBRE ESMO ═══════════════════════════════════════════════════
+async function analyzeESMO() {
+  const tumor = document.getElementById('esmoTumor').value;
+  const stage = document.getElementById('esmoStage').value;
+  const bio = document.getElementById('esmoBiomarkers').value;
+  const line = document.getElementById('esmoLine').value;
+  const res = document.getElementById('esmoResult');
+  if (!tumor || !stage) { res.innerHTML='<div style="color:red;padding:10px">Sélectionnez type tumoral et stade</div>'; return; }
+  res.innerHTML = '<div style="padding:10px;color:var(--mu)">⏳ Génération arbre ESMO...</div>';
+  const prompt = 'Oncologue ESMO expert, arbre décisionnel thérapeutique:\nTumeur: '+tumor+'\nStade: '+stage+'\nLigne: '+line+'\nBiomarqueurs: '+(bio||'N/A')+'\n\n1. Algorithme thérapeutique selon biomarqueurs\n2. Thérapies ciblées (niveau preuve IA/IB/IIA)\n3. Immunothérapie éligibilité\n4. Essais cliniques\n5. Contexte africain disponibilité';
+  try {
+    const r = await aiFetch('/ai/chat', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:prompt})});
+    const d = await r.json();
+    res.innerHTML = d.response ? '<div class="card" style="margin-top:8px;padding:14px">'+(typeof marked!=='undefined'?marked.parse(d.response):d.response)+'</div>' : '<div style="color:red;padding:10px">'+(d.error||'Erreur')+'</div>';
+  } catch(e) { res.innerHTML = '<div style="color:red;padding:10px">'+e.message+'</div>'; }
+}
+</script>
 </body>
 </html>
