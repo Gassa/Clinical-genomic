@@ -5902,9 +5902,8 @@ document.addEventListener('DOMContentLoaded', function(){
       document.getElementById('userAvatar').textContent = initiale;
       document.title = 'SenGenoScope — ' + d.name;
       if(d.institution && d.institution.trim()) {
-        const instEl = document.getElementById('userInstitution');
-        instEl.textContent = d.institution;
-        instEl.style.display = 'block';
+        document.getElementById('userInstitution').textContent = d.institution;
+        document.getElementById('userInstitutionBadge').style.display = 'flex';
       }
     }
   }).catch(()=>{});
