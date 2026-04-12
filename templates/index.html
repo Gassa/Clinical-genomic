@@ -6110,6 +6110,265 @@ async function deleteAnalyse(pid, aid) {
     loadTrajectory(pid, '');
   } catch(e) { alert('Erreur: ' + e.message); }
 }
+
+<script>
+// ══ VOICE CONSULT ════════════════════════════════════════════════════════════
+let _vcRecognition = null;
+let _vcRecording = false;
+let _vcTimer = null;
+let _vcSeconds = 0;
+let _vcFullText = '';
+let _vcAnimFrame = null;
+
+function vcToggleRecord() {
+  if (_vcRecording) {
+    vcStopRecord();
+  } else {
+    vcStartRecord();
+  }
+}
+
+function vcStartRecord() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    alert('Votre navigateur ne supporte pas la reconnaissance vocale.\nUtilisez Chrome ou Edge.');
+    return;
+  }
+
+  _vcRecognition = new SpeechRecognition();
+  _vcRecognition.lang = 'fr-FR';
+  _vcRecognition.continuous = true;
+  _vcRecognition.interimResults = true;
+  _vcRecognition.maxAlternatives = 1;
+
+  _vcRecognition.onstart = () => {
+    _vcRecording = true;
+    document.getElementById('vc_recBtn').style.background = '#dc2626';
+    document.getElementById('vc_recBtn').style.color = 'white';
+    document.getElementById('vc_recLabel').textContent = 'Arrêter';
+    document.getElementById('vc_dot').style.background = 'white';
+    document.getElementById('vc_statusDot').style.background = '#16a34a';
+    document.getElementById('vc_statusText').textContent = 'Microphone actif — parlez…';
+    vcStartTimer();
+    vcAnimateWave();
+  };
+
+  _vcRecognition.onresult = (e) => {
+    let interim = '';
+    let final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) {
+        final += e.results[i][0].transcript + ' ';
+      } else {
+        interim += e.results[i][0].transcript;
+      }
+    }
+    if (final) _vcFullText += final;
+    
+    const el = document.getElementById('vc_transcript');
+    const ph = document.getElementById('vc_placeholder');
+    if (ph) ph.style.display = 'none';
+    el.innerHTML = _vcFullText + (interim ? `<span style="color:var(--mu);font-style:italic">${interim}</span>` : '');
+    
+    const words = _vcFullText.trim().split(/\s+/).filter(w=>w).length;
+    document.getElementById('vc_wordCount').textContent = `${words} mot${words>1?'s':''}`;
+    
+    if (_vcFullText.trim()) {
+      document.getElementById('vc_actions').style.display = 'flex';
+    }
+  };
+
+  _vcRecognition.onerror = (e) => {
+    if (e.error !== 'no-speech') {
+      document.getElementById('vc_statusText').textContent = 'Erreur: ' + e.error;
+    }
+  };
+
+  _vcRecognition.onend = () => {
+    if (_vcRecording) {
+      // Redémarrer automatiquement si toujours en cours
+      try { _vcRecognition.start(); } catch(e) {}
+    }
+  };
+
+  try {
+    _vcRecognition.start();
+  } catch(e) {
+    alert('Impossible de démarrer le microphone: ' + e.message);
+  }
+}
+
+function vcStopRecord() {
+  _vcRecording = false;
+  if (_vcRecognition) { _vcRecognition.stop(); _vcRecognition = null; }
+  clearInterval(_vcTimer);
+  cancelAnimationFrame(_vcAnimFrame);
+  
+  const btn = document.getElementById('vc_recBtn');
+  btn.style.background = '';
+  btn.style.color = '';
+  document.getElementById('vc_recLabel').textContent = 'Reprendre';
+  document.getElementById('vc_statusDot').style.background = '#ca8a04';
+  document.getElementById('vc_statusText').textContent = 'Enregistrement pausé';
+  document.getElementById('vc_wave').innerHTML = '';
+}
+
+function vcStartTimer() {
+  clearInterval(_vcTimer);
+  _vcTimer = setInterval(() => {
+    _vcSeconds++;
+    const m = String(Math.floor(_vcSeconds/60)).padStart(2,'0');
+    const s = String(_vcSeconds%60).padStart(2,'0');
+    document.getElementById('vc_timer').textContent = `${m}:${s}`;
+  }, 1000);
+}
+
+function vcAnimateWave() {
+  const wave = document.getElementById('vc_wave');
+  if (!_vcRecording) { wave.innerHTML = ''; return; }
+  const bars = 20;
+  wave.innerHTML = Array.from({length:bars}, (_,i) => {
+    const h = Math.random() * 28 + 4;
+    return `<div style="width:3px;height:${h}px;background:#0f766e;border-radius:2px;transition:height .1s"></div>`;
+  }).join('');
+  _vcAnimFrame = requestAnimationFrame(() => setTimeout(vcAnimateWave, 100));
+}
+
+function vcClearAll() {
+  if (_vcRecording) vcStopRecord();
+  _vcFullText = '';
+  _vcSeconds = 0;
+  document.getElementById('vc_timer').textContent = '00:00';
+  document.getElementById('vc_transcript').innerHTML = '<span id="vc_placeholder" style="color:var(--mu);font-style:italic;font-size:13px">La transcription apparaîtra ici dès que vous commencerez à parler…</span>';
+  document.getElementById('vc_actions').style.display = 'none';
+  document.getElementById('vc_aiResult').style.display = 'none';
+  document.getElementById('vc_wordCount').textContent = '';
+  document.getElementById('vc_statusDot').style.background = '#888';
+  document.getElementById('vc_statusText').textContent = 'Microphone non actif';
+  document.getElementById('vc_wave').innerHTML = '';
+  document.getElementById('vc_recLabel').textContent = 'Démarrer';
+}
+
+async function vcSendToAI() {
+  const text = _vcFullText.trim();
+  if (!text) { alert('Aucune transcription à analyser.'); return; }
+  
+  const patient = document.getElementById('vc_patient').value.trim();
+  const type = document.getElementById('vc_type').value;
+  const apiKey = localStorage.getItem('claude_api_key') || '';
+  
+  if (!apiKey) {
+    alert('Veuillez configurer votre clé API Claude (bouton ⚙️ Clé API).');
+    return;
+  }
+
+  const resultEl = document.getElementById('vc_aiResult');
+  resultEl.style.display = 'block';
+  resultEl.innerHTML = '<span style="color:var(--mu)">⏳ Analyse en cours…</span>';
+
+  const prompt = `Tu es un assistant médical expert en oncogénétique. Analyse cette transcription de consultation${patient ? ' pour le patient ' + patient : ''}${type ? ' (' + type + ')' : ''} et génère une note clinique structurée avec :
+
+1. **Motif de consultation**
+2. **Antécédents pertinents mentionnés**
+3. **Éléments cliniques clés**
+4. **Variants/gènes mentionnés** (si applicable)
+5. **Plan de prise en charge suggéré**
+6. **Points d'attention / alertes**
+
+Transcription :
+"${text}"
+
+Réponds en français, de façon concise et cliniquement pertinente.`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message);
+    
+    const result = data.content?.[0]?.text || 'Aucune réponse';
+    resultEl.innerHTML = result.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+    
+    // Copier dans notes
+    const notes = document.getElementById('vc_notes');
+    if (!notes.value) notes.value = result.replace(/\*\*(.+?)\*\*/g, '$1');
+    
+  } catch(e) {
+    resultEl.innerHTML = `<span style="color:#dc2626">Erreur: ${e.message}</span>`;
+  }
+}
+
+function vcCopyText() {
+  const text = _vcFullText.trim();
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target;
+    btn.textContent = '✅ Copié !';
+    setTimeout(() => btn.textContent = '📋 Copier', 2000);
+  });
+}
+
+function vcExportNote() {
+  const patient = document.getElementById('vc_patient').value.trim() || 'Patient';
+  const type = document.getElementById('vc_type').value || 'Consultation';
+  const notes = document.getElementById('vc_notes').value.trim();
+  const transcript = _vcFullText.trim();
+  const date = new Date().toLocaleDateString('fr-FR');
+  const time = new Date().toLocaleTimeString('fr-FR');
+
+  const content = `NOTE CLINIQUE — SENGENOSCOPE
+Date: ${date} à ${time}
+Patient: ${patient}
+Type: ${type}
+
+═══════════════════════════════════════
+TRANSCRIPTION
+═══════════════════════════════════════
+${transcript || '(aucune transcription)'}
+
+═══════════════════════════════════════
+NOTES CLINIQUES
+═══════════════════════════════════════
+${notes || '(aucune note)'}
+
+─────────────────────────────────────
+Document généré par SenGenoScope v1.0
+Usage clinique — Confidentiel
+`;
+
+  const blob = new Blob([content], {type:'text/plain;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `note_${patient.replace(/\s+/g,'_')}_${date.replace(/\//g,'-')}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function vcInsertTag(tag) {
+  const el = document.getElementById('vc_notes');
+  const pos = el.selectionStart;
+  const before = el.value.substring(0, pos);
+  const after = el.value.substring(pos);
+  el.value = before + (before && !before.endsWith('\n') ? '\n' : '') + tag + after;
+  el.focus();
+  el.selectionStart = el.selectionEnd = pos + tag.length + (before && !before.endsWith('\n') ? 1 : 0);
+}
+</script>
+
 </script>
 </body>
 </html>
