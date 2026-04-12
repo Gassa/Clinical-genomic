@@ -6037,7 +6037,7 @@ function toggleHistorique() {
   panel.style.cssText = 'position:fixed;top:56px;right:280px;width:320px;max-height:400px;background:var(--bg);border:1px solid var(--bd);border-radius:12px;z-index:8888;box-shadow:0 8px 32px rgba(0,0,0,0.15);overflow:hidden';
   
   const recent = JSON.parse(localStorage.getItem('sgs_history') || '[]');
-  const rows = recent.length ? recent.slice(0,10).map((h,i) => `
+  const rows = recent.length ? recent.slice(0,10).filter(h => h && h.q).map((h,i) => `
     <div onclick="qs && qs('${h.q.replace(/'/g,"\'")}');document.getElementById('historiquePanel').remove()"
       style="padding:10px 14px;border-bottom:1px solid var(--bd);cursor:pointer;display:flex;align-items:center;gap:8px;font-size:12px"
       onmouseover="this.style.background='var(--s2)'" onmouseout="this.style.background=''">
