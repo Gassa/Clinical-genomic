@@ -468,7 +468,6 @@ function showSec(n, b){
   document.querySelectorAll('.ni').forEach(function(btn){ btn.classList.remove('active'); });
   if(b) b.classList.add('active');
 }
-showSec('search');
 async function openApiSettings(){ _pendingCalls.push(['openApiSettings']); }
 
 
@@ -5676,5 +5675,10 @@ function pedCanvasRightClick(e){
     </div>
   </div>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  showSec('search');
+});
+</script>
 </body>
 </html>
