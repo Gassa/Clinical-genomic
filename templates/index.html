@@ -1649,13 +1649,6 @@ async function loadDashboard() {
   }
 }
 
-// Charger le dashboard quand on clique sur l'onglet
-const origShowSec = window._origShowSec || showSec;
-window._origShowSec = origShowSec;
-window.showSec = function(n, b) {
-  origShowSec(n, b);
-  if (n === 'dashboard') loadDashboard();
-};
 </script>
 
   <!-- ABOUT -->
