@@ -3730,8 +3730,7 @@ Format: analyse clinique → recommandations → références.`;
     if (typeof addNotification === 'function') {
       addNotification(activeClinician.name, 'Réponse reçue', activeClinician.icon);
     }
-    // Synthèse vocale de la réponse
-    clinSpeak(reply, activeClinician.color);
+
   } catch(e) {
     bubble.innerHTML = '<span style="color:#dc2626">Erreur: ' + e.message + '</span>';
   } finally {
