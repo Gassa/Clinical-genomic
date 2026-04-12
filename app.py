@@ -2478,9 +2478,7 @@ Si donnee absente: null."""
 # ════════════════════════════════════════════════════════
 # AUTH — LOGIN / REGISTER / LOGOUT
 # ════════════════════════════════════════════════════════
-@app.route('/login')
-def login_page():
-    return render_template('login.html')
+
 
 @app.route('/api/auth/register', methods=['POST'])
 def api_register():
