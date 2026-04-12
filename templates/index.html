@@ -2189,7 +2189,10 @@ window.showSec = function(n, b) {
   <div class="card">
     <div class="ch">
       <span class="ct2">📍 Trajectoire de soin patient</span>
-      <button onclick="showPatientSelectorForTrajectory()" style="margin-left:auto;padding:6px 14px;border-radius:8px;border:none;background:#0d9488;color:white;font-size:12px;font-weight:500;cursor:pointer">👤 Choisir un patient</button>
+      <div style="display:flex;gap:8px;margin-left:auto">
+        <button id="pdfBtn" onclick="downloadPDF()" style="display:none;padding:6px 14px;border-radius:8px;border:none;background:#dc2626;color:white;font-size:12px;font-weight:500;cursor:pointer">📄 Exporter PDF</button>
+        <button onclick="showPatientSelectorForTrajectory()" style="padding:6px 14px;border-radius:8px;border:none;background:#0d9488;color:white;font-size:12px;font-weight:500;cursor:pointer">👤 Choisir un patient</button>
+      </div>
     </div>
     <div id="trajectoryContent" style="padding:16px">
       <div style="text-align:center;padding:40px;color:var(--mu)">
@@ -5926,6 +5929,7 @@ async function loadTrajectory(pid, name) {
   _trajectoryPatient = pid;
   const el = document.getElementById('trajectoryContent');
   el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--mu)">Chargement...</div>';
+  document.getElementById('pdfBtn').style.display = 'none';
 
   try {
     const d = await fetch(`/patients/${pid}/analyses`).then(r=>r.json());
@@ -5948,6 +5952,8 @@ async function loadTrajectory(pid, name) {
         <button onclick="openAddAnalyse()" style="padding:8px 16px;border-radius:8px;border:2px solid rgba(255,255,255,0.6);background:transparent;color:white;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">➕ Ajouter étape</button>
       </div>
 
+      <!-- Afficher bouton PDF -->
+      <script>document.getElementById('pdfBtn').style.display='block';</script>
       <!-- Stats rapides -->
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px">
         ${[
@@ -6028,6 +6034,11 @@ async function saveAnalyse() {
     document.getElementById('addAnalyseModal').style.display = 'none';
     loadTrajectory(_trajectoryPatient, '');
   } catch(e) { alert('Erreur: ' + e.message); }
+}
+
+function downloadPDF() {
+  if (!_trajectoryPatient) return;
+  window.open(`/patients/${_trajectoryPatient}/pdf`, '_blank');
 }
 
 async function deleteAnalyse(pid, aid) {

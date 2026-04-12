@@ -3334,3 +3334,226 @@ def delete_patient_analyse(pid, aid):
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
+# ══ RAPPORT PDF TRAJECTOIRE DE SOIN ══════════════════════════════════════════
+
+@app.route('/patients/<int:pid>/pdf')
+@login_required
+def generate_trajectory_pdf(pid):
+    from reportlab.lib.pagesizes import A4
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+    from reportlab.lib.units import cm
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+    import io
+    from datetime import datetime
+
+    uid = session['user_id']
+    user_name = session.get('user_name', '')
+    user_institution = session.get('user_institution', '')
+    conn, _db = get_conn()
+    cur = conn.cursor()
+    ph = "%s" if _db == "pg" else "?"
+
+    try:
+        # Récupérer patient
+        cur.execute(f"SELECT id,nom,prenom,date_naissance,numero_dossier,diagnostic,notes,created_at FROM patients WHERE id={ph} AND user_id={ph}", (pid, uid))
+        p = cur.fetchone()
+        if not p:
+            return "Patient non trouvé", 404
+
+        # Récupérer analyses
+        cur.execute(f"SELECT type_analyse,titre,resume,classification,created_at FROM patient_analyses WHERE patient_id={ph} AND user_id={ph} ORDER BY created_at ASC", (pid, uid))
+        analyses = cur.fetchall()
+
+        # Récupérer consultations
+        cur.execute(f"SELECT clinician_name,clinician_specialty,title,updated_at FROM consultations WHERE patient_id={ph} AND user_id={ph} ORDER BY updated_at ASC", (pid, uid))
+        consults = cur.fetchall()
+        conn.close()
+
+        # Fusionner et trier
+        events = []
+        for a in analyses:
+            events.append({'type': a[0], 'titre': a[1], 'resume': a[2] or '', 'classification': a[3] or '', 'date': str(a[4])[:10], 'cat': 'analyse'})
+        for c in consults:
+            events.append({'type': 'Consultation', 'titre': c[2] or f'Consultation {c[0]}', 'resume': f'Clinicien: {c[0]} ({c[1]})', 'classification': '', 'date': str(c[3])[:10], 'cat': 'consultation'})
+        events.sort(key=lambda x: x['date'])
+
+        # Créer le PDF en mémoire
+        buf = io.BytesIO()
+        doc = SimpleDocTemplate(buf, pagesize=A4,
+            leftMargin=2*cm, rightMargin=2*cm,
+            topMargin=2*cm, bottomMargin=2*cm)
+
+        styles = getSampleStyleSheet()
+
+        # Styles personnalisés
+        title_style = ParagraphStyle('Title', parent=styles['Normal'],
+            fontSize=20, fontName='Helvetica-Bold', textColor=colors.HexColor('#0d9488'),
+            spaceAfter=4, alignment=TA_CENTER)
+        subtitle_style = ParagraphStyle('Sub', parent=styles['Normal'],
+            fontSize=11, fontName='Helvetica', textColor=colors.HexColor('#6b7280'),
+            spaceAfter=2, alignment=TA_CENTER)
+        section_style = ParagraphStyle('Section', parent=styles['Normal'],
+            fontSize=13, fontName='Helvetica-Bold', textColor=colors.HexColor('#0d9488'),
+            spaceBefore=16, spaceAfter=8, borderPad=4)
+        body_style = ParagraphStyle('Body', parent=styles['Normal'],
+            fontSize=10, fontName='Helvetica', textColor=colors.HexColor('#1f2937'),
+            leading=14, spaceAfter=4)
+        small_style = ParagraphStyle('Small', parent=styles['Normal'],
+            fontSize=9, fontName='Helvetica', textColor=colors.HexColor('#6b7280'),
+            spaceAfter=2)
+        event_title_style = ParagraphStyle('EvTitle', parent=styles['Normal'],
+            fontSize=11, fontName='Helvetica-Bold', textColor=colors.HexColor('#111827'),
+            spaceAfter=3)
+
+        CLASSIF_COLORS = {
+            'Pathogène': '#dc2626', 'Probablement pathogène': '#ea580c',
+            'VUS': '#ca8a04', 'Probablement bénin': '#16a34a', 'Bénin': '#15803d',
+            'Traitement initié': '#0891b2', 'Réponse partielle': '#7c3aed',
+            'Réponse complète': '#059669', 'Progression': '#dc2626', 'Stable': '#6b7280'
+        }
+
+        story = []
+
+        # ── EN-TÊTE ──────────────────────────────────────────────
+        story.append(Paragraph('SenGenoScope', title_style))
+        story.append(Paragraph('Plateforme d\'oncogenomique et oncopharmacogenomique clinique', subtitle_style))
+        story.append(Spacer(1, 0.3*cm))
+        story.append(HRFlowable(width='100%', thickness=2, color=colors.HexColor('#0d9488')))
+        story.append(Spacer(1, 0.4*cm))
+
+        story.append(Paragraph('RAPPORT DE TRAJECTOIRE DE SOIN', ParagraphStyle('RTitle',
+            parent=styles['Normal'], fontSize=14, fontName='Helvetica-Bold',
+            textColor=colors.HexColor('#111827'), alignment=TA_CENTER, spaceAfter=4)))
+        story.append(Paragraph(f'Généré le {datetime.now().strftime("%d/%m/%Y à %H:%M")} par {user_name}',
+            ParagraphStyle('Gen', parent=styles['Normal'], fontSize=9,
+            textColor=colors.HexColor('#9ca3af'), alignment=TA_CENTER, spaceAfter=4)))
+        if user_institution:
+            story.append(Paragraph(user_institution, ParagraphStyle('Inst', parent=styles['Normal'],
+                fontSize=9, textColor=colors.HexColor('#9ca3af'), alignment=TA_CENTER)))
+        story.append(Spacer(1, 0.5*cm))
+
+        # ── FICHE PATIENT ──────────────────────────────────────
+        story.append(Paragraph('INFORMATIONS PATIENT', section_style))
+        patient_data = [
+            ['Nom', f"{p[1]} {p[2] or ''}".strip(), 'N° Dossier', p[4] or 'N/A'],
+            ['Date de naissance', p[3] or 'N/A', 'Diagnostic', p[5] or 'N/A'],
+            ['Suivi depuis', str(p[7])[:10], 'Nb événements', str(len(events))],
+        ]
+        if p[6]:
+            patient_data.append(['Notes', p[6], '', ''])
+
+        pt = Table(patient_data, colWidths=[3.5*cm, 6.5*cm, 3.5*cm, 3.5*cm])
+        pt.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (0,-1), colors.HexColor('#f0fdfa')),
+            ('BACKGROUND', (2,0), (2,-1), colors.HexColor('#f0fdfa')),
+            ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
+            ('FONTNAME', (0,0), (0,-1), 'Helvetica-Bold'),
+            ('FONTNAME', (2,0), (2,-1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0,0), (-1,-1), 9),
+            ('TEXTCOLOR', (0,0), (0,-1), colors.HexColor('#0d9488')),
+            ('TEXTCOLOR', (2,0), (2,-1), colors.HexColor('#0d9488')),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#e5e7eb')),
+            ('ROWBACKGROUNDS', (0,0), (-1,-1), [colors.white, colors.HexColor('#f9fafb')]),
+            ('PADDING', (0,0), (-1,-1), 6),
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ]))
+        story.append(pt)
+        story.append(Spacer(1, 0.5*cm))
+
+        # ── RÉSUMÉ STATISTIQUE ─────────────────────────────────
+        story.append(Paragraph('RÉSUMÉ', section_style))
+        nb_analyses = len(analyses)
+        nb_consults = len(consults)
+        nb_patho = sum(1 for e in events if e['classification'] in ['Pathogène','Probablement pathogène'])
+        jours = 0
+        if len(events) > 1:
+            try:
+                d1 = datetime.strptime(events[0]['date'], '%Y-%m-%d')
+                d2 = datetime.strptime(events[-1]['date'], '%Y-%m-%d')
+                jours = (d2-d1).days
+            except: pass
+
+        stats_data = [['Analyses genomiques', 'Consultations IA', 'Variants patho.', 'Duree suivi'],
+                      [str(nb_analyses), str(nb_consults), str(nb_patho), f'{jours} jours']]
+        st = Table(stats_data, colWidths=[4.25*cm]*4)
+        st.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#0d9488')),
+            ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('FONTNAME', (0,1), (-1,1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0,0), (-1,0), 9),
+            ('FONTSIZE', (0,1), (-1,1), 16),
+            ('TEXTCOLOR', (0,1), (-1,1), colors.HexColor('#0d9488')),
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#e5e7eb')),
+            ('ROWHEIGHTS', (0,0), (-1,-1), [0.7*cm, 1.2*cm]),
+            ('PADDING', (0,0), (-1,-1), 8),
+        ]))
+        story.append(st)
+        story.append(Spacer(1, 0.5*cm))
+
+        # ── TIMELINE ──────────────────────────────────────────
+        story.append(Paragraph('CHRONOLOGIE DES EVENEMENTS', section_style))
+        story.append(HRFlowable(width='100%', thickness=0.5, color=colors.HexColor('#e5e7eb')))
+        story.append(Spacer(1, 0.2*cm))
+
+        if not events:
+            story.append(Paragraph('Aucun événement enregistré.', small_style))
+        else:
+            for i, ev in enumerate(events):
+                classif_color = colors.HexColor(CLASSIF_COLORS.get(ev['classification'], '#6b7280'))
+                is_consult = ev['cat'] == 'consultation'
+                dot_color = colors.HexColor('#7c3aed') if is_consult else classif_color
+
+                # Ligne de timeline
+                row_data = [[
+                    Paragraph(f"<b>{ev['date']}</b>", ParagraphStyle('D', parent=styles['Normal'],
+                        fontSize=9, fontName='Helvetica-Bold', textColor=colors.HexColor('#6b7280'))),
+                    Paragraph(f"<b>{ev['type']}</b>", ParagraphStyle('T', parent=styles['Normal'],
+                        fontSize=9, fontName='Helvetica-Bold', textColor=dot_color)),
+                    Paragraph(ev['classification'] or ('Consultation IA' if is_consult else '—'),
+                        ParagraphStyle('C', parent=styles['Normal'], fontSize=9,
+                        textColor=classif_color if ev['classification'] else colors.HexColor('#9ca3af'))),
+                ]]
+                header_t = Table(row_data, colWidths=[3*cm, 4*cm, 6*cm])
+                header_t.setStyle(TableStyle([
+                    ('PADDING', (0,0), (-1,-1), 2),
+                    ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+                    ('LINEBELOW', (0,0), (-1,-1), 0, colors.white),
+                ]))
+                story.append(header_t)
+
+                story.append(Paragraph(ev['titre'], event_title_style))
+                if ev['resume']:
+                    story.append(Paragraph(ev['resume'], body_style))
+
+                if i < len(events)-1:
+                    story.append(HRFlowable(width='100%', thickness=0.3,
+                        color=colors.HexColor('#e5e7eb'), spaceAfter=8))
+                story.append(Spacer(1, 0.2*cm))
+
+        # ── PIED DE PAGE ──────────────────────────────────────
+        story.append(Spacer(1, 0.5*cm))
+        story.append(HRFlowable(width='100%', thickness=1, color=colors.HexColor('#e5e7eb')))
+        story.append(Spacer(1, 0.2*cm))
+        story.append(Paragraph(
+            f'Document confidentiel — SenGenoScope v1.0 — Usage clinique exclusif — {datetime.now().strftime("%d/%m/%Y")}',
+            ParagraphStyle('Footer', parent=styles['Normal'], fontSize=8,
+            textColor=colors.HexColor('#9ca3af'), alignment=TA_CENTER)))
+
+        doc.build(story)
+        buf.seek(0)
+
+        nom_patient = f"{p[1]}_{p[2] or ''}".strip('_').replace(' ', '_')
+        from flask import send_file
+        return send_file(buf, mimetype='application/pdf',
+            as_attachment=True,
+            download_name=f"trajectoire_{nom_patient}_{datetime.now().strftime('%Y%m%d')}.pdf")
+
+    except Exception as e:
+        import traceback
+        return f"Erreur PDF: {str(e)}\n{traceback.format_exc()}", 500
+
