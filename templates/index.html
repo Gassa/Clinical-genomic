@@ -5887,5 +5887,133 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 </script>
+
+<script>
+// ══ TUTORIEL INTERACTIF ═══════════════════════════════════════════════════════
+const _tutorialSteps = [
+  {
+    title: "🧬 Bienvenue sur SenGenoScope !",
+    body: "Plateforme d'Oncogénomique Clinique — Faisons un tour rapide des fonctionnalités essentielles.",
+    target: null,
+    position: 'center'
+  },
+  {
+    title: "🔍 Recherche Clinique",
+    body: "Recherchez n'importe quel gène, variant ou syndrome sur PubMed, ClinVar, OMIM, gnomAD et plus. Essayez 'BRCA1 breast cancer'.",
+    target: 'search',
+    position: 'right'
+  },
+  {
+    title: "🏥 Dossiers Patients",
+    body: "Créez et gérez vos dossiers patients. Chaque patient peut avoir des analyses NGS, ACMG, VEP et des consultations.",
+    target: 'dashBtn',
+    position: 'bottom'
+  },
+  {
+    title: "📍 Trajectoire de Soin",
+    body: "Visualisez la chronologie complète des analyses et décisions thérapeutiques pour chaque patient.",
+    target: 'trajectory',
+    position: 'right'
+  },
+  {
+    title: "🤖 Chat IA Clinique",
+    body: "Posez vos questions en oncogénomique directement à l'IA Claude. Nécessite une clé API Anthropic.",
+    target: 'apiKeyBtn',
+    position: 'bottom'
+  },
+  {
+    title: "⌨️ Raccourcis Clavier",
+    body: "Ctrl+K → Recherche · Ctrl+D → Dashboard · Ctrl+P → Mode présentation RCP · Echap → Fermer",
+    target: null,
+    position: 'center'
+  },
+  {
+    title: "✅ Vous êtes prêt !",
+    body: "SenGenoScope est à votre disposition. Bonne pratique clinique !",
+    target: null,
+    position: 'center'
+  }
+];
+
+let _tutorialStep = 0;
+let _tutorialOverlay = null;
+
+function startTutorial() {
+  _tutorialStep = 0;
+  showTutorialStep();
+}
+
+function showTutorialStep() {
+  // Supprimer ancien
+  if (_tutorialOverlay) _tutorialOverlay.remove();
+  
+  if (_tutorialStep >= _tutorialSteps.length) {
+    localStorage.setItem('sgs_tutorial_done', '1');
+    addNotification('Tutoriel terminé', 'Vous êtes prêt à utiliser SenGenoScope !', '✅');
+    return;
+  }
+  
+  const step = _tutorialSteps[_tutorialStep];
+  const total = _tutorialSteps.length;
+  
+  _tutorialOverlay = document.createElement('div');
+  _tutorialOverlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99998;pointer-events:none';
+  
+  const box = document.createElement('div');
+  box.style.cssText = `position:fixed;z-index:99999;background:var(--bg);border:2px solid #0891b2;border-radius:14px;padding:20px 24px;width:340px;box-shadow:0 16px 48px rgba(0,0,0,0.25);pointer-events:all;
+    ${step.position === 'center' ? 'top:50%;left:50%;transform:translate(-50%,-50%)' : 'top:80px;right:20px'}`;
+  
+  box.innerHTML = `
+    <div style="font-size:15px;font-weight:700;color:var(--tx);margin-bottom:8px">${step.title}</div>
+    <div style="font-size:13px;color:var(--mu);line-height:1.6;margin-bottom:16px">${step.body}</div>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:11px;color:var(--mu)">${_tutorialStep + 1} / ${total}</div>
+      <div style="display:flex;gap:8px">
+        <button onclick="skipTutorial()" style="padding:6px 12px;border-radius:8px;border:1px solid var(--bd);background:transparent;cursor:pointer;font-size:12px;color:var(--mu)">Passer</button>
+        <button onclick="nextTutorialStep()" style="padding:6px 16px;border-radius:8px;border:none;background:#0891b2;color:white;cursor:pointer;font-size:12px;font-weight:600">
+          ${_tutorialStep === total - 1 ? '✅ Terminer' : 'Suivant →'}
+        </button>
+      </div>
+    </div>
+    <div style="margin-top:10px;display:flex;gap:4px;justify-content:center">
+      ${Array.from({length: total}, (_,i) => `<div style="width:${i===_tutorialStep?'16':'6'}px;height:6px;border-radius:3px;background:${i===_tutorialStep?'#0891b2':'var(--bd)'}"></div>`).join('')}
+    </div>
+  `;
+  
+  document.body.appendChild(_tutorialOverlay);
+  document.body.appendChild(box);
+  _tutorialOverlay._box = box;
+}
+
+function nextTutorialStep() {
+  if (_tutorialOverlay) { _tutorialOverlay.remove(); _tutorialOverlay = null; }
+  document.querySelectorAll('[data-tutorial-box]').forEach(e => e.remove());
+  _tutorialStep++;
+  showTutorialStep();
+}
+
+function skipTutorial() {
+  if (_tutorialOverlay) _tutorialOverlay.remove();
+  document.querySelectorAll('[data-tutorial-box]').forEach(e => e.remove());
+  localStorage.setItem('sgs_tutorial_done', '1');
+}
+
+// Proposer le tutoriel au premier login
+document.addEventListener('DOMContentLoaded', () => {
+  if (!localStorage.getItem('sgs_tutorial_done')) {
+    setTimeout(() => {
+      const banner = document.createElement('div');
+      banner.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0891b2;color:white;padding:12px 20px;border-radius:12px;z-index:9997;display:flex;align-items:center;gap:12px;box-shadow:0 4px 20px rgba(0,0,0,0.2);font-size:13px';
+      banner.innerHTML = `
+        🧬 <strong>Première visite ?</strong> Découvrez SenGenoScope en 2 minutes
+        <button onclick="startTutorial();this.parentElement.remove()" style="padding:6px 14px;background:white;color:#0891b2;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:12px">Démarrer</button>
+        <button onclick="this.parentElement.remove();localStorage.setItem('sgs_tutorial_done','1')" style="background:none;border:none;color:white;cursor:pointer;font-size:18px">×</button>
+      `;
+      document.body.appendChild(banner);
+      setTimeout(() => { if (banner.parentElement) banner.remove(); }, 10000);
+    }, 3000);
+  }
+});
+</script>
 </body>
 </html>
