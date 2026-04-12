@@ -2634,6 +2634,20 @@ def api_login():
         session['user_name'] = profile.get('full_name', email)
         session['user_role'] = profile.get('role', 'medecin')
 
+        # Récupérer institution
+        inst_id = profile.get('institution_id')
+        if inst_id:
+            try:
+                inst_res = sb.table('institutions').select('name').eq('id', inst_id).execute()
+                if inst_res.data:
+                    session['user_institution'] = inst_res.data[0].get('name', '')
+                else:
+                    session['user_institution'] = ''
+            except:
+                session['user_institution'] = ''
+        else:
+            session['user_institution'] = ''
+
         return jsonify({"success": True, "redirect": "/"})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
