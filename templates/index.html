@@ -3668,11 +3668,14 @@ async function sendClinicianMessageStreaming() {
   // Attendre que les derniers résultats arrivent puis injecter
   await new Promise(r => setTimeout(r, 400));
   const input = document.getElementById('clinicianInput');
-  if (_clinFullTranscript && _clinFullTranscript.trim()) {
-    if (input) input.value = (input.value ? input.value + '\n\n' : '') + _clinFullTranscript.trim();
+  // Récupérer aussi le texte visible dans le div transcription (interim inclus)
+  const transcriptDiv = document.getElementById('clinMicTranscript');
+  const visibleText = transcriptDiv ? transcriptDiv.textContent.replace('Paroles du patient en temps réel…','').trim() : '';
+  const textToSend = (_clinFullTranscript + ' ' + visibleText).trim();
+  if (textToSend) {
+    if (input) input.value = (input.value ? input.value + '\n\n' : '') + textToSend;
     _clinFullTranscript = '';
-    const transcript = document.getElementById('clinMicTranscript');
-    if (transcript) transcript.style.display = 'none';
+    if (transcriptDiv) transcriptDiv.style.display = 'none';
   }
   const msg = input ? input.value.trim() : '';
   if (!msg) { alert('Veuillez décrire le cas clinique.'); return; }
