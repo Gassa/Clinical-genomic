@@ -2473,3 +2473,248 @@ Si donnee absente: null."""
     except Exception as e:
         import logging; logging.error(f"analyze_signatures error: {e}")
         return jsonify({"success": False, "error": str(e)})
+
+
+# ════════════════════════════════════════════════════════
+# AUTH — LOGIN / REGISTER / LOGOUT
+# ════════════════════════════════════════════════════════
+@app.route('/login')
+def login_page():
+    return render_template('login.html')
+
+@app.route('/api/auth/register', methods=['POST'])
+def api_register():
+    try:
+        from supabase_client import get_supabase
+        data = request.json or {}
+        email    = data.get('email','').strip()
+        password = data.get('password','').strip()
+        name     = data.get('full_name','').strip()
+        role     = data.get('role','medecin')
+        institution = data.get('institution','').strip()
+
+        if not email or not password:
+            return jsonify({"success": False, "error": "Email et mot de passe requis"})
+
+        sb = get_supabase()
+        res = sb.auth.sign_up({"email": email, "password": password})
+        user = res.user
+        if not user:
+            return jsonify({"success": False, "error": "Erreur inscription"})
+
+        # Créer institution si nouvelle
+        inst_id = None
+        if institution:
+            inst_res = sb.table('institutions').insert({"name": institution, "country": "Sénégal"}).execute()
+            if inst_res.data:
+                inst_id = inst_res.data[0]['id']
+
+        # Créer profil
+        sb.table('user_profiles').insert({
+            "id": user.id,
+            "email": email,
+            "full_name": name,
+            "role": role,
+            "institution_id": inst_id
+        }).execute()
+
+        return jsonify({"success": True, "message": "Compte créé. Vérifiez votre email."})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route('/api/auth/login', methods=['POST'])
+def api_login():
+    try:
+        from supabase_client import get_supabase
+        data = request.json or {}
+        email    = data.get('email','').strip()
+        password = data.get('password','').strip()
+
+        sb = get_supabase()
+        res = sb.auth.sign_in_with_password({"email": email, "password": password})
+
+        if not res.user:
+            return jsonify({"success": False, "error": "Email ou mot de passe incorrect"})
+
+        session['access_token'] = res.session.access_token
+        session['user_id']      = res.user.id
+        session['user_email']   = res.user.email
+
+        # Récupérer profil
+        profile_res = sb.table('user_profiles').select('*').eq('id', res.user.id).execute()
+        profile = profile_res.data[0] if profile_res.data else {}
+        session['user_name'] = profile.get('full_name', email)
+        session['user_role'] = profile.get('role', 'medecin')
+
+        return jsonify({"success": True, "redirect": "/"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route('/api/auth/logout', methods=['POST'])
+def api_logout():
+    session.clear()
+    return jsonify({"success": True, "redirect": "/login"})
+
+@app.route('/api/auth/me')
+def api_me():
+    if 'user_email' not in session:
+        return jsonify({"authenticated": False})
+    return jsonify({
+        "authenticated": True,
+        "email": session.get('user_email'),
+        "name":  session.get('user_name'),
+        "role":  session.get('user_role')
+    })
+
+
+# ════════════════════════════════════════════════════════
+# PATIENTS — CRUD
+# ════════════════════════════════════════════════════════
+@app.route('/api/patients', methods=['GET'])
+def api_get_patients():
+    try:
+        from supabase_client import get_supabase
+        if 'user_id' not in session:
+            return jsonify({"success": False, "error": "Non authentifié"}), 401
+        sb = get_supabase()
+        res = sb.table('patients').select('*').eq('created_by', session['user_id']).order('created_at', desc=True).execute()
+        return jsonify({"success": True, "patients": res.data})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route('/api/patients', methods=['POST'])
+def api_create_patient():
+    try:
+        from supabase_client import get_supabase
+        if 'user_id' not in session:
+            return jsonify({"success": False, "error": "Non authentifié"}), 401
+        data = request.json or {}
+        sb = get_supabase()
+        patient = {
+            "created_by":   session['user_id'],
+            "patient_code": data.get('patient_code', ''),
+            "first_name":   data.get('first_name', ''),
+            "last_name":    data.get('last_name', ''),
+            "sex":          data.get('sex', ''),
+            "cancer_type":  data.get('cancer_type', ''),
+            "stage":        data.get('stage', ''),
+            "notes":        data.get('notes', ''),
+        }
+        if data.get('date_of_birth'):
+            patient['date_of_birth'] = data['date_of_birth']
+        res = sb.table('patients').insert(patient).execute()
+        return jsonify({"success": True, "patient": res.data[0] if res.data else {}})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route('/api/patients/<patient_id>/analyses', methods=['GET'])
+def api_get_patient_analyses(patient_id):
+    try:
+        from supabase_client import get_supabase
+        if 'user_id' not in session:
+            return jsonify({"success": False, "error": "Non authentifié"}), 401
+        sb = get_supabase()
+        res = sb.table('analyses').select('*').eq('patient_id', patient_id).order('created_at', desc=True).execute()
+        return jsonify({"success": True, "analyses": res.data})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route('/api/analyses/save', methods=['POST'])
+def api_save_analysis():
+    try:
+        from supabase_client import get_supabase
+        import json as _json
+        if 'user_id' not in session:
+            return jsonify({"success": False, "error": "Non authentifié"}), 401
+        data = request.json or {}
+        sb = get_supabase()
+        analysis = {
+            "patient_id":     data.get('patient_id'),
+            "created_by":     session['user_id'],
+            "analysis_type":  data.get('analysis_type','ngs'),
+            "input_text":     data.get('input_text',''),
+            "context":        data.get('context',''),
+            "result":         data.get('result', {}),
+            "status":         "completed"
+        }
+        res = sb.table('analyses').insert(analysis).execute()
+        return jsonify({"success": True, "analysis": res.data[0] if res.data else {}})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+
+# ════════════════════════════════════════════════════════
+# TUMEUR BOARD IA (MTB) — Synthèse multi-omique
+# ════════════════════════════════════════════════════════
+@app.route('/tumor_board', methods=['POST'])
+def tumor_board():
+    try:
+        data = request.json or {}
+        user_api_key = (request.headers.get('X-User-Api-Key','') or data.get('user_api_key','')).strip()
+        api_key = user_api_key or os.environ.get('ANTHROPIC_API_KEY','')
+        if not api_key:
+            return jsonify({"success": False, "error": "Clé API manquante."})
+
+        patient_info = data.get('patient_info','')
+        ngs_result   = data.get('ngs_result', {})
+        cnv_result   = data.get('cnv_result', {})
+        fusion_result= data.get('fusion_result',{})
+        sig_result   = data.get('sig_result',  {})
+
+        import json as _json, anthropic as _anth
+
+        context_parts = []
+        if patient_info: context_parts.append("PATIENT: " + patient_info)
+        if ngs_result:   context_parts.append("NGS/VARIANTS: " + _json.dumps(ngs_result, ensure_ascii=False)[:3000])
+        if cnv_result:   context_parts.append("CNV: " + _json.dumps(cnv_result, ensure_ascii=False)[:2000])
+        if fusion_result:context_parts.append("FUSIONS: " + _json.dumps(fusion_result, ensure_ascii=False)[:2000])
+        if sig_result:   context_parts.append("SIGNATURES: " + _json.dumps(sig_result, ensure_ascii=False)[:2000])
+
+        system_prompt = """Tu es un expert en oncologie moléculaire de niveau international, specialiste des tumeur boards multidisciplinaires (RCP/MTB).
+Tu synthétises des données multi-omiques complexes en une décision thérapeutique cliniquement actionnables.
+Réponds UNIQUEMENT en JSON valide strict.
+
+Format de réponse:
+{
+  "patient_summary": "Résumé patient en 2-3 phrases",
+  "genomic_complexity": "Faible|Modérée|Élevée|Très élevée",
+  "key_findings": [
+    {"finding": "ERBB2 amplifié CN=12", "significance": "Cible thérapeutique Tier I", "urgency": "haute"}
+  ],
+  "therapeutic_priorities": [
+    {
+      "rank": 1,
+      "therapy": "Alectinib 600mg BID",
+      "rationale": "EML4-ALK Tier I, VAF 22%, FISH positif",
+      "evidence_level": "IA",
+      "biomarker": "EML4-ALK fusion",
+      "expected_response": "70-80% PFS 2 ans",
+      "contraindications": []
+    }
+  ],
+  "clinical_trials": ["NCT03052608 — ALEX trial ALK+"],
+  "molecular_profiling_gaps": ["Test BRCA germinal recommandé", "PD-L1 IHC requis"],
+  "rcp_recommendation": "Texte de recommandation RCP complète en 5-8 phrases, prête à être lue en réunion",
+  "follow_up": ["Biopsie liquidienne J90", "IRM cérébrale J30"],
+  "prognosis": "Pronostic estimé avec thérapie optimale",
+  "urgent_actions": ["Action urgente 1 à faire dans 48h"],
+  "genetic_counseling": true,
+  "urgent": false,
+  "urgent_reason": ""
+}"""
+
+        user_msg = "Synthétise ces données multi-omiques pour le tumeur board:\n\n" + "\n\n".join(context_parts)
+
+        client = _anth.Anthropic(api_key=api_key)
+        response = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=4000,
+            system=system_prompt,
+            messages=[{"role":"user","content":user_msg}]
+        )
+        raw = response.content[0].text.strip().replace("```json","").replace("```","").strip()
+        result = _json.loads(raw)
+        return jsonify({"success": True, "result": result})
+    except Exception as e:
+        import logging; logging.error(f"tumor_board error: {e}")
+        return jsonify({"success": False, "error": str(e)})

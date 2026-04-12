@@ -634,3 +634,141 @@ function renderSigResult(res){
   html+='</div>';resDiv.innerHTML=html;
 }
 function handleSigUpload(input){var f=input.files[0];if(!f)return;var rd=new FileReader();rd.onload=function(e){var t=document.getElementById('sigAIInput');if(t)t.value=e.target.result;};rd.readAsText(f);}
+
+
+// ══ TUMEUR BOARD IA (MTB) ══
+var _lastMTBResult = null;
+
+async function analyzeTumorBoard() {
+  var resDiv = document.getElementById('mtbResult');
+  if (!resDiv) return;
+
+  var patientInfo = (document.getElementById('mtbPatient')||{}).value||'';
+  var ngsResult   = window._lastNGSResult   || null;
+  var cnvResult   = window._lastCNVResult   || null;
+  var fusionResult= window._lastFusionResult|| null;
+  var sigResult   = window._lastSigResult   || null;
+
+  if (!ngsResult && !cnvResult && !fusionResult && !sigResult) {
+    resDiv.innerHTML='<div style="color:#dc2626;padding:12px;background:#fef2f2;border-radius:8px;font-size:13px">Analysez au moins un module (NGS, CNV, Fusions ou Signatures) avant de lancer le Tumeur Board.</div>';
+    return;
+  }
+
+  resDiv.innerHTML='<div style="text-align:center;padding:30px"><div style="display:inline-block;width:28px;height:28px;border:3px solid var(--bd);border-top-color:#7c3aed;border-radius:50%;animation:spin 1s linear infinite"></div><div style="margin-top:12px;font-size:13px;color:var(--mu)">Synthese multi-omique en cours — Claude Sonnet analyse toutes les donnees...</div></div>';
+
+  try {
+    var userKey = localStorage.getItem('sgs_api_key')||'';
+    var r = await fetch('/tumor_board', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','X-User-Api-Key':userKey},
+      body: JSON.stringify({
+        patient_info:  patientInfo,
+        ngs_result:    ngsResult,
+        cnv_result:    cnvResult,
+        fusion_result: fusionResult,
+        sig_result:    sigResult,
+        user_api_key:  userKey
+      })
+    });
+    var d = await r.json();
+    if (!d.success) throw new Error(d.error);
+    _lastMTBResult = d.result;
+    renderMTBResult(d.result);
+  } catch(e) {
+    resDiv.innerHTML='<div style="color:#dc2626;padding:12px;background:#fef2f2;border-radius:8px;font-size:13px">Erreur: '+e.message+'</div>';
+  }
+}
+
+function renderMTBResult(res) {
+  var resDiv = document.getElementById('mtbResult');
+  if (!resDiv||!res) return;
+  var html = '<div style="display:flex;flex-direction:column;gap:14px">';
+
+  if (res.urgent) html += '<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:14px;color:#dc2626;font-size:13px;font-weight:500">⚠️ URGENT: '+res.urgent_reason+'</div>';
+
+  // En-tête RCP
+  html += '<div style="background:linear-gradient(135deg,#1e3a5f,#0d9488);border-radius:12px;padding:16px;color:white">';
+  html += '<div style="font-size:11px;opacity:.8;letter-spacing:.05em;margin-bottom:4px">SYNTHESE TUMEUR BOARD — DECISION RCP</div>';
+  html += '<div style="font-size:14px;line-height:1.6">'+res.patient_summary+'</div>';
+  html += '<div style="margin-top:10px;display:flex;gap:8px"><span style="font-size:11px;background:rgba(255,255,255,.2);padding:3px 10px;border-radius:10px">Complexite: '+res.genomic_complexity+'</span></div>';
+  html += '</div>';
+
+  // Findings clés
+  if (res.key_findings&&res.key_findings.length) {
+    html += '<div style="border:1px solid var(--bd);border-radius:10px;padding:14px">';
+    html += '<div style="font-size:12px;font-weight:600;margin-bottom:10px;color:var(--mu)">FINDINGS CLES</div>';
+    res.key_findings.forEach(function(f){
+      var uc = f.urgency==='haute'?'#dc2626':f.urgency==='modérée'?'#f59e0b':'#0d9488';
+      html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:.5px solid var(--bd)">';
+      html += '<div><div style="font-size:13px;font-weight:500">'+f.finding+'</div><div style="font-size:12px;color:var(--mu)">'+f.significance+'</div></div>';
+      html += '<span style="font-size:11px;background:'+uc+'22;color:'+uc+';padding:2px 8px;border-radius:8px;white-space:nowrap;margin-left:8px">'+f.urgency+'</span>';
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+
+  // Priorités thérapeutiques
+  if (res.therapeutic_priorities&&res.therapeutic_priorities.length) {
+    html += '<div style="font-size:12px;font-weight:600;color:var(--mu);letter-spacing:.05em">PRIORITES THERAPEUTIQUES</div>';
+    res.therapeutic_priorities.forEach(function(t){
+      var rank = t.rank||1;
+      var rankColor = rank===1?'#dc2626':rank===2?'#ea580c':'#f59e0b';
+      html += '<div style="border:1px solid var(--bd);border-left:4px solid '+rankColor+';border-radius:8px;padding:12px">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">';
+      html += '<div style="display:flex;align-items:center;gap:8px">';
+      html += '<span style="font-size:18px;font-weight:700;color:'+rankColor+'">#'+rank+'</span>';
+      html += '<span style="font-size:14px;font-weight:600">'+t.therapy+'</span></div>';
+      html += '<span style="font-size:11px;background:#0d948822;color:#0d9488;padding:2px 8px;border-radius:8px">'+t.evidence_level+'</span>';
+      html += '</div>';
+      html += '<div style="font-size:12px;color:var(--mu);margin-bottom:4px">Biomarqueur: <b>'+t.biomarker+'</b></div>';
+      html += '<div style="font-size:12px;margin-bottom:6px">'+t.rationale+'</div>';
+      if (t.expected_response) html += '<div style="font-size:12px;color:#0d9488;background:#0d948811;border-radius:6px;padding:6px">Reponse attendue: '+t.expected_response+'</div>';
+      html += '</div>';
+    });
+  }
+
+  // Recommandation RCP
+  if (res.rcp_recommendation) {
+    html += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:16px">';
+    html += '<div style="font-size:12px;font-weight:600;color:#16a34a;margin-bottom:8px">RECOMMANDATION RCP OFFICIELLE</div>';
+    html += '<div style="font-size:13px;line-height:1.7;color:#166534">'+res.rcp_recommendation+'</div>';
+    html += '</div>';
+  }
+
+  // Essais cliniques
+  if (res.clinical_trials&&res.clinical_trials.length) {
+    html += '<div style="background:var(--s2);border-radius:8px;padding:12px">';
+    html += '<div style="font-size:12px;font-weight:600;margin-bottom:8px">Essais cliniques eligibles</div>';
+    res.clinical_trials.forEach(function(t){ html += '<div style="font-size:12px;padding:3px 0">• '+t+'</div>'; });
+    html += '</div>';
+  }
+
+  // Actions urgentes
+  if (res.urgent_actions&&res.urgent_actions.length) {
+    html += '<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px">';
+    html += '<div style="font-size:12px;font-weight:600;color:#dc2626;margin-bottom:8px">Actions urgentes (48h)</div>';
+    res.urgent_actions.forEach(function(a){ html += '<div style="font-size:12px;padding:3px 0;color:#991b1b">→ '+a+'</div>'; });
+    html += '</div>';
+  }
+
+  // Suivi + Lacunes
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+  if (res.follow_up&&res.follow_up.length) {
+    html += '<div style="background:var(--s2);border-radius:8px;padding:12px"><div style="font-size:12px;font-weight:600;margin-bottom:6px">Plan de suivi</div>';
+    res.follow_up.forEach(function(f){ html += '<div style="font-size:12px;padding:2px 0">• '+f+'</div>'; });
+    html += '</div>';
+  }
+  if (res.molecular_profiling_gaps&&res.molecular_profiling_gaps.length) {
+    html += '<div style="background:var(--s2);border-radius:8px;padding:12px"><div style="font-size:12px;font-weight:600;margin-bottom:6px">Examens complementaires</div>';
+    res.molecular_profiling_gaps.forEach(function(g){ html += '<div style="font-size:12px;padding:2px 0">• '+g+'</div>'; });
+    html += '</div>';
+  }
+  html += '</div>';
+
+  if (res.prognosis) {
+    html += '<div style="background:var(--s2);border-radius:8px;padding:12px"><span style="font-weight:500;font-size:13px">Pronostic: </span><span style="font-size:13px">'+res.prognosis+'</span></div>';
+  }
+
+  html += '</div>';
+  resDiv.innerHTML = html;
+}

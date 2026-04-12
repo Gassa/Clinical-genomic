@@ -1068,6 +1068,31 @@ TMB: 12.4 mut/Mb  HRD-score: 42  MSI: MSS" style="width:100%;padding:10px;border
     </div>
 
 
+  
+    <!-- TUMEUR BOARD IA -->
+    <div class="card" style="margin-top:14px;border:2px solid #7c3aed22">
+      <div class="ch" style="background:linear-gradient(135deg,#1e3a5f11,#0d948811)">
+        <span class="ct2" style="color:#1e3a5f">🏥 Tumeur Board IA — Synthèse multi-omique RCP</span>
+      </div>
+      <div style="padding:14px">
+        <div style="font-size:13px;color:var(--mu);background:var(--s2);padding:10px 13px;border-radius:7px;margin-bottom:12px">
+          Synthétise automatiquement toutes vos analyses (NGS + CNV + Fusions + Signatures) en une décision thérapeutique structurée, prête pour la Réunion de Concertation Pluridisciplinaire (RCP).
+        </div>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:10px;margin-bottom:10px;align-items:end">
+          <div>
+            <label style="font-size:11px;color:var(--mu);font-weight:500">Informations patient (optionnel)</label>
+            <input id="mtbPatient" placeholder="Ex: Femme 52 ans, adénocarcinome pulmonaire stade IV, non-fumeuse, PS 1..." style="width:100%;margin-top:4px;padding:7px 10px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px;box-sizing:border-box">
+          </div>
+          <button onclick="analyzeTumorBoard()" style="padding:10px 20px;border-radius:7px;border:none;background:linear-gradient(135deg,#1e3a5f,#0d9488);color:white;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">🏥 Lancer MTB</button>
+        </div>
+        <div style="font-size:12px;color:var(--mu);background:#7c3aed11;border-radius:7px;padding:8px 12px;margin-bottom:12px">
+          💡 Analysez d'abord NGS, CNV, Fusions et/ou Signatures ci-dessus — le Tumeur Board synthétisera automatiquement tous les résultats.
+        </div>
+        <div id="mtbResult"></div>
+      </div>
+    </div>
+
+
   <!-- ACMG -->
   <div id="sec-acmg" style="display:none">
     <div class="card"><div class="ch"><span class="ct2">⚖️ Classificateur ACMG/AMP 2015 — Richards S et al. Genetics in Medicine 2015;17:405-424</span></div>
