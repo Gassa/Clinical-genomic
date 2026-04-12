@@ -613,6 +613,14 @@ function qs(q){document.getElementById('query').value=q;if(typeof runSearch==='f
       <span class="bg2 bv" data-fr="🧪 21 modules" data-en="🧪 21 modules">🧪 21 modules</span>
       <button class="btn bpu2 bsm" id="pdfBtn" onclick="expPDF()" style="display:none" data-fr="📄 PDF" data-en="📄 PDF">📄 PDF</button>
       <button class="btn bt2 bsm" id="csvBtn" onclick="expCSV()" style="display:none" data-fr="📊 CSV" data-en="📊 CSV">📊 CSV</button>
+      <button id="histBtn" onclick="toggleHistorique()" title="Historique des analyses récentes"
+        style="padding:4px 9px;border-radius:6px;border:1px solid var(--bd);background:var(--s2);color:var(--tx);font-size:13px;cursor:pointer;position:relative">
+        📋
+      </button>
+      <button id="notifBtn" onclick="toggleNotifications()" title="Notifications"
+        style="padding:4px 9px;border-radius:6px;border:1px solid var(--bd);background:var(--s2);color:var(--tx);font-size:13px;cursor:pointer;position:relative">
+        🔔<span id="notifBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:#dc2626;color:white;border-radius:50%;width:14px;height:14px;font-size:9px;display:flex;align-items:center;justify-content:center;font-weight:700">0</span>
+      </button>
       <button id="themeToggleBtn" onclick="toggleTheme()"
         style="padding:4px 9px;border-radius:6px;border:1px solid var(--bd);background:var(--s2);color:var(--tx);font-size:13px;cursor:pointer"
         title="Dark/Light mode">🌙</button>
@@ -5730,6 +5738,139 @@ async function saveProfile() {
     document.getElementById('userAvatar').textContent = initiale;
   } catch(e) { alert('Erreur: ' + e.message); }
 }
+</script>
+
+<script>
+// ══ HISTORIQUE & NOTIFICATIONS ═══════════════════════════════════════════════
+
+// Panel Historique
+function toggleHistorique() {
+  let panel = document.getElementById('historiquePanel');
+  if (panel) { panel.remove(); return; }
+  
+  panel = document.createElement('div');
+  panel.id = 'historiquePanel';
+  panel.style.cssText = 'position:fixed;top:56px;right:280px;width:320px;max-height:400px;background:var(--bg);border:1px solid var(--bd);border-radius:12px;z-index:8888;box-shadow:0 8px 32px rgba(0,0,0,0.15);overflow:hidden';
+  
+  const recent = JSON.parse(localStorage.getItem('sgs_history') || '[]');
+  const rows = recent.length ? recent.slice(0,10).map((h,i) => `
+    <div onclick="qs && qs('${h.q.replace(/'/g,"\'")}');document.getElementById('historiquePanel').remove()"
+      style="padding:10px 14px;border-bottom:1px solid var(--bd);cursor:pointer;display:flex;align-items:center;gap:8px;font-size:12px"
+      onmouseover="this.style.background='var(--s2)'" onmouseout="this.style.background=''">
+      <span style="color:var(--mu);font-size:10px">${i+1}</span>
+      <span style="flex:1;color:var(--tx)">${h.q}</span>
+      <span style="color:var(--mu);font-size:10px">${h.t||''}</span>
+    </div>`).join('') 
+    : '<div style="padding:20px;text-align:center;color:var(--mu);font-size:13px">Aucun historique</div>';
+
+  panel.innerHTML = `
+    <div style="padding:12px 14px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center;background:var(--s2)">
+      <span style="font-size:13px;font-weight:600">📋 Historique récent</span>
+      <div style="display:flex;gap:6px">
+        <button onclick="localStorage.removeItem('sgs_history');document.getElementById('historiquePanel').remove()" 
+          style="font-size:10px;padding:2px 8px;border-radius:6px;border:1px solid var(--bd);background:transparent;cursor:pointer;color:var(--mu)">Effacer</button>
+        <button onclick="document.getElementById('historiquePanel').remove()" style="background:none;border:none;cursor:pointer;font-size:16px">×</button>
+      </div>
+    </div>
+    <div style="overflow-y:auto;max-height:340px">${rows}</div>`;
+  
+  document.body.appendChild(panel);
+  document.addEventListener('click', function closeH(e) {
+    if (!panel.contains(e.target) && e.target.id !== 'histBtn') {
+      panel.remove(); document.removeEventListener('click', closeH);
+    }
+  }, {capture: true, once: false});
+}
+
+// Sauvegarder dans l'historique quand une recherche est faite
+function saveToHistory(query) {
+  if (!query || query.length < 2) return;
+  const hist = JSON.parse(localStorage.getItem('sgs_history') || '[]');
+  const now = new Date();
+  const t = now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
+  const filtered = hist.filter(h => h.q !== query);
+  filtered.unshift({q: query, t});
+  localStorage.setItem('sgs_history', JSON.stringify(filtered.slice(0,20)));
+}
+
+// Panel Notifications
+let _notifications = JSON.parse(localStorage.getItem('sgs_notifs') || '[]');
+
+function toggleNotifications() {
+  let panel = document.getElementById('notifPanel');
+  if (panel) { panel.remove(); return; }
+  
+  // Marquer comme lues
+  _notifications = _notifications.map(n => ({...n, read: true}));
+  localStorage.setItem('sgs_notifs', JSON.stringify(_notifications));
+  updateNotifBadge();
+  
+  panel = document.createElement('div');
+  panel.id = 'notifPanel';
+  panel.style.cssText = 'position:fixed;top:56px;right:220px;width:340px;max-height:420px;background:var(--bg);border:1px solid var(--bd);border-radius:12px;z-index:8888;box-shadow:0 8px 32px rgba(0,0,0,0.15);overflow:hidden';
+
+  const rows = _notifications.length ? _notifications.slice(0,10).map(n => `
+    <div style="padding:12px 14px;border-bottom:1px solid var(--bd);display:flex;gap:10px;align-items:flex-start">
+      <span style="font-size:18px">${n.icon||'🔔'}</span>
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:600;color:var(--tx)">${n.title}</div>
+        <div style="font-size:11px;color:var(--mu);margin-top:2px">${n.body}</div>
+        <div style="font-size:10px;color:var(--mu);margin-top:3px">${n.time||''}</div>
+      </div>
+    </div>`).join('')
+    : '<div style="padding:30px;text-align:center;color:var(--mu);font-size:13px">🔔<br><br>Aucune notification</div>';
+
+  panel.innerHTML = `
+    <div style="padding:12px 14px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center;background:var(--s2)">
+      <span style="font-size:13px;font-weight:600">🔔 Notifications</span>
+      <div style="display:flex;gap:6px">
+        <button onclick="_notifications=[];localStorage.removeItem('sgs_notifs');document.getElementById('notifPanel').remove();updateNotifBadge()" 
+          style="font-size:10px;padding:2px 8px;border-radius:6px;border:1px solid var(--bd);background:transparent;cursor:pointer;color:var(--mu)">Tout effacer</button>
+        <button onclick="document.getElementById('notifPanel').remove()" style="background:none;border:none;cursor:pointer;font-size:16px">×</button>
+      </div>
+    </div>
+    <div style="overflow-y:auto;max-height:360px">${rows}</div>`;
+  
+  document.body.appendChild(panel);
+  document.addEventListener('click', function closeN(e) {
+    if (!panel.contains(e.target) && e.target.id !== 'notifBtn') {
+      panel.remove(); document.removeEventListener('click', closeN);
+    }
+  }, {capture: true, once: false});
+}
+
+function addNotification(title, body, icon='🔔') {
+  const now = new Date();
+  const time = now.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+  _notifications.unshift({title, body, icon, time, read: false});
+  _notifications = _notifications.slice(0, 20);
+  localStorage.setItem('sgs_notifs', JSON.stringify(_notifications));
+  updateNotifBadge();
+}
+
+function updateNotifBadge() {
+  const unread = _notifications.filter(n => !n.read).length;
+  const badge = document.getElementById('notifBadge');
+  if (badge) {
+    badge.textContent = unread;
+    badge.style.display = unread > 0 ? 'flex' : 'none';
+  }
+}
+
+// Initialiser le badge au chargement
+document.addEventListener('DOMContentLoaded', () => {
+  updateNotifBadge();
+  // Notification de bienvenue si première connexion du jour
+  const today = new Date().toDateString();
+  if (localStorage.getItem('sgs_last_visit') !== today) {
+    localStorage.setItem('sgs_last_visit', today);
+    setTimeout(() => addNotification(
+      'Bienvenue sur SenGenoScope', 
+      'Plateforme d'oncogénomique clinique — Bonne journée !',
+      '🧬'
+    ), 2000);
+  }
+});
 </script>
 </body>
 </html>
