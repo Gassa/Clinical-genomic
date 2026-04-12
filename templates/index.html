@@ -616,11 +616,12 @@ function qs(q){document.getElementById('query').value=q;if(typeof runSearch==='f
       <button id="themeToggleBtn" onclick="toggleTheme()"
         style="padding:4px 9px;border-radius:6px;border:1px solid var(--bd);background:var(--s2);color:var(--tx);font-size:13px;cursor:pointer"
         title="Dark/Light mode">🌙</button>
-      <div id="userBadge" style="display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;background:linear-gradient(135deg,rgba(13,148,136,.15),rgba(8,145,178,.15));border:1px solid rgba(13,148,136,.3);margin-right:8px">
-        <div id="userAvatar" style="width:22px;height:22px;border-radius:50%;background:#0d9488;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700">?</div>
-        <span id="userName" style="font-size:12px;font-weight:500;color:var(--tx);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">...</span>
-        <span id="userSep" style="color:rgba(13,148,136,.5);font-size:11px;display:none">|</span>
-        <span id="userInstitution" style="font-size:11px;color:var(--mu);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+      <div id="userBadge" style="display:flex;align-items:center;gap:8px;padding:5px 14px;border-radius:20px;background:linear-gradient(135deg,rgba(13,148,136,.15),rgba(8,145,178,.15));border:1px solid rgba(13,148,136,.3);margin-right:8px">
+        <div id="userAvatar" style="width:26px;height:26px;border-radius:50%;background:#0d9488;display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:700;flex-shrink:0">?</div>
+        <div style="display:flex;flex-direction:column;line-height:1.2">
+          <span id="userName" style="font-size:12px;font-weight:600;color:var(--tx);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">...</span>
+          <span id="userInstitution" style="font-size:10px;color:#0d9488;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:none"></span>
+        </div>
       </div><a href="/dashboard/patients" style="padding:6px 14px;border-radius:8px;border:1px solid var(--bd);background:var(--sf);font-size:12px;font-weight:500;color:var(--tx);text-decoration:none;margin-right:6px">🗂️ Dossiers</a><button class="btn bsm" id="apiKeyBtn" onclick="openApiSettings()" style="background:rgba(124,58,237,.15);color:#a78bfa;border:1px solid rgba(124,58,237,.3);font-size:11px" title="Configurer votre clé API Claude">⚙️ <span data-fr="Clé API" data-en="API Key">Clé API</span></button>
       
     </div>
@@ -5901,8 +5902,9 @@ document.addEventListener('DOMContentLoaded', function(){
       document.getElementById('userAvatar').textContent = initiale;
       document.title = 'SenGenoScope — ' + d.name;
       if(d.institution && d.institution.trim()) {
-        document.getElementById('userInstitution').textContent = d.institution;
-        document.getElementById('userSep').style.display = 'inline';
+        const instEl = document.getElementById('userInstitution');
+        instEl.textContent = d.institution;
+        instEl.style.display = 'block';
       }
     }
   }).catch(()=>{});
