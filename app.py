@@ -2537,6 +2537,7 @@ def api_login():
         session['access_token'] = res.session.access_token
         session['user_id']      = res.user.id
         session['user_email']   = res.user.email
+        session['authenticated'] = True
 
         # Récupérer profil
         profile_res = sb.table('user_profiles').select('*').eq('id', res.user.id).execute()
