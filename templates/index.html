@@ -5657,7 +5657,15 @@ function vcInsertTag(tag) {
 }
 
 function openProfile() {
-  fetch('/profile').then(r=>r.json()).then(d=>{
+  fetch('/profile').then(r=>{
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r.json();
+  }).then(d=>{
+    if(!d.name && !d.institution) {
+      // Pré-remplir depuis le badge si la DB ne répond pas
+      d.name = document.getElementById('userName').textContent || '';
+      d.institution = document.getElementById('userInstitution').textContent || '';
+    }
     const profileModal = document.createElement('div');
     profileModal.id = 'profileModal';
     profileModal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
