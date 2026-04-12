@@ -2007,7 +2007,7 @@ def create_patient():
     try:
         uid = session['user_id']
         data = request.json or {}
-        nom = data.get('nom', '').strip()
+        nom = data.get('nom', '').strip()[:200]
         if not nom:
             return jsonify({"success": False, "error": "Nom requis"})
         conn, _db = get_conn()
