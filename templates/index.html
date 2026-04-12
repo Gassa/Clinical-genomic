@@ -1644,37 +1644,10 @@ async function loadDashboard() {
         </div>
       </div>
 
-      <!-- Graphique activité SVG -->
-      <div style="background:var(--s2);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-top:0">
+      <!-- Graphique activité — rendu après innerHTML -->
+      <div id="dashActivityChart" style="background:var(--s2);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-top:0">
         <div style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--tx)">📈 Activité de la session</div>
-        <svg width="100%" height="80" viewBox="0 0 400 80" preserveAspectRatio="none" style="display:block">
-          ${(()=>{
-            const data = [
-              s.total_searches||0,
-              s.vep_analyses||0,
-              s.acmg_classifications||0,
-              s.risk_calculations||0,
-              d.analyses.length,
-              patients.length
-            ];
-            const labels = ['Recherches','VEP','ACMG','Risques','Analyses','Patients'];
-            const max = Math.max(...data, 1);
-            const w = 400, h = 80, pad = 10;
-            const bw = (w - pad*2) / data.length;
-            return data.map((v,i) => {
-              const bh = Math.max(4, Math.round((v/max)*(h-20)));
-              const x = pad + i*bw + bw*0.15;
-              const y = h - bh - 10;
-              const colors2 = ['#0891b2','#7c3aed','#16a34a','#dc2626','#d97706','#0d9488'];
-              const ci = colors2[i];
-              return \`<g>
-                <rect x="\${x}" y="\${y}" width="\${bw*0.7}" height="\${bh}" fill="\${ci}" rx="3" opacity="0.85"/>
-                <text x="\${x+bw*0.35}" y="\${h-1}" text-anchor="middle" font-size="7" fill="var(--mu)">\${labels[i]}</text>
-                <text x="\${x+bw*0.35}" y="\${y-3}" text-anchor="middle" font-size="8" fill="\${ci}" font-weight="bold">\${v}</text>
-              </g>\`;
-            }).join('');
-          })()}
-        </svg>
+        <svg id="dashActivitySvg" width="100%" height="80" viewBox="0 0 400 80" preserveAspectRatio="none" style="display:block"></svg>
       </div>
 
       <div style="text-align:center;margin-top:12px;font-size:11px;color:var(--mu)">
@@ -1682,6 +1655,22 @@ async function loadDashboard() {
         <span style="cursor:pointer;color:#0891b2" onclick="loadDashboard()">🔄 Actualiser</span>
       </div>
     `;
+    // Rendre le graphique après innerHTML
+    const svg = document.getElementById('dashActivitySvg');
+    if(svg) {
+      const data = [s.total_searches||0, s.vep_analyses||0, s.acmg_classifications||0, s.risk_calculations||0, consults.length, patients.length];
+      const labels = ['Recherches','VEP','ACMG','Risques','Analyses','Patients'];
+      const colors3 = ['#0891b2','#7c3aed','#16a34a','#dc2626','#d97706','#0d9488'];
+      const max = Math.max(...data, 1);
+      const w=400, h=80, pad=10, bw=(w-pad*2)/data.length;
+      svg.innerHTML = data.map((v,i) => {
+        const bh = Math.max(4, Math.round((v/max)*(h-20)));
+        const x = pad+i*bw+bw*0.15, y = h-bh-10;
+        return '<g><rect x="'+x+'" y="'+y+'" width="'+(bw*0.7)+'" height="'+bh+'" fill="'+colors3[i]+'" rx="3" opacity="0.85"/>'
+          +'<text x="'+(x+bw*0.35)+'" y="'+(h-1)+'" text-anchor="middle" font-size="7" fill="var(--mu)">'+labels[i]+'</text>'
+          +'<text x="'+(x+bw*0.35)+'" y="'+(y-3)+'" text-anchor="middle" font-size="8" fill="'+colors3[i]+'" font-weight="bold">'+v+'</text></g>';
+      }).join('');
+    }
   } catch(e) {
     el.innerHTML = `<div style="color:var(--mu);text-align:center;padding:30px">Erreur chargement dashboard: ${e.message}</div>`;
   }
