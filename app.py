@@ -3319,6 +3319,25 @@ def save_patient_analyse(pid):
         conn.rollback()
         return jsonify({"success": False, "error": str(e)})
 
+@app.route('/patients/<int:pid>/analyses/<int:aid>', methods=['PUT'])
+@login_required
+def update_patient_analyse(pid, aid):
+    uid = session['user_id']
+    data = request.json or {}
+    conn, _db = get_conn()
+    cur = conn.cursor()
+    ph = "%s" if _db == "pg" else "?"
+    try:
+        cur.execute(
+            f"UPDATE patient_analyses SET type_analyse={ph},titre={ph},resume={ph},classification={ph} WHERE id={ph} AND patient_id={ph} AND user_id={ph}",
+            (data.get('type_analyse',''), data.get('titre',''), data.get('resume',''), data.get('classification',''), aid, pid, uid)
+        )
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
 @app.route('/patients/<int:pid>/analyses/<int:aid>', methods=['DELETE'])
 @login_required
 def delete_patient_analyse(pid, aid):

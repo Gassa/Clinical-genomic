@@ -1639,6 +1639,38 @@ async function loadDashboard() {
         </div>
       </div>
 
+      <!-- Graphique activité SVG -->
+      <div style="background:var(--s2);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-top:0">
+        <div style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--tx)">📈 Activité de la session</div>
+        <svg width="100%" height="80" viewBox="0 0 400 80" preserveAspectRatio="none" style="display:block">
+          ${(()=>{
+            const data = [
+              s.total_searches||0,
+              s.vep_analyses||0,
+              s.acmg_classifications||0,
+              s.risk_calculations||0,
+              d.analyses.length,
+              patients.length
+            ];
+            const labels = ['Recherches','VEP','ACMG','Risques','Analyses','Patients'];
+            const max = Math.max(...data, 1);
+            const w = 400, h = 80, pad = 10;
+            const bw = (w - pad*2) / data.length;
+            return data.map((v,i) => {
+              const bh = Math.max(4, Math.round((v/max)*(h-20)));
+              const x = pad + i*bw + bw*0.15;
+              const y = h - bh - 10;
+              const colors2 = ['#0891b2','#7c3aed','#16a34a','#dc2626','#d97706','#0d9488'];
+              return \`<g>
+                <rect x="\${x}" y="\${y}" width="\${bw*0.7}" height="\${bh}" fill="\${colors2[i]}" rx="3" opacity="0.85"/>
+                <text x="\${x+bw*0.35}" y="\${h-1}" text-anchor="middle" font-size="7" fill="var(--mu)">\${labels[i]}</text>
+                <text x="\${x+bw*0.35}" y="\${y-3}" text-anchor="middle" font-size="8" fill="\${colors2[i]}" font-weight="bold">\${v}</text>
+              </g>\`;
+            }).join('');
+          })()}
+        </svg>
+      </div>
+
       <div style="text-align:center;margin-top:12px;font-size:11px;color:var(--mu)">
         ℹ️ Stats de session — réinitialisées au redémarrage serveur · 
         <span style="cursor:pointer;color:#0891b2" onclick="loadDashboard()">🔄 Actualiser</span>
@@ -5978,7 +6010,9 @@ async function loadTrajectory(pid, name) {
                   </div>
                   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
                     <div style="font-size:11px;color:var(--mu)">${date}</div>
-                    ${!isConsult?`<button onclick="deleteAnalyse(${_trajectoryPatient},${item.id})" style="padding:2px 8px;border-radius:6px;border:1px solid var(--bd);background:transparent;font-size:10px;cursor:pointer;color:var(--mu)">✕</button>`:''}
+                    ${!isConsult?`
+                    <button onclick="editAnalyse(${_trajectoryPatient},${item.id},'${(item.type||'').replace(/'/g,'\'')}',' ${(item.titre||'').replace(/'/g,'\'')}','${(item.resume||'').replace(/'/g,'\'')}','${(item.classification||'').replace(/'/g,'\'')}' )" style="padding:2px 8px;border-radius:6px;border:1px solid #0891b2;background:transparent;font-size:10px;cursor:pointer;color:#0891b2">✏️</button>
+                    <button onclick="deleteAnalyse(${_trajectoryPatient},${item.id})" style="padding:2px 8px;border-radius:6px;border:1px solid var(--bd);background:transparent;font-size:10px;cursor:pointer;color:var(--mu)">✕</button>`:''}
                   </div>
                 </div>
               </div>
@@ -5995,7 +6029,47 @@ async function loadTrajectory(pid, name) {
   }
 }
 
+function editAnalyse(pid, aid, type, titre, resume, classification) {
+  // Pré-remplir le modal avec les valeurs existantes
+  document.getElementById('analyseType').value = type.trim() || 'NGS';
+  document.getElementById('analyseTitre').value = titre.trim();
+  document.getElementById('analyseResume').value = resume.trim();
+  document.getElementById('analyseClassification').value = classification.trim();
+  // Changer le bouton en mode édition
+  const btn = document.querySelector('#addAnalyseModal button[onclick="saveAnalyse()"]');
+  if(btn) {
+    btn.textContent = '💾 Enregistrer les modifications';
+    btn.onclick = () => updateAnalyse(pid, aid);
+  }
+  document.getElementById('addAnalyseModal').style.display = 'flex';
+}
+
+async function updateAnalyse(pid, aid) {
+  const titre = document.getElementById('analyseTitre').value.trim();
+  if (!titre) { alert('Le titre est obligatoire'); return; }
+  const payload = {
+    type_analyse: document.getElementById('analyseType').value,
+    titre,
+    resume: document.getElementById('analyseResume').value.trim(),
+    classification: document.getElementById('analyseClassification').value
+  };
+  try {
+    const r = await fetch(`/patients/${pid}/analyses/${aid}`, {
+      method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
+    }).then(r=>r.json());
+    if (!r.success) throw new Error(r.error);
+    document.getElementById('addAnalyseModal').style.display = 'none';
+    // Réinitialiser le bouton
+    const btn = document.querySelector('#addAnalyseModal button');
+    if(btn) { btn.textContent = '➕ Ajouter à la trajectoire'; btn.onclick = saveAnalyse; }
+    loadTrajectory(pid, '');
+  } catch(e) { alert('Erreur: ' + e.message); }
+}
+
 function openAddAnalyse() {
+  // Réinitialiser le modal en mode ajout
+  const btn = document.querySelector('#addAnalyseModal button[onclick]');
+  if(btn) { btn.textContent = '➕ Ajouter à la trajectoire'; btn.setAttribute('onclick','saveAnalyse()'); }
   if (!_trajectoryPatient) return;
   document.getElementById('analyseTitre').value = '';
   document.getElementById('analyseResume').value = '';
