@@ -770,5 +770,66 @@ function renderMTBResult(res) {
   }
 
   html += '</div>';
-  resDiv.innerHTML = html;
+    resDiv.innerHTML = html;
+  var saveBtn = document.createElement('div');
+  saveBtn.style.cssText = 'margin-top:12px;text-align:right';
+  saveBtn.innerHTML = getPatientBadge() + '<button onclick="saveAnalysisToDossier(\'mtb\',_lastMTBResult,(document.getElementById(\'mtbPatient\')||{}).value||\'\',(document.getElementById(\'mtbPatient\')||{}).value||\'\')" style="padding:8px 16px;border-radius:8px;border:none;background:#0d9488;color:white;font-size:12px;font-weight:500;cursor:pointer">💾 Sauvegarder dans le dossier patient</button>';
+  resDiv.appendChild(saveBtn);
+}
+// ══ SAUVEGARDE DOSSIER PATIENT ══
+async function saveAnalysisToDossier(type, result, inputText, context) {
+  var patientId = localStorage.getItem('sgs_current_patient') || '';
+  if (!patientId) {
+    var code = prompt('Code patient (ex: PAT-001) pour sauvegarder cette analyse:\n(Laissez vide pour annuler)');
+    if (!code) return;
+    try {
+      var rp = await fetch('/api/patients', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({patient_code: code, cancer_type: context || '', notes: ''})
+      });
+      var dp = await rp.json();
+      if (!dp.success) { alert('Erreur création patient: ' + dp.error); return; }
+      patientId = dp.patient.id;
+      localStorage.setItem('sgs_current_patient', patientId);
+      localStorage.setItem('sgs_current_patient_code', code);
+    } catch(e) { alert('Erreur: ' + e.message); return; }
+  }
+  try {
+    var r = await fetch('/api/analyses/save', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        patient_id: patientId,
+        analysis_type: type,
+        input_text: inputText || '',
+        context: context || '',
+        result: result
+      })
+    });
+    var d = await r.json();
+    if (d.success) {
+      var code = localStorage.getItem('sgs_current_patient_code') || patientId.substring(0,8);
+      showSaveConfirm('Analyse sauvegardée dans le dossier patient ' + code);
+    } else {
+      alert('Erreur sauvegarde: ' + d.error);
+    }
+  } catch(e) { alert('Erreur: ' + e.message); }
+}
+
+function showSaveConfirm(msg) {
+  var el = document.createElement('div');
+  el.style.cssText = 'position:fixed;top:20px;right:20px;background:#0d9488;color:white;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:500;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,.2)';
+  el.textContent = '✅ ' + msg;
+  document.body.appendChild(el);
+  setTimeout(function(){ el.remove(); }, 3000);
+}
+
+function getPatientBadge() {
+  var code = localStorage.getItem('sgs_current_patient_code');
+  if (!code) return '';
+  return '<div style="display:inline-flex;align-items:center;gap:6px;background:#0d948822;border:1px solid #0d948844;border-radius:8px;padding:4px 10px;font-size:12px;color:#0d9488;margin-bottom:10px">' +
+    '<span>Dossier actif: <b>' + code + '</b></span>' +
+    '<span style="cursor:pointer;opacity:.7" onclick="localStorage.removeItem(\'sgs_current_patient\');localStorage.removeItem(\'sgs_current_patient_code\');location.reload()">✕</span>' +
+    '</div>';
 }
