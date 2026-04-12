@@ -1012,18 +1012,21 @@ def profile():
     conn, _db = get_conn()
     cur = conn.cursor()
     ph = "%s" if _db == "pg" else "?"
-    if request.method == "GET":
-        cur.execute(f"SELECT name, institution, email FROM users WHERE id={ph}", (uid,))
-        r = cur.fetchone()
-        conn.close()
-        return jsonify({"name": r[0], "institution": r[1] or "", "email": r[2]})
-    else:
-        data = request.json or {}
-        name = data.get("name", "").strip()
-        institution = data.get("institution", "").strip()
-        if not name:
-            return jsonify({"success": False, "error": "Nom requis"})
-        cur.execute(f"UPDATE users SET name={ph}, institution={ph} WHERE id={ph}", (name, institution, uid))
+    try:
+        if request.method == "GET":
+            cur.execute(f"SELECT name, institution, email FROM users WHERE id={ph}", (uid,))
+            r = cur.fetchone()
+            conn.close()
+            if not r:
+                return jsonify({"name": "", "institution": "", "email": ""})
+            return jsonify({"name": r[0] or "", "institution": r[1] or "", "email": r[2] or ""})
+        else:
+            data = request.json or {}
+            name = data.get("name", "").strip()
+            institution = data.get("institution", "").strip()
+            if not name:
+                return jsonify({"success": False, "error": "Nom requis"})
+            cur.execute(f"UPDATE users SET name={ph}, institution={ph} WHERE id={ph}", (name, institution, uid))
         conn.commit()
         conn.close()
         session["user_name"] = name
