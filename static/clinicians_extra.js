@@ -457,6 +457,10 @@ function renderNGSResult(res) {
 
   html += '</div>';
   resDiv.innerHTML = html;
+  var _sb_ngs = document.createElement('div');
+  _sb_ngs.style.cssText = 'margin-top:12px;text-align:right';
+  _sb_ngs.innerHTML = getPatientBadge() + '<button onclick="saveAnalysisToDossier(\'ngs\',_lastNGSResult,(document.getElementById(\'ngsAIInput\')||{}).value||\'\',(document.getElementById(\'ngsContext\')||{}).value||\'\')" style="padding:8px 16px;border-radius:8px;border:none;background:#0d9488;color:white;font-size:12px;font-weight:500;cursor:pointer">💾 Sauvegarder dans le dossier patient</button>';
+  resDiv.appendChild(_sb_ngs);
 }
 
 async function exportNGSPDF() {
