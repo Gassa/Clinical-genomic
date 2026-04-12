@@ -3655,11 +3655,21 @@ function renderClinicianCards(clinicians) {
 async function sendClinicianMessageStreaming() {
   if (!activeClinician) { alert('Sélectionnez un clinicien d\'abord.'); return; }
   
+  // Arrêter reconnaissance vocale si active
+  if (window._clinRecording && window._clinRecognition) {
+    window._clinRecognition.stop();
+    window._clinRecording = false;
+    clearInterval(_clinTimerInterval);
+    const lb = document.getElementById('clinMicLbl');
+    const pb = document.getElementById('clinMicPauseBtn');
+    if (lb) lb.textContent = '🎙️ Enregistrer patient';
+    if (pb) pb.style.display = 'none';
+  }
+  // Attendre que les derniers résultats arrivent puis injecter
+  await new Promise(r => setTimeout(r, 400));
   const input = document.getElementById('clinicianInput');
-  // Si transcription en cours, l'injecter d'abord
   if (_clinFullTranscript && _clinFullTranscript.trim()) {
-    const ta = document.getElementById('clinicianInput');
-    if (ta) ta.value = (ta.value ? ta.value + '\n\n' : '') + _clinFullTranscript.trim();
+    if (input) input.value = (input.value ? input.value + '\n\n' : '') + _clinFullTranscript.trim();
     _clinFullTranscript = '';
     const transcript = document.getElementById('clinMicTranscript');
     if (transcript) transcript.style.display = 'none';
