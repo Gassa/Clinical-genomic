@@ -2218,6 +2218,7 @@ async function loadDashboard() {
       <span class="ct2">📍 Trajectoire de soin patient</span>
       <div style="display:flex;gap:8px;margin-left:auto">
         <button id="pdfBtn" onclick="downloadPDF()" style="display:none;padding:6px 14px;border-radius:8px;border:none;background:#dc2626;color:white;font-size:12px;font-weight:500;cursor:pointer">📄 Exporter PDF</button>
+        <button onclick="downloadRapportComplet()" style="padding:6px 14px;border-radius:8px;border:none;background:#7c3aed;color:white;font-size:12px;font-weight:500;cursor:pointer">📋 Rapport Complet</button>
         <button onclick="showPatientSelectorForTrajectory()" style="padding:6px 14px;border-radius:8px;border:none;background:#0d9488;color:white;font-size:12px;font-weight:500;cursor:pointer">👤 Choisir un patient</button>
       </div>
     </div>
@@ -5406,6 +5407,12 @@ async function saveAnalyse() {
 function downloadPDF() {
   if (!_trajectoryPatient) return;
   window.open(`/patients/${_trajectoryPatient}/pdf`, '_blank');
+}
+
+function downloadRapportComplet() {
+  if (!_trajectoryPatient) return;
+  window.open(`/patients/${_trajectoryPatient}/rapport-complet`, '_blank');
+  addNotification('Rapport généré', 'Le rapport clinique complet a été téléchargé', '📄');
 }
 
 async function deleteAnalyse(pid, aid) {
