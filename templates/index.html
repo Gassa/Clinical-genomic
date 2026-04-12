@@ -1543,7 +1543,125 @@ CNV_data: PTEN del, RB1 del, CDKN2A del, ERBB2 amp..." style="width:100%;padding
     <div style="padding:12px" id="bkList"></div></div>
   </div>
 
-  <div id="sec-dashboard" style="display:none"><div class="card"><div class="ch"><span class="ct2">📊 Dashboard</span></div><div style="padding:16px" id="dashboardContent"><div style="text-align:center;padding:30px;color:var(--mu)">Chargement...</div></div></div></div>
+  <div id="sec-dashboard" style="display:none"><div class="card"><div class="ch"><span class="ct2">📊 Dashboard</span></div><div style="padding:16px" id="dashboardContent">
+  <div style="text-align:center;padding:30px;color:var(--mu)">Chargement...</div>
+</div></div></div>
+
+<script>
+async function loadDashboard() {
+  const el = document.getElementById('dashboardContent');
+  try {
+    // Charger stats + consultations + patients en parallèle
+    const [statsRes, consultsRes, patientsRes] = await Promise.all([
+      fetch('/stats').then(r=>r.json()).catch(()=>({})),
+      fetch('/consultations/list?limit=5').then(r=>r.json()).catch(()=>({consultations:[]})),
+      fetch('/patients/list').then(r=>r.json()).catch(()=>({patients:[]}))
+    ]);
+
+    const s = statsRes;
+    const consults = consultsRes.consultations || [];
+    const patients = patientsRes.patients || [];
+
+    // Top gènes
+    const topGenes = (s.top_genes||[]).slice(0,8);
+    const maxCount = topGenes.length ? topGenes[0].count : 1;
+
+    el.innerHTML = `
+      <!-- KPI Cards -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px">
+        ${[
+          {label:'Recherches', val: s.total_searches||0, icon:'🔬', color:'#0891b2'},
+          {label:'Analyses VEP', val: s.vep_analyses||0, icon:'🧪', color:'#7c3aed'},
+          {label:'Classifications ACMG', val: s.acmg_classifications||0, icon:'⚖️', color:'#16a34a'},
+          {label:'Risques héréditaires', val: s.risk_calculations||0, icon:'🎯', color:'#dc2626'},
+          {label:'Consultations IA', val: consults.length, icon:'🩺', color:'#d97706'},
+          {label:'Patients', val: patients.length, icon:'👤', color:'#0d9488'},
+        ].map(k=>`
+          <div style="background:var(--s2);border:1px solid var(--bd);border-radius:12px;padding:16px;border-left:3px solid ${k.color}">
+            <div style="font-size:22px;margin-bottom:4px">${k.icon}</div>
+            <div style="font-size:26px;font-weight:700;color:${k.color}">${k.val}</div>
+            <div style="font-size:11px;color:var(--mu);margin-top:2px">${k.label}</div>
+          </div>
+        `).join('')}
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+
+        <!-- Top gènes analysés -->
+        <div style="background:var(--s2);border:1px solid var(--bd);border-radius:12px;padding:16px">
+          <div style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--tx)">🧬 Top gènes analysés</div>
+          ${topGenes.length ? topGenes.map(g=>`
+            <div style="margin-bottom:8px">
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+                <span style="font-weight:600;color:var(--tx)">${g.gene}</span>
+                <span style="color:var(--mu)">${g.count} fois</span>
+              </div>
+              <div style="background:var(--bd);border-radius:4px;height:6px">
+                <div style="background:#0891b2;height:6px;border-radius:4px;width:${Math.round(g.count/maxCount*100)}%;transition:width .5s"></div>
+              </div>
+            </div>
+          `).join('') : '<div style="color:var(--mu);font-size:12px;text-align:center;padding:20px">Aucune analyse encore</div>'}
+        </div>
+
+        <!-- Recherches récentes -->
+        <div style="background:var(--s2);border:1px solid var(--bd);border-radius:12px;padding:16px">
+          <div style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--tx)">🕐 Recherches récentes</div>
+          ${(s.recent_searches||[]).length ? [...(s.recent_searches||[])].reverse().map(q=>`
+            <div style="padding:6px 10px;background:var(--sf);border-radius:7px;margin-bottom:6px;font-size:12px;color:var(--tx);cursor:pointer;border:1px solid var(--bd)"
+              onclick="qs && qs('${q.replace(/'/g,"\'")}')">
+              🔍 ${q}
+            </div>
+          `).join('') : '<div style="color:var(--mu);font-size:12px;text-align:center;padding:20px">Aucune recherche récente</div>'}
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+        <!-- Consultations récentes -->
+        <div style="background:var(--s2);border:1px solid var(--bd);border-radius:12px;padding:16px">
+          <div style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--tx)">🩺 Dernières consultations IA</div>
+          ${consults.length ? consults.map(c=>`
+            <div style="padding:8px 10px;background:var(--sf);border-radius:7px;margin-bottom:6px;border:1px solid var(--bd)">
+              <div style="font-size:12px;font-weight:500;color:var(--tx)">${c.clinician_name||'Clinicien'}</div>
+              <div style="font-size:11px;color:var(--mu)">${c.title||'Sans titre'} · ${(c.updated_at||'').slice(0,10)}</div>
+            </div>
+          `).join('') : '<div style="color:var(--mu);font-size:12px;text-align:center;padding:20px">Aucune consultation sauvegardée</div>'}
+        </div>
+
+        <!-- Patients récents -->
+        <div style="background:var(--s2);border:1px solid var(--bd);border-radius:12px;padding:16px">
+          <div style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--tx)">👤 Dossiers patients</div>
+          ${patients.length ? patients.slice(0,5).map(p=>`
+            <div style="padding:8px 10px;background:var(--sf);border-radius:7px;margin-bottom:6px;border:1px solid var(--bd);display:flex;align-items:center;gap:8px">
+              <div style="width:28px;height:28px;border-radius:50%;background:#0d9488;display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:600;flex-shrink:0">${(p.nom||'?')[0].toUpperCase()}</div>
+              <div>
+                <div style="font-size:12px;font-weight:500;color:var(--tx)">${p.nom} ${p.prenom||''}</div>
+                <div style="font-size:11px;color:var(--mu)">${p.diagnostic||'Aucun diagnostic'}</div>
+              </div>
+            </div>
+          `).join('') : '<div style="color:var(--mu);font-size:12px;text-align:center;padding:20px">Aucun patient enregistré</div>'}
+          ${patients.length > 5 ? `<div style="text-align:center;font-size:11px;color:#0d9488;margin-top:4px;cursor:pointer" onclick="showPatientSelector()">Voir tous les ${patients.length} patients →</div>` : ''}
+        </div>
+      </div>
+
+      <div style="text-align:center;margin-top:12px;font-size:11px;color:var(--mu)">
+        ℹ️ Stats de session — réinitialisées au redémarrage serveur · 
+        <span style="cursor:pointer;color:#0891b2" onclick="loadDashboard()">🔄 Actualiser</span>
+      </div>
+    `;
+  } catch(e) {
+    el.innerHTML = `<div style="color:var(--mu);text-align:center;padding:30px">Erreur chargement dashboard: ${e.message}</div>`;
+  }
+}
+
+// Charger le dashboard quand on clique sur l'onglet
+const origShowSec = window._origShowSec || showSec;
+window._origShowSec = origShowSec;
+window.showSec = function(n, b) {
+  origShowSec(n, b);
+  if (n === 'dashboard') loadDashboard();
+};
+</script>
 
   <!-- ABOUT -->
 
