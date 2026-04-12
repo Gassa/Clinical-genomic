@@ -458,14 +458,17 @@ canvas{max-width:100%;border-radius:5px;}
 var _pendingCalls = [];
 
 
-function showSec(n, b){ _pendingCalls.push(['showSec', n, b]); }
-(function waitForShowSec() {
-  if (typeof _pendingCalls !== 'undefined') {
-    showSec('search');
-  } else {
-    setTimeout(waitForShowSec, 50);
-  }
-})();
+function showSec(n, b){
+  // Cacher toutes les sections
+  document.querySelectorAll('[id^="sec-"]').forEach(function(s){ s.style.display='none'; });
+  // Afficher la section demandée
+  var el = document.getElementById('sec-'+n);
+  if(el) el.style.display='block';
+  // Mettre à jour le menu actif
+  document.querySelectorAll('.ni').forEach(function(btn){ btn.classList.remove('active'); });
+  if(b) b.classList.add('active');
+}
+showSec('search');
 async function openApiSettings(){ _pendingCalls.push(['openApiSettings']); }
 
 
