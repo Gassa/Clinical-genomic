@@ -3,7 +3,12 @@ app.py — SenGenoScope v1.0
 Flask backend complet — sans clé API Claude requise
 """
 import logging
-from flask import Flask, render_template, request, jsonify, send_file, Response, session, redirect, url_for
+from flask import Flask
+try:
+    from flask_wtf.csrf import CSRFProtect
+    _has_csrf = True
+except ImportError:
+    _has_csrf = False, render_template, request, jsonify, send_file, Response, session, redirect, url_for
 
 # CORS — autoriser seulement le domaine de production
 from flask_cors import CORS
@@ -50,6 +55,9 @@ from datetime import timedelta, datetime
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
+if _has_csrf:
+    csrf = CSRFProtect(app)
+    app.config["WTF_CSRF_CHECK_DEFAULT"] = False
 CORS(app, origins=['https://clinical-genomic.onrender.com'])
 app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(32))
 app.permanent_session_lifetime = timedelta(days=30)
@@ -1717,6 +1725,20 @@ def stats_dashboard():
                         "by_day":[{"day":r[0],"count":r[1]} for r in by_day]})
     except Exception as e: return jsonify({"error":str(e)}),500
 
+
+# Exempter les routes API JSON du CSRF (protégées par JWT Supabase)
+if _has_csrf:
+    csrf.exempt(api_login)
+    csrf.exempt(api_register)
+    csrf.exempt(api_logout)
+    csrf.exempt(api_get_patients)
+    csrf.exempt(api_create_patient)
+    csrf.exempt(api_save_analysis)
+    csrf.exempt(interpret_ngs)
+    csrf.exempt(analyze_cnv)
+    csrf.exempt(analyze_fusions)
+    csrf.exempt(analyze_signatures)
+    csrf.exempt(tumor_board)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
