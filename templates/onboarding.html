@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SenGenoScope — Bienvenue</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8fafc;min-height:100vh;display:flex;align-items:center;justify-content:center}
+.container{width:100%;max-width:580px;padding:20px}
+.logo{text-align:center;margin-bottom:32px}
+.logo h1{font-size:26px;font-weight:700;color:#0f172a}
+.logo h1 span{color:#0d9488}
+.logo p{font-size:13px;color:#64748b;margin-top:4px}
+.steps{display:flex;justify-content:center;gap:8px;margin-bottom:28px}
+.step-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;border:2px solid #e2e8f0;color:#94a3b8;transition:all .3s}
+.step-dot.active{background:#0d9488;border-color:#0d9488;color:white}
+.step-dot.done{background:#e2e8f0;border-color:#e2e8f0;color:#64748b}
+.step-line{width:40px;height:2px;background:#e2e8f0;margin-top:15px}
+.card{background:white;border-radius:16px;border:1px solid #e2e8f0;padding:32px}
+.step-pane{display:none}
+.step-pane.active{display:block}
+h2{font-size:20px;font-weight:600;color:#0f172a;margin-bottom:8px}
+.subtitle{font-size:13px;color:#64748b;margin-bottom:24px;line-height:1.6}
+.form-group{margin-bottom:16px}
+label{display:block;font-size:12px;font-weight:500;color:#374151;margin-bottom:6px}
+input{width:100%;padding:10px 14px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;outline:none;transition:border .2s}
+input:focus{border-color:#0d9488}
+.btn{width:100%;padding:12px;border-radius:8px;border:none;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s;margin-top:8px}
+.btn-primary{background:#0d9488;color:white}
+.btn-primary:hover{background:#0f766e}
+.btn-skip{background:none;color:#94a3b8;font-size:13px;margin-top:8px;width:100%;text-align:center;cursor:pointer;border:none;padding:8px}
+.info-box{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:14px;margin-bottom:20px;font-size:13px;color:#166534;line-height:1.6}
+.feature-list{display:flex;flex-direction:column;gap:10px;margin-bottom:24px}
+.feature{display:flex;align-items:flex-start;gap:12px;padding:10px;background:#f8fafc;border-radius:8px}
+.feature-icon{font-size:20px;flex-shrink:0}
+.feature-text{font-size:13px;color:#374151}
+.feature-text strong{color:#0f172a;display:block;margin-bottom:2px}
+.success-icon{font-size:48px;text-align:center;margin-bottom:16px}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="logo">
+    <h1>Sen<span>Geno</span>Scope</h1>
+    <p>Oncogénomique clinique — Configuration initiale</p>
+  </div>
+
+  <div class="steps">
+    <div class="step-dot active" id="dot1">1</div>
+    <div class="step-line"></div>
+    <div class="step-dot" id="dot2">2</div>
+    <div class="step-line"></div>
+    <div class="step-dot" id="dot3">3</div>
+  </div>
+
+  <div class="card">
+    <!-- Étape 1 : Bienvenue -->
+    <div class="step-pane active" id="pane1">
+      <h2>Bienvenue sur SenGenoScope !</h2>
+      <p class="subtitle">La plateforme d'oncogénomique clinique avec 30+ modules IA. Configurons votre compte en 3 étapes rapides.</p>
+      <div class="feature-list">
+        <div class="feature">
+          <span class="feature-icon">🧬</span>
+          <div class="feature-text"><strong>Analyse NGS, CNV, Fusions, Signatures</strong>Classification ACMG automatique et recommandations cliniques</div>
+        </div>
+        <div class="feature">
+          <span class="feature-icon">🏥</span>
+          <div class="feature-text"><strong>Tumeur Board IA (MTB)</strong>Synthèse multi-omique prête pour la RCP</div>
+        </div>
+        <div class="feature">
+          <span class="feature-icon">💊</span>
+          <div class="feature-text"><strong>Comparateur thérapeutique + HRD</strong>Options thérapeutiques avec niveaux de preuve ESMO/NCCN</div>
+        </div>
+        <div class="feature">
+          <span class="feature-icon">🗂️</span>
+          <div class="feature-text"><strong>Dossiers patients sécurisés</strong>Stockage Supabase chiffré, accès par institution</div>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="goStep(2)">Commencer la configuration →</button>
+    </div>
+
+    <!-- Étape 2 : Clé API -->
+    <div class="step-pane" id="pane2">
+      <h2>Votre clé API Claude</h2>
+      <p class="subtitle">SenGenoScope utilise Claude (Anthropic) pour les analyses IA. Chaque utilisateur utilise sa propre clé API — vos données ne transitent jamais par nos serveurs.</p>
+      <div class="info-box">
+        🔑 Obtenez votre clé sur <strong>console.anthropic.com</strong> → API Keys → Create key<br>
+        Format: <code style="background:#dcfce7;padding:2px 6px;border-radius:4px">sk-ant-api03-...</code>
+      </div>
+      <div class="form-group">
+        <label>Clé API Anthropic</label>
+        <input type="password" id="api-key-input" placeholder="sk-ant-api03-...">
+      </div>
+      <button class="btn btn-primary" onclick="saveApiKey()">Enregistrer ma clé →</button>
+      <button class="btn-skip" onclick="goStep(3)">Passer cette étape (configurable plus tard via ⚙️)</button>
+    </div>
+
+    <!-- Étape 3 : Premier patient -->
+    <div class="step-pane" id="pane3">
+      <h2>Créer votre premier dossier patient</h2>
+      <p class="subtitle">Optionnel — vous pouvez le faire directement depuis la plateforme. Cela vous montre comment fonctionne le système de dossiers.</p>
+      <div class="form-group">
+        <label>Code patient *</label>
+        <input id="ob-code" placeholder="Ex: PAT-001, MGH-2024-001">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="form-group">
+          <label>Type de cancer</label>
+          <input id="ob-cancer" placeholder="Sein, Poumon...">
+        </div>
+        <div class="form-group">
+          <label>Stade</label>
+          <input id="ob-stage" placeholder="I, II, III, IV">
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="createFirstPatient()">Créer le dossier et continuer →</button>
+      <button class="btn-skip" onclick="goApp()">Accéder directement à la plateforme</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var currentStep = 1;
+
+function goStep(n) {
+  document.getElementById('pane' + currentStep).classList.remove('active');
+  document.getElementById('dot' + currentStep).classList.remove('active');
+  document.getElementById('dot' + currentStep).classList.add('done');
+  currentStep = n;
+  document.getElementById('pane' + n).classList.add('active');
+  document.getElementById('dot' + n).classList.add('active');
+}
+
+function saveApiKey() {
+  var key = document.getElementById('api-key-input').value.trim();
+  if (key && key.startsWith('sk-')) {
+    localStorage.setItem('sgs_api_key', key);
+    goStep(3);
+  } else if (!key) {
+    goStep(3);
+  } else {
+    alert('Clé invalide. Elle doit commencer par sk-ant-...');
+  }
+}
+
+async function createFirstPatient() {
+  var code = document.getElementById('ob-code').value.trim();
+  if (!code) { goApp(); return; }
+  try {
+    var r = await fetch('/api/patients', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        patient_code: code,
+        cancer_type: document.getElementById('ob-cancer').value.trim(),
+        stage: document.getElementById('ob-stage').value.trim()
+      })
+    });
+    var d = await r.json();
+    if (d.success) {
+      localStorage.setItem('sgs_current_patient', d.patient.id);
+      localStorage.setItem('sgs_current_patient_code', code);
+    }
+  } catch(e) {}
+  goApp();
+}
+
+function goApp() {
+  window.location.href = '/app';
+}
+</script>
+</body>
+</html>

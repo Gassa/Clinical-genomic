@@ -3227,3 +3227,21 @@ Format:
     except Exception as e:
         import logging; logging.error(f"calculate_hrd error: {e}")
         return jsonify({"success": False, "error": str(e)})
+
+
+# ════════════════════════════════════════════
+# PAGES ERREUR + ONBOARDING
+# ════════════════════════════════════════════
+@app.errorhandler(404)
+def error_404(e):
+    return render_template('404.html'), 404
+
+@app.errorhandler(500)
+def error_500(e):
+    return render_template('500.html'), 500
+
+@app.route('/onboarding')
+def onboarding():
+    if not session.get('authenticated'):
+        return redirect('/login')
+    return render_template('onboarding.html')
