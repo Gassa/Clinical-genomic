@@ -523,6 +523,7 @@ function qs(q){document.getElementById('query').value=q;if(typeof runSearch==='f
     <button class="ni" onclick="showSec('manchester',this)"><span class="ni-i">🎗️</span><span data-fr="Score Manchester / Tyrer-Cuzick" data-en="Manchester / Tyrer-Cuzick Score">Score Manchester / TC</span></button>
     <button class="ni" onclick="showSec('compvar',this)"><span class="ni-i">⚖️</span><span data-fr="Comparateur de variants" data-en="Variant Comparator">Comparateur variants</span></button>
     <button class="ni" onclick="showSec('pedigree',this)"><span class="ni-i">🌳</span><span data-fr="Arbre généalogique" data-en="Family Tree">Arbre généalogique</span></button>
+    <button class="ni" onclick="showSec('trajectory',this)"><span class="ni-i">📍</span><span data-fr="Trajectoire de soin" data-en="Care Trajectory">Trajectoire de soin</span></button>
     <div class="ns" data-fr="Intelligence Artificielle" data-en="Artificial Intelligence">Intelligence Artificielle</div>
     <button class="ni" onclick="showSec('ai_chat',this)"><span class="ni-i">🤖</span><span data-fr="Chat IA Clinique" data-en="Clinical AI Chat">Chat IA Clinique</span></button>
     <button class="ni" onclick="showSec('ai_upload',this)"><span class="ni-i">📁</span><span data-fr="Analyse fichier IA" data-en="AI File Analysis">Analyse fichier IA</span></button>
@@ -2181,7 +2182,76 @@ window.showSec = function(n, b) {
 
 
   <!-- ══ ARBRE GENEALOGIQUE ════════════════════════════════════════════ -->
-  <div id="sec-pedigree" style="display:none">
+  <div id="sec-trajectory" style="display:none">
+  <div class="card">
+    <div class="ch">
+      <span class="ct2">📍 Trajectoire de soin patient</span>
+      <button onclick="showPatientSelectorForTrajectory()" style="margin-left:auto;padding:6px 14px;border-radius:8px;border:none;background:#0d9488;color:white;font-size:12px;font-weight:500;cursor:pointer">👤 Choisir un patient</button>
+    </div>
+    <div id="trajectoryContent" style="padding:16px">
+      <div style="text-align:center;padding:40px;color:var(--mu)">
+        <div style="font-size:40px;margin-bottom:12px">📍</div>
+        <div style="font-size:14px;font-weight:500">Sélectionnez un patient pour voir sa trajectoire de soin</div>
+        <div style="font-size:12px;margin-top:8px;color:var(--mu)">Historique des analyses NGS, ACMG, consultations et décisions thérapeutiques</div>
+        <button onclick="showPatientSelectorForTrajectory()" style="margin-top:16px;padding:10px 24px;border-radius:10px;border:none;background:#0d9488;color:white;font-size:13px;font-weight:500;cursor:pointer">👤 Sélectionner un patient</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal ajout analyse -->
+  <div id="addAnalyseModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:center;justify-content:center;padding:20px">
+    <div style="background:var(--bg);border-radius:14px;width:100%;max-width:500px;border:1px solid var(--bd);overflow:hidden">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center;background:var(--s2)">
+        <div style="font-size:15px;font-weight:600">➕ Ajouter une étape</div>
+        <button onclick="document.getElementById('addAnalyseModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer">×</button>
+      </div>
+      <div style="padding:20px;display:flex;flex-direction:column;gap:12px">
+        <div>
+          <label style="font-size:12px;font-weight:500;color:var(--mu);display:block;margin-bottom:4px">Type d'analyse *</label>
+          <select id="analyseType" style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--sf);color:var(--tx);font-size:13px">
+            <option value="NGS">🗂️ Interprétation NGS</option>
+            <option value="ACMG">⚖️ Classification ACMG</option>
+            <option value="CNV">📊 Analyse CNV</option>
+            <option value="HRD">🧮 Score HRD</option>
+            <option value="Pharmacogénomique">💊 Pharmacogénomique</option>
+            <option value="TMB/MSI">📊 TMB · MSI · Signatures</option>
+            <option value="RCP">🏥 Décision RCP</option>
+            <option value="Thérapeutique">💉 Décision thérapeutique</option>
+            <option value="Suivi">🔄 Suivi / Réévaluation</option>
+            <option value="Autre">📝 Autre</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:500;color:var(--mu);display:block;margin-bottom:4px">Titre *</label>
+          <input id="analyseTitre" placeholder="Ex: BRCA1 c.5266dupC — Pathogène" style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--sf);color:var(--tx);font-size:13px;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:500;color:var(--mu);display:block;margin-bottom:4px">Résumé clinique</label>
+          <textarea id="analyseResume" rows="3" placeholder="Résumé de l'analyse et conclusions principales..." style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--sf);color:var(--tx);font-size:13px;resize:vertical;box-sizing:border-box"></textarea>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:500;color:var(--mu);display:block;margin-bottom:4px">Classification / Résultat</label>
+          <select id="analyseClassification" style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--sf);color:var(--tx);font-size:13px">
+            <option value="">— Non classifié —</option>
+            <option value="Pathogène">🔴 Pathogène</option>
+            <option value="Probablement pathogène">🟠 Probablement pathogène</option>
+            <option value="VUS">🟡 VUS (signification incertaine)</option>
+            <option value="Probablement bénin">🟢 Probablement bénin</option>
+            <option value="Bénin">✅ Bénin</option>
+            <option value="Traitement initié">💉 Traitement initié</option>
+            <option value="Réponse partielle">📈 Réponse partielle</option>
+            <option value="Réponse complète">✅ Réponse complète</option>
+            <option value="Progression">📉 Progression</option>
+            <option value="Stable">➡️ Stable</option>
+          </select>
+        </div>
+        <button onclick="saveAnalyse()" style="padding:10px;border-radius:8px;border:none;background:#0d9488;color:white;font-size:13px;font-weight:500;cursor:pointer">➕ Ajouter à la trajectoire</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="sec-pedigree" style="display:none">
     <div style="padding:14px 16px;border-bottom:1px solid var(--bd)">
       <div style="font-size:15px;font-weight:700;color:var(--tx);margin-bottom:4px">🌳 Arbre généalogique — Conseil génétique interactif</div>
       <div style="font-size:12px;color:var(--mu)">Ajoutez les membres de la famille, indiquez les atteintes et calculez automatiquement le risque génétique.</div>
@@ -5796,6 +5866,165 @@ function pedCanvasRightClick(e){
 document.addEventListener('DOMContentLoaded', function(){
   showSec('search');
 });
+</script>
+
+<script>
+// ══ TRAJECTOIRE DE SOIN ══════════════════════════════════════════════════════
+let _trajectoryPatient = null;
+
+const ANALYSE_ICONS = {
+  'NGS':'🗂️','ACMG':'⚖️','CNV':'📊','HRD':'🧮','Pharmacogénomique':'💊',
+  'TMB/MSI':'📊','RCP':'🏥','Thérapeutique':'💉','Suivi':'🔄','consultation':'🩺','Autre':'📝'
+};
+const CLASSIF_COLORS = {
+  'Pathogène':'#dc2626','Probablement pathogène':'#ea580c','VUS':'#ca8a04',
+  'Probablement bénin':'#16a34a','Bénin':'#15803d','Traitement initié':'#0891b2',
+  'Réponse partielle':'#7c3aed','Réponse complète':'#059669','Progression':'#dc2626','Stable':'#6b7280'
+};
+
+function showPatientSelectorForTrajectory() {
+  fetch('/patients/list').then(r=>r.json()).then(d=>{
+    const patients = d.patients || [];
+    const m = document.createElement('div');
+    m.id = 'trajPatientModal';
+    m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+    const rows = patients.length
+      ? patients.map(p=>`
+          <div onclick="loadTrajectory(${p.id},'${(p.nom+' '+(p.prenom||'')).trim().replace(/'/g,"\'")}');document.getElementById('trajPatientModal').remove()"
+            style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;border:1px solid var(--bd);margin-bottom:6px;background:var(--s2);cursor:pointer">
+            <div style="width:36px;height:36px;border-radius:50%;background:#0d9488;display:flex;align-items:center;justify-content:center;color:white;font-size:14px;font-weight:600">${p.nom[0].toUpperCase()}</div>
+            <div>
+              <div style="font-size:13px;font-weight:500">${p.nom} ${p.prenom||''}</div>
+              <div style="font-size:11px;color:var(--mu)">${p.diagnostic||'Aucun diagnostic'} ${p.numero_dossier?'· N° '+p.numero_dossier:''}</div>
+            </div>
+          </div>`).join('')
+      : '<div style="text-align:center;padding:30px;color:var(--mu)">Aucun patient — créez-en un depuis "Dossiers"</div>';
+    m.innerHTML = `<div style="background:var(--bg);border-radius:14px;width:100%;max-width:480px;max-height:80vh;display:flex;flex-direction:column;border:1px solid var(--bd);overflow:hidden">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center;background:var(--s2)">
+        <div style="font-size:15px;font-weight:600">👤 Choisir un patient</div>
+        <button onclick="document.getElementById('trajPatientModal').remove()" style="background:none;border:none;font-size:20px;cursor:pointer">×</button>
+      </div>
+      <div style="overflow-y:auto;padding:16px;flex:1">${rows}</div>
+    </div>`;
+    document.body.appendChild(m);
+  });
+}
+
+async function loadTrajectory(pid, name) {
+  _trajectoryPatient = pid;
+  const el = document.getElementById('trajectoryContent');
+  el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--mu)">Chargement...</div>';
+
+  try {
+    const d = await fetch(`/patients/${pid}/analyses`).then(r=>r.json());
+    if (!d.success) throw new Error(d.error);
+
+    const p = d.patient;
+    const all = [
+      ...d.analyses.map(a=>({...a, cat:'analyse'})),
+      ...d.consultations.map(c=>({...c, cat:'consultation', type:'consultation'}))
+    ].sort((a,b)=>a.created_at.localeCompare(b.created_at));
+
+    el.innerHTML = `
+      <!-- En-tête patient -->
+      <div style="background:linear-gradient(135deg,#0d9488,#0891b2);border-radius:12px;padding:16px 20px;margin-bottom:20px;color:white;display:flex;align-items:center;gap:16px">
+        <div style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;flex-shrink:0">${p.nom[0].toUpperCase()}</div>
+        <div style="flex:1">
+          <div style="font-size:17px;font-weight:700">${p.nom} ${p.prenom||''}</div>
+          <div style="font-size:12px;opacity:0.85;margin-top:2px">${p.diagnostic||'Aucun diagnostic'} ${p.numero_dossier?'· N° '+p.numero_dossier:''} ${p.date_naissance?'· Né(e) le '+p.date_naissance:''}</div>
+        </div>
+        <button onclick="openAddAnalyse()" style="padding:8px 16px;border-radius:8px;border:2px solid rgba(255,255,255,0.6);background:transparent;color:white;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">➕ Ajouter étape</button>
+      </div>
+
+      <!-- Stats rapides -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px">
+        ${[
+          {label:'Analyses',val:d.analyses.length,color:'#0891b2'},
+          {label:'Consultations',val:d.consultations.length,color:'#7c3aed'},
+          {label:'Pathogènes',val:d.analyses.filter(a=>a.classification==='Pathogène'||a.classification==='Probablement pathogène').length,color:'#dc2626'},
+          {label:'Jours de suivi',val:all.length>1?Math.round((new Date(all[all.length-1].created_at)-new Date(all[0].created_at))/(1000*60*60*24)):0,color:'#16a34a'},
+        ].map(s=>`<div style="background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:12px;text-align:center;border-top:2px solid ${s.color}">
+          <div style="font-size:22px;font-weight:700;color:${s.color}">${s.val}</div>
+          <div style="font-size:10px;color:var(--mu);margin-top:2px">${s.label}</div>
+        </div>`).join('')}
+      </div>
+
+      <!-- Timeline -->
+      <div style="position:relative;padding-left:32px">
+        <div style="position:absolute;left:14px;top:0;bottom:0;width:2px;background:var(--bd)"></div>
+        ${all.length ? all.map((item,i)=>{
+          const icon = ANALYSE_ICONS[item.type] || '📝';
+          const classifColor = CLASSIF_COLORS[item.classification] || '#6b7280';
+          const date = item.created_at ? item.created_at.slice(0,10) : '';
+          const isConsult = item.cat === 'consultation';
+          return `
+            <div style="position:relative;margin-bottom:20px">
+              <div style="position:absolute;left:-24px;top:12px;width:20px;height:20px;border-radius:50%;background:${classifColor||'#0891b2'};display:flex;align-items:center;justify-content:center;font-size:10px;border:2px solid var(--bg);z-index:1">${icon}</div>
+              <div style="background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:14px 16px;border-left:3px solid ${classifColor||'#0891b2'}">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+                  <div style="flex:1">
+                    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                      <span style="font-size:11px;font-weight:600;color:${classifColor||'#0891b2'};background:${classifColor||'#0891b2'}18;padding:2px 8px;border-radius:20px">${item.type}</span>
+                      ${item.classification?`<span style="font-size:10px;color:white;background:${classifColor};padding:2px 8px;border-radius:20px">${item.classification}</span>`:''}
+                    </div>
+                    <div style="font-size:13px;font-weight:600;color:var(--tx);margin-top:6px">${item.titre||item.title||'Sans titre'}</div>
+                    ${item.resume||item.specialty?`<div style="font-size:12px;color:var(--mu);margin-top:4px;line-height:1.5">${item.resume||('Spécialité: '+item.specialty)}</div>`:''}
+                  </div>
+                  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+                    <div style="font-size:11px;color:var(--mu)">${date}</div>
+                    ${!isConsult?`<button onclick="deleteAnalyse(${_trajectoryPatient},${item.id})" style="padding:2px 8px;border-radius:6px;border:1px solid var(--bd);background:transparent;font-size:10px;cursor:pointer;color:var(--mu)">✕</button>`:''}
+                  </div>
+                </div>
+              </div>
+            </div>`;
+        }).join('') : `<div style="text-align:center;padding:30px;color:var(--mu)">
+          <div style="font-size:30px;margin-bottom:10px">📭</div>
+          <div style="font-size:13px">Aucune étape enregistrée pour ce patient</div>
+          <button onclick="openAddAnalyse()" style="margin-top:12px;padding:8px 20px;border-radius:8px;border:none;background:#0d9488;color:white;font-size:12px;cursor:pointer">➕ Ajouter la première étape</button>
+        </div>`}
+      </div>
+    `;
+  } catch(e) {
+    el.innerHTML = `<div style="color:var(--mu);text-align:center;padding:30px">Erreur: ${e.message}</div>`;
+  }
+}
+
+function openAddAnalyse() {
+  if (!_trajectoryPatient) return;
+  document.getElementById('analyseTitre').value = '';
+  document.getElementById('analyseResume').value = '';
+  document.getElementById('analyseClassification').value = '';
+  const m = document.getElementById('addAnalyseModal');
+  m.style.display = 'flex';
+}
+
+async function saveAnalyse() {
+  if (!_trajectoryPatient) return;
+  const titre = document.getElementById('analyseTitre').value.trim();
+  if (!titre) { alert('Le titre est obligatoire'); return; }
+  const payload = {
+    type_analyse: document.getElementById('analyseType').value,
+    titre,
+    resume: document.getElementById('analyseResume').value.trim(),
+    classification: document.getElementById('analyseClassification').value
+  };
+  try {
+    const r = await fetch(`/patients/${_trajectoryPatient}/analyses`, {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
+    }).then(r=>r.json());
+    if (!r.success) throw new Error(r.error);
+    document.getElementById('addAnalyseModal').style.display = 'none';
+    loadTrajectory(_trajectoryPatient, '');
+  } catch(e) { alert('Erreur: ' + e.message); }
+}
+
+async function deleteAnalyse(pid, aid) {
+  if (!confirm('Supprimer cette étape ?')) return;
+  try {
+    await fetch(`/patients/${pid}/analyses/${aid}`, {method:'DELETE'});
+    loadTrajectory(pid, '');
+  } catch(e) { alert('Erreur: ' + e.message); }
+}
 </script>
 </body>
 </html>

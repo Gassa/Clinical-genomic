@@ -170,6 +170,17 @@ def init_db():
             notes TEXT DEFAULT '',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )""")
+        cur.execute("""CREATE TABLE IF NOT EXISTS patient_analyses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            patient_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            type_analyse TEXT NOT NULL,
+            titre TEXT DEFAULT '',
+            resume TEXT DEFAULT '',
+            resultat TEXT DEFAULT '',
+            classification TEXT DEFAULT '',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )""")
     conn.commit()
     conn.close()
 
@@ -3245,3 +3256,73 @@ def onboarding():
     if not session.get('authenticated'):
         return redirect('/login')
     return render_template('onboarding.html')
+
+# ══ TRAJECTOIRE DE SOIN — ANALYSES PATIENT ════════════════════════════════════
+
+@app.route('/patients/<int:pid>/analyses', methods=['GET'])
+@login_required
+def get_patient_analyses(pid):
+    uid = session['user_id']
+    conn, _db = get_conn()
+    cur = conn.cursor()
+    ph = "%s" if _db == "pg" else "?"
+    try:
+        # Vérifier accès patient
+        cur.execute(f"SELECT id,nom,prenom,diagnostic,numero_dossier,date_naissance,notes,created_at FROM patients WHERE id={ph} AND user_id={ph}", (pid, uid))
+        p = cur.fetchone()
+        if not p:
+            return jsonify({"success": False, "error": "Patient non trouvé"})
+        # Récupérer analyses
+        cur.execute(f"SELECT id,type_analyse,titre,resume,resultat,classification,created_at FROM patient_analyses WHERE patient_id={ph} AND user_id={ph} ORDER BY created_at ASC", (pid, uid))
+        analyses = [{"id":r[0],"type":r[1],"titre":r[2],"resume":r[3],"resultat":r[4],"classification":r[5],"created_at":str(r[6])} for r in cur.fetchall()]
+        # Récupérer consultations liées
+        cur.execute(f"SELECT id,clinician_name,clinician_specialty,title,updated_at FROM consultations WHERE patient_id={ph} AND user_id={ph} ORDER BY updated_at ASC", (pid, uid))
+        consults = [{"id":c[0],"type":"consultation","titre":c[3],"clinician":c[1],"specialty":c[2],"created_at":str(c[4])} for c in cur.fetchall()]
+        conn.close()
+        return jsonify({
+            "success": True,
+            "patient": {"id":p[0],"nom":p[1],"prenom":p[2],"diagnostic":p[3],"numero_dossier":p[4],"date_naissance":p[5],"notes":p[6],"created_at":str(p[7])},
+            "analyses": analyses,
+            "consultations": consults
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route('/patients/<int:pid>/analyses', methods=['POST'])
+@login_required
+def save_patient_analyse(pid):
+    uid = session['user_id']
+    data = request.json or {}
+    conn, _db = get_conn()
+    cur = conn.cursor()
+    ph = "%s" if _db == "pg" else "?"
+    try:
+        cur.execute(f"SELECT id FROM patients WHERE id={ph} AND user_id={ph}", (pid, uid))
+        if not cur.fetchone():
+            return jsonify({"success": False, "error": "Patient non trouvé"})
+        cur.execute(
+            f"INSERT INTO patient_analyses (patient_id,user_id,type_analyse,titre,resume,resultat,classification) VALUES ({ph},{ph},{ph},{ph},{ph},{ph},{ph})",
+            (pid, uid, data.get('type_analyse','NGS'), data.get('titre',''), data.get('resume',''), data.get('resultat',''), data.get('classification',''))
+        )
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route('/patients/<int:pid>/analyses/<int:aid>', methods=['DELETE'])
+@login_required
+def delete_patient_analyse(pid, aid):
+    uid = session['user_id']
+    conn, _db = get_conn()
+    cur = conn.cursor()
+    ph = "%s" if _db == "pg" else "?"
+    try:
+        cur.execute(f"DELETE FROM patient_analyses WHERE id={ph} AND patient_id={ph} AND user_id={ph}", (aid, pid, uid))
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
