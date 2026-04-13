@@ -1027,3 +1027,211 @@ async function generateClinicalPDF(patientId) {
   } catch(e) { alert('Erreur PDF: '+e.message); }
   if (btn) { btn.textContent = '📄 PDF Clinique'; btn.disabled = false; }
 }
+
+
+// ══ MORPHO-GÉNÉTIQUE IA ══════════════════════════════════════════════════
+(function(){
+  var _mType='breast', _mFile=null, _mB64=null, _mResult=null;
+
+  window.setMorphoTab=function(btn,type){
+    _mType=type;
+    document.querySelectorAll('.morpho-tab').forEach(function(b){
+      b.style.background='var(--sf)';b.style.borderColor='var(--bd)';b.style.color='var(--tx)';
+    });
+    btn.style.background='#dff0f8';btn.style.borderColor='#0c6e9c';btn.style.color='#0c6e9c';
+  };
+
+  window.morphoHandleDrop=function(e){
+    e.preventDefault();
+    document.getElementById('morphoDropZone').style.borderColor='var(--bd)';
+    if(e.dataTransfer.files[0]) morphoHandleFile(e.dataTransfer.files[0]);
+  };
+
+  window.morphoHandleFile=function(file){
+    if(!file)return;
+    if(file.size>20*1024*1024){alert('Image trop grande (max 20 MB)');return;}
+    _mFile=file;
+    var rd=new FileReader();
+    rd.onload=function(e){
+      _mB64=e.target.result.split(',')[1];
+      document.getElementById('morphoDropHint').style.display='none';
+      document.getElementById('morphoPreviewContainer').style.display='block';
+      document.getElementById('morphoPreview').src=e.target.result;
+      document.getElementById('morphoFileName').textContent=file.name+' ('+(file.size/1024).toFixed(0)+' KB)';
+    };
+    rd.readAsDataURL(file);
+  };
+
+  window.morphoClear=function(){
+    _mFile=null;_mB64=null;_mResult=null;
+    document.getElementById('morphoDropHint').style.display='block';
+    document.getElementById('morphoPreviewContainer').style.display='none';
+    document.getElementById('morphoFileInput').value='';
+    document.getElementById('morphoResult').innerHTML='';
+    document.getElementById('morphoPDFBtn').style.display='none';
+  };
+
+  window.morphoAnalyze=async function(){
+    var userKey=localStorage.getItem('sgs_api_key')||'';
+    if(!userKey){
+      document.getElementById('morphoResult').innerHTML='<div style="color:#dc2626;padding:12px;background:#fef2f2;border-radius:8px">⚠️ Configurez votre clé API via le bouton "Clé API".</div>';
+      return;
+    }
+    var btn=document.getElementById('morphoAnalyzeBtn');
+    var res=document.getElementById('morphoResult');
+    btn.disabled=true;btn.innerHTML='⏳ Analyse en cours…';
+    res.innerHTML='<div style="padding:20px;text-align:center"><div style="font-size:28px;margin-bottom:8px">🔬</div><div style="color:var(--mu);font-size:13px">L\'IA analyse l\'image histologique…<br>Extraction morphologie, IHC, mutations probables…</div></div>';
+    try{
+      var body={tumor_type:_mType,stain_type:document.getElementById('morphoStain').value,
+                clinical_context:document.getElementById('morphoClinical').value,user_api_key:userKey};
+      if(_mB64){body.image_b64=_mB64;body.image_type=_mFile?_mFile.type||'image/jpeg':'image/jpeg';}
+      var r=await fetch('/morpho_analyze',{method:'POST',
+        headers:{'Content-Type':'application/json','X-User-Api-Key':userKey},
+        body:JSON.stringify(body)});
+      var d=await r.json();
+      if(d.success){
+        _mResult=d.result;
+        res.innerHTML=_morphoRender(d.result);
+        document.getElementById('morphoPDFBtn').style.display='inline-flex';
+      } else {
+        res.innerHTML='<div style="color:#dc2626;padding:12px;background:#fef2f2;border-radius:8px">❌ '+(d.error||'Erreur')+'</div>';
+      }
+    }catch(e){
+      res.innerHTML='<div style="color:#dc2626;padding:12px;background:#fef2f2;border-radius:8px">❌ '+e.message+'</div>';
+    }
+    btn.disabled=false;btn.innerHTML='🧬 Analyser avec IA';
+  };
+
+  function _morphoRender(r){
+    var h='<div style="display:flex;flex-direction:column;gap:14px">';
+    var flags=r.urgent_flags||[];
+    if(flags.length){
+      h+='<div style="background:#fef2f2;border:1.5px solid #fecaca;border-radius:10px;padding:14px">';
+      h+='<div style="font-size:12px;font-weight:700;color:#dc2626;margin-bottom:6px">🚨 ALERTES URGENTES</div>';
+      flags.forEach(function(f){h+='<div style="font-size:13px;color:#dc2626">• '+f+'</div>';});
+      h+='</div>';
+    }
+    var qa=r.quality_assessment||{};
+    h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px">';
+    [{label:'Grade',val:r.grade||'—',c:'#dc2626'},{label:'Sous-type',val:r.molecular_subtype||'—',c:'#7c3aed'},
+     {label:'Confiance',val:(qa.confidence_overall||'—')+'%',c:'#059669'},{label:'Qualité image',val:qa.image_quality||'—',c:'#0c6e9c'}
+    ].forEach(function(k){
+      h+='<div style="background:var(--s2);border-radius:10px;padding:12px;text-align:center">';
+      h+='<div style="font-size:15px;font-weight:800;color:'+k.c+'">'+k.val+'</div>';
+      h+='<div style="font-size:11px;color:var(--mu);margin-top:3px">'+k.label+'</div></div>';
+    });
+    h+='</div>';
+    var findings=r.key_findings||[];
+    if(findings.length){
+      h+='<div style="background:linear-gradient(135deg,#dff0f8,#ede9fe);border-radius:10px;padding:14px">';
+      h+='<div style="font-size:12px;font-weight:700;color:#0c6e9c;margin-bottom:8px">🔑 Constats clés</div>';
+      findings.forEach(function(f){h+='<div style="font-size:13px;padding:2px 0">▶ '+f+'</div>';});
+      h+='</div>';
+    }
+    var m=r.morphology||{};
+    if(Object.keys(m).length){
+      h+='<div style="background:var(--s2);border-radius:10px;padding:14px">';
+      h+='<div style="font-size:12px;font-weight:700;margin-bottom:10px">🔬 Analyse morphologique</div>';
+      h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">';
+      var ml={architecture:'Architecture',cytology:'Cytologie',stroma:'Stroma',
+              mitotic_index:'Index mitotique',tumor_infiltrating_lymphocytes:'TILs',necrosis:'Nécrose'};
+      Object.entries(m).forEach(function(e){
+        if(e[1]!==null&&e[1]!==''&&e[1]!==undefined){
+          h+='<div style="background:var(--sf);border-radius:7px;padding:8px">';
+          h+='<div style="font-size:10px;color:var(--mu);font-weight:600;margin-bottom:2px">'+(ml[e[0]]||e[0]).toUpperCase()+'</div>';
+          h+='<div style="font-weight:500">'+e[1]+'</div></div>';
+        }
+      });
+      h+='</div></div>';
+    }
+    var ihc=r.ihc_predictions||[];
+    if(ihc.length){
+      h+='<div style="background:var(--s2);border-radius:10px;padding:14px">';
+      h+='<div style="font-size:12px;font-weight:700;margin-bottom:10px">💉 Prédictions IHC</div>';
+      ihc.forEach(function(i){
+        var c=i.confidence||0;var cc=c>=80?'#059669':c>=60?'#d97706':'#dc2626';
+        h+='<div style="background:var(--sf);border-radius:8px;padding:10px;margin-bottom:6px;border-left:3px solid '+cc+'">';
+        h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">';
+        h+='<span style="font-weight:700;font-size:14px">'+i.marker+'</span>';
+        h+='<span style="font-size:11px;background:'+cc+'22;color:'+cc+';padding:2px 7px;border-radius:10px;font-weight:600">'+c+'%</span></div>';
+        h+='<div style="font-size:13px;margin-bottom:2px">'+(i.predicted_result||'')+'</div>';
+        if(i.clinical_impact)h+='<div style="font-size:11px;color:var(--mu)">'+i.clinical_impact+'</div>';
+        h+='</div>';
+      });
+      h+='</div>';
+    }
+    var muts=r.probable_mutations||[];
+    if(muts.length){
+      h+='<div style="background:var(--s2);border-radius:10px;padding:14px">';
+      h+='<div style="font-size:12px;font-weight:700;margin-bottom:10px">🧬 Mutations probables</div>';
+      muts.forEach(function(mu){
+        var p=mu.probability||0;var bc=p>=70?'#dc2626':p>=50?'#d97706':'#059669';
+        h+='<div style="background:var(--sf);border-radius:8px;padding:10px;margin-bottom:6px">';
+        h+='<div style="display:flex;justify-content:space-between;margin-bottom:6px">';
+        h+='<span style="font-weight:700;color:#7c3aed;font-size:14px">'+mu.gene+'</span>';
+        if(mu.therapeutic_target)h+='<span style="font-size:11px;background:#ede9fe;color:#7c3aed;padding:2px 8px;border-radius:10px">💊 '+mu.therapeutic_target+'</span>';
+        h+='</div>';
+        h+='<div style="background:var(--bd);border-radius:4px;height:5px;margin-bottom:5px">';
+        h+='<div style="background:'+bc+';width:'+Math.min(p,100)+'%;height:100%;border-radius:4px"></div></div>';
+        h+='<div style="font-size:12px;color:var(--mu)">'+(mu.basis||'')+' — <b>'+p+'%</b></div>';
+        h+='</div>';
+      });
+      h+='</div>';
+    }
+    var af=r.african_context||{};
+    if(af.relevant){
+      h+='<div style="background:#dcfce744;border:1px solid #059669aa;border-radius:10px;padding:14px">';
+      h+='<div style="font-size:12px;font-weight:700;color:#059669;margin-bottom:6px">🌍 Contexte africain</div>';
+      h+='<div style="font-size:13px;line-height:1.6">'+(af.note||'')+'</div>';
+      var genes=af.specific_mutations||[];
+      if(genes.length){
+        h+='<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px">';
+        genes.forEach(function(g){h+='<span style="background:#dcfce7;color:#059669;border-radius:12px;padding:2px 9px;font-size:11px;font-weight:600">🔍 '+g+'</span>';});
+        h+='</div>';
+      }
+      h+='</div>';
+    }
+    var diffs=r.differential_diagnosis||[];
+    if(diffs.length){
+      h+='<div style="background:var(--s2);border-radius:10px;padding:14px">';
+      h+='<div style="font-size:12px;font-weight:700;margin-bottom:8px">⚖️ Diagnostics différentiels</div>';
+      diffs.forEach(function(d){
+        h+='<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:.5px solid var(--bd)">';
+        h+='<span style="font-size:13px">'+d.diagnosis+'</span>';
+        h+='<span style="font-size:12px;font-weight:700;color:'+(d.probability>=70?'#059669':'var(--mu)')+'">'+d.probability+'%</span></div>';
+      });
+      h+='</div>';
+    }
+    var gl=r.guidelines||{};
+    if(gl.primary){
+      h+='<div style="background:#dff0f8;border-radius:10px;padding:12px">';
+      h+='<div style="font-size:11px;font-weight:700;color:#0c6e9c;margin-bottom:4px">📋 '+gl.primary+'</div>';
+      if(gl.recommendation)h+='<div style="font-size:12px">'+gl.recommendation+'</div>';
+      h+='</div>';
+    }
+    var note=r.pathologist_note||'⚠️ Validation anatomopathologiste obligatoire.';
+    h+='<div style="background:#fef9c3;border:1px solid #fde68a;border-radius:8px;padding:10px;font-size:11px;color:#92400e;font-weight:500">'+note+'</div>';
+    h+='</div>';
+    return h;
+  }
+
+  window.morphoExportPDF=async function(){
+    if(!_mResult){alert('Analysez d\'abord une image');return;}
+    var btn=document.getElementById('morphoPDFBtn');
+    btn.textContent='⏳...';btn.disabled=true;
+    try{
+      var r=await fetch('/morpho_pdf',{method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({result:_mResult,tumor_type:_mType,
+          clinical_context:document.getElementById('morphoClinical').value})});
+      if(!r.ok)throw new Error('Erreur PDF '+r.status);
+      var blob=await r.blob();
+      var url=URL.createObjectURL(blob);
+      var a=document.createElement('a');a.href=url;
+      a.download='rapport_morpho_'+new Date().toISOString().slice(0,10)+'.pdf';
+      a.click();URL.revokeObjectURL(url);
+    }catch(e){alert('Erreur: '+e.message);}
+    btn.textContent='📄 Rapport PDF';btn.disabled=false;
+  };
+})();
+// ══ FIN MORPHO-GÉNÉTIQUE IA ══════════════════════════════════════════════

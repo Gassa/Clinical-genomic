@@ -1688,482 +1688,72 @@ async function loadDashboard() {
 
   <!-- ABOUT -->
 
-  <!-- ══ MORPHO-GÉNÉTIQUE IA ══════════════════════════════════════════════ -->
+    <!-- ══ MORPHO-GÉNÉTIQUE IA ══════════════════════════════════════════════ -->
   <div id="sec-morpho" style="display:none">
-    <div style="padding:14px 16px;border-bottom:1px solid var(--bd)">
-      <div style="font-size:15px;font-weight:700;color:var(--tx);margin-bottom:4px" data-fr="🔬 Corrélation Morphologie–Génétique" data-en="🔬 Morphology–Genetics Correlation">🔬 Corrélation Morphologie–Génétique</div>
-      <div style="font-size:12px;color:var(--mu);line-height:1.6">
-        <span data-fr="Upload d'image histologique (HE, IHC, FISH) → Analyse IA : description morphologique, mutations probables, guidelines, contexte populations africaines." data-en="Upload histological image (HE, IHC, FISH) → AI analysis: morphological description, probable mutations, guidelines, African population context.">Upload d'image histologique (HE, IHC, FISH) → Analyse IA : description morphologique, mutations probables, guidelines, contexte populations africaines.</span>
-        <br><span data-fr="🔒 Usage clinique confidentiel — validation anatomopathologiste requise." data-en="🔒 Confidential clinical use — pathologist validation required.">🔒 Usage clinique confidentiel — validation anatomopathologiste requise.</span>
-      </div>
-    </div>
-
+  <div class="card">
+    <div class="ch"><span class="ct2">🔬 Corrélation Morphologie–Génétique</span></div>
     <div style="padding:14px">
-      <!-- Onglets cancers -->
-      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap" id="morphoTabs">
-        <button class="btn bp3" style="font-size:12px" onclick="setMorphoTab('sein',this)" data-fr="🎀 Cancer du sein" data-en="🎀 Breast Cancer">🎀 Cancer du sein</button>
-        <button class="btn" style="font-size:12px;background:var(--s2);color:var(--mu)" onclick="setMorphoTab('prostate',this)" data-fr="🔵 Cancer de la prostate" data-en="🔵 Prostate Cancer">🔵 Cancer de la prostate</button>
-        <button class="btn" style="font-size:12px;background:var(--s2);color:var(--mu)" onclick="setMorphoTab('pediatrique',this)" data-fr="🟡 Cancers pédiatriques" data-en="🟡 Pediatric Cancers">🟡 Cancers pédiatriques</button>
+      <div style="font-size:13px;color:var(--mu);background:var(--s2);padding:10px 13px;border-radius:7px;margin-bottom:14px;line-height:1.6">
+        Upload d'image histologique (HE, IHC, FISH) → Analyse IA : grade, IHC, mutations probables, guidelines.<br>
+        <span style="color:#dc2626;font-weight:500">🔒 Usage clinique — validation anatomopathologiste requise.</span>
       </div>
-
-      <!-- Zone upload -->
-      <div id="morphoUploadZone" onclick="document.getElementById('morphoFile').click()"
-        style="border:2px dashed var(--bd);border-radius:9px;padding:24px;text-align:center;cursor:pointer;background:var(--s2);transition:all .2s"
-        onmouseover="this.style.borderColor='var(--pr)'" onmouseout="this.style.borderColor='var(--bd)'">
-        <input type="file" id="morphoFile" accept="image/*" style="display:none" onchange="morphoHandleFile(event)">
-        <div style="font-size:28px;margin-bottom:8px">🔬</div>
-        <div style="font-size:14px;font-weight:700;color:var(--tx)" data-fr="Déposer une image histologique" data-en="Drop a histological image">Déposer une image histologique</div>
-        <div style="font-size:12px;color:var(--mu);margin-top:4px" data-fr="HE · IHC · FISH — JPG, PNG, TIFF" data-en="HE · IHC · FISH — JPG, PNG, TIFF">HE · IHC · FISH — JPG, PNG, TIFF</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">
+        <button class="morpho-tab" data-type="breast"     onclick="setMorphoTab(this,'breast')"     style="padding:7px 14px;border-radius:20px;border:1.5px solid #0c6e9c;background:#dff0f8;color:#0c6e9c;font-size:12px;font-weight:600;cursor:pointer">🎀 Sein</button>
+        <button class="morpho-tab" data-type="prostate"   onclick="setMorphoTab(this,'prostate')"   style="padding:7px 14px;border-radius:20px;border:1.5px solid var(--bd);background:var(--sf);color:var(--tx);font-size:12px;font-weight:600;cursor:pointer">🔵 Prostate</button>
+        <button class="morpho-tab" data-type="colorectal" onclick="setMorphoTab(this,'colorectal')" style="padding:7px 14px;border-radius:20px;border:1.5px solid var(--bd);background:var(--sf);color:var(--tx);font-size:12px;font-weight:600;cursor:pointer">🟠 Colorectal</button>
+        <button class="morpho-tab" data-type="melanoma"   onclick="setMorphoTab(this,'melanoma')"   style="padding:7px 14px;border-radius:20px;border:1.5px solid var(--bd);background:var(--sf);color:var(--tx);font-size:12px;font-weight:600;cursor:pointer">🟤 Mélanome</button>
+        <button class="morpho-tab" data-type="lymphoma"   onclick="setMorphoTab(this,'lymphoma')"   style="padding:7px 14px;border-radius:20px;border:1.5px solid var(--bd);background:var(--sf);color:var(--tx);font-size:12px;font-weight:600;cursor:pointer">🟣 Lymphome</button>
+        <button class="morpho-tab" data-type="pediatric"  onclick="setMorphoTab(this,'pediatric')"  style="padding:7px 14px;border-radius:20px;border:1.5px solid var(--bd);background:var(--sf);color:var(--tx);font-size:12px;font-weight:600;cursor:pointer">🟡 Pédiatrique</button>
+        <button class="morpho-tab" data-type="kaposi"     onclick="setMorphoTab(this,'kaposi')"     style="padding:7px 14px;border-radius:20px;border:1.5px solid var(--bd);background:var(--sf);color:var(--tx);font-size:12px;font-weight:600;cursor:pointer">🌍 Kaposi</button>
+        <button class="morpho-tab" data-type="npc"        onclick="setMorphoTab(this,'npc')"        style="padding:7px 14px;border-radius:20px;border:1.5px solid var(--bd);background:var(--sf);color:var(--tx);font-size:12px;font-weight:600;cursor:pointer">🌍 NPC</button>
+        <button class="morpho-tab" data-type="gist"       onclick="setMorphoTab(this,'gist')"       style="padding:7px 14px;border-radius:20px;border:1.5px solid var(--bd);background:var(--sf);color:var(--tx);font-size:12px;font-weight:600;cursor:pointer">⚡ GIST</button>
+        <button class="morpho-tab" data-type="rare"       onclick="setMorphoTab(this,'rare')"       style="padding:7px 14px;border-radius:20px;border:1.5px solid var(--bd);background:var(--sf);color:var(--tx);font-size:12px;font-weight:600;cursor:pointer">🌿 Tumeur rare</button>
       </div>
-
-      <!-- Preview + contexte -->
-      <div id="morphoPreview" style="display:none;margin-top:12px;gap:12px;flex-wrap:wrap">
-        <div id="morphoImgBox" style="border-radius:9px;overflow:hidden;border:1px solid var(--bd);width:280px;flex-shrink:0">
-          <img id="morphoImg" src="" alt="histologie" style="width:100%;height:180px;object-fit:cover;display:block">
-          <div id="morphoImgMeta" style="padding:6px 10px;background:var(--s2);font-size:11px;color:var(--mu)"></div>
-        </div>
-        <div style="flex:1;min-width:200px">
-          <label style="font-size:11px;color:var(--mu);display:block;margin-bottom:3px" data-fr="Type de prélèvement" data-en="Sample type">Type de prélèvement</label>
-          <select id="morphoSample" style="width:100%;margin-bottom:8px;padding:7px 10px;border-radius:7px;border:1px solid var(--bd);background:var(--s2);color:var(--tx);font-size:13px">
-            <option>Biopsie core-needle</option>
-            <option>Pièce opératoire</option>
-            <option>Cytoponction</option>
-            <option>Biopsie liquide</option>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div>
+          <label style="font-size:11px;color:var(--mu);font-weight:600">Coloration</label>
+          <select id="morphoStain" style="width:100%;margin-top:4px;padding:7px 10px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px">
+            <option value="HE">H&E — Hématoxyline-Éosine</option>
+            <option value="IHC">IHC — Immunohistochimie</option>
+            <option value="FISH">FISH — Hybridation in situ</option>
+            <option value="Ki67">Ki67 — Prolifération</option>
+            <option value="PAS">PAS — Periodic Acid-Schiff</option>
+            <option value="Masson">Trichrome de Masson</option>
           </select>
-          <label style="font-size:11px;color:var(--mu);display:block;margin-bottom:3px" data-fr="Coloration / technique" data-en="Staining / technique">Coloration / technique</label>
-          <select id="morphoStain" style="width:100%;margin-bottom:8px;padding:7px 10px;border-radius:7px;border:1px solid var(--bd);background:var(--s2);color:var(--tx);font-size:13px">
-            <option>Hématoxyline-Éosine (HE)</option>
-            <option>Immunohistochimie (IHC)</option>
-            <option>FISH / CISH</option>
-            <option>HE + IHC combinée</option>
-          </select>
-          <label style="font-size:11px;color:var(--mu);display:block;margin-bottom:3px" data-fr="Contexte clinique (optionnel)" data-en="Clinical context (optional)">Contexte clinique (optionnel)</label>
-          <textarea id="morphoCtx" rows="3" placeholder="Ex: Femme 45 ans, masse 2cm, gg sentinelle positif..." data-ph-fr="Ex: Femme 45 ans, masse 2cm, gg sentinelle positif..." data-ph-en="Ex: 45-year-old woman, 2cm mass, sentinel node positive..."
-            style="width:100%;padding:7px 10px;border-radius:7px;border:1px solid var(--bd);background:var(--s2);color:var(--tx);font-size:12px;resize:none;font-family:inherit;margin-bottom:8px"></textarea>
-          <button class="btn bp3" style="width:100%" id="morphoAnalyzeBtn" onclick="morphoAnalyze()" data-fr="🧬 Analyser avec Claude AI" data-en="🧬 Analyze with Claude AI">🧬 Analyser avec Claude AI</button>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--mu);font-weight:600">Contexte clinique (optionnel)</label>
+          <input id="morphoClinical" placeholder="Ex: Femme 45 ans, masse 2cm, ménopausée..." style="width:100%;margin-top:4px;padding:7px 10px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px;box-sizing:border-box">
         </div>
       </div>
-
-      <!-- Loading -->
-      <div id="morphoLoading" style="display:none;text-align:center;padding:24px">
-        <div style="font-size:24px;animation:spin 1s linear infinite;display:inline-block">⚙️</div>
-        <div style="font-size:13px;color:var(--mu);margin-top:8px" id="morphoLoadMsg">Analyse morphologique en cours...</div>
+      <div id="morphoDropZone" onclick="document.getElementById('morphoFileInput').click()"
+        ondragover="event.preventDefault();this.style.borderColor='#0c6e9c'"
+        ondragleave="this.style.borderColor='var(--bd)'"
+        ondrop="morphoHandleDrop(event)"
+        style="border:2px dashed var(--bd);border-radius:12px;padding:32px;text-align:center;cursor:pointer;transition:all .2s;background:var(--s2);margin-bottom:14px">
+        <div id="morphoPreviewContainer" style="display:none">
+          <img id="morphoPreview" style="max-height:300px;max-width:100%;border-radius:8px;margin-bottom:10px;box-shadow:0 4px 20px rgba(0,0,0,.15)">
+          <div id="morphoFileName" style="font-size:12px;color:var(--mu)"></div>
+        </div>
+        <div id="morphoDropHint">
+          <div style="font-size:36px;margin-bottom:8px">🔬</div>
+          <div style="font-size:15px;font-weight:600;margin-bottom:4px">Déposer une image histologique</div>
+          <div style="font-size:13px;color:var(--mu)">HE · IHC · FISH — JPG, PNG, TIFF · Max 20 MB</div>
+          <div style="margin-top:10px;padding:7px 18px;background:#dff0f8;color:#0c6e9c;border-radius:8px;font-size:13px;font-weight:500;display:inline-block">Parcourir</div>
+        </div>
+        <input type="file" id="morphoFileInput" accept="image/*,.tiff,.tif" style="display:none" onchange="morphoHandleFile(this.files[0])">
       </div>
-
-      <!-- Résultat -->
-      <div id="morphoResult" style="display:none;margin-top:14px">
-        <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--bd)" id="morphoResultTitle"></div>
-
-        <!-- Cards résumé -->
-        <div id="morphoCards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:8px;margin-bottom:12px"></div>
-
-        <!-- Mutations -->
-        <div style="margin-bottom:12px">
-          <div style="font-size:11px;color:var(--mu);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px" data-fr="Mutations probables" data-en="Probable mutations">Mutations probables</div>
-          <div id="morphoMuts" style="display:flex;flex-wrap:wrap;gap:6px"></div>
-        </div>
-
-        <!-- Description morpho -->
-        <div style="margin-bottom:10px">
-          <div style="font-size:11px;color:var(--mu);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px" data-fr="Description morphologique" data-en="Morphological description">Description morphologique</div>
-          <div id="morphoDesc" style="background:var(--s2);border-radius:7px;padding:10px 12px;font-size:12px;line-height:1.7;color:var(--tx);border:1px solid var(--bd)"></div>
-        </div>
-
-        <!-- Guidelines -->
-        <div style="margin-bottom:10px">
-          <div style="font-size:11px;color:var(--mu);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px" data-fr="Guidelines recommandées" data-en="Recommended guidelines">Guidelines recommandées</div>
-          <div id="morphoGuide" style="background:var(--s2);border-radius:7px;padding:10px 12px;font-size:12px;line-height:1.7;color:var(--tx);border:1px solid var(--bd)"></div>
-        </div>
-
-        <!-- Contexte africain -->
-        <div style="margin-bottom:12px">
-          <div style="font-size:11px;color:var(--mu);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px" data-fr="🌍 Pertinence populations africaines" data-en="🌍 African populations relevance">🌍 Pertinence populations africaines</div>
-          <div id="morphoAfrica" style="background:var(--s2);border-radius:7px;padding:10px 12px;font-size:12px;line-height:1.7;color:var(--tx);border:1px solid var(--bd);border-left:3px solid var(--pr)"></div>
-        </div>
-
-        <!-- Boutons export -->
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn" style="font-size:12px;background:var(--s2);color:var(--mu)" onclick="morphoExport()" data-fr="📄 Exporter rapport" data-en="📄 Export report">📄 Exporter rapport</button>
-          <button class="btn bp3" style="font-size:12px" onclick="morphoToClinician()" data-fr="🩺 Envoyer au clinicien virtuel" data-en="🩺 Send to virtual clinician">🩺 Envoyer au clinicien virtuel</button>
-        </div>
-        <div style="margin-top:10px;font-size:11px;color:var(--mu);padding:6px 10px;border-left:2px solid var(--bd);line-height:1.5">
-          Outil d'aide à la décision — validation anatomopathologiste requise. Usage clinique confidentiel · Moustapha Gassama · SenGenoScope
-        </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+        <button id="morphoAnalyzeBtn" onclick="morphoAnalyze()" style="padding:10px 22px;border-radius:8px;border:none;background:linear-gradient(135deg,#0c6e9c,#7c3aed);color:white;font-size:14px;font-weight:600;cursor:pointer">🧬 Analyser avec IA</button>
+        <button id="morphoPDFBtn" onclick="morphoExportPDF()" style="display:none;padding:10px 16px;border-radius:8px;border:1px solid #dc2626;background:#fef2f2;color:#dc2626;font-size:13px;font-weight:500;cursor:pointer">📄 Rapport PDF</button>
+        <button onclick="morphoClear()" style="padding:10px 14px;border-radius:8px;border:1px solid var(--bd);background:var(--sf);color:var(--mu);font-size:13px;cursor:pointer">🗑 Effacer</button>
       </div>
+      <div id="morphoResult"></div>
     </div>
   </div>
-
-
-  <!-- ══ MANCHESTER / TYRER-CUZICK ════════════════════════════════════════ -->
-  <div id="sec-manchester" style="display:none">
-    <div style="padding:14px 16px;border-bottom:1px solid var(--bd)">
-      <div style="font-size:15px;font-weight:700;color:var(--tx);margin-bottom:4px"
-           data-fr="🎗️ Score Manchester &amp; Tyrer-Cuzick — Risque BRCA &amp; Cancer du sein"
-           data-en="🎗️ Manchester Score &amp; Tyrer-Cuzick — BRCA &amp; Breast Cancer Risk">
-        🎗️ Score Manchester &amp; Tyrer-Cuzick — Risque BRCA &amp; Cancer du sein
-      </div>
-      <div style="font-size:12px;color:var(--mu);line-height:1.6">
-        <span data-fr="Manchester Score (Evans 2004) : indique si un test génétique BRCA est recommandé. Tyrer-Cuzick : risque cumulatif à 10 ans et au cours de la vie."
-              data-en="Manchester Score (Evans 2004): indicates whether BRCA genetic testing is recommended. Tyrer-Cuzick: 10-year and lifetime cumulative risk.">
-          Manchester Score (Evans 2004) : indique si un test génétique BRCA est recommandé. Tyrer-Cuzick : risque cumulatif à 10 ans et au cours de la vie.
-        </span>
-      </div>
-    </div>
-
-    <div style="padding:14px">
-      <!-- Onglets -->
-      <div style="display:flex;gap:8px;margin-bottom:16px">
-        <button class="btn bp3" id="tab-manchester-btn" onclick="switchManchTab('manchester',this)"
-                data-fr="🏆 Score de Manchester" data-en="🏆 Manchester Score">🏆 Score de Manchester</button>
-        <button class="btn" style="background:var(--s2);color:var(--mu)" id="tab-tyrer-btn"
-                onclick="switchManchTab('tyrer',this)"
-                data-fr="📊 Tyrer-Cuzick (IBIS)" data-en="📊 Tyrer-Cuzick (IBIS)">📊 Tyrer-Cuzick (IBIS)</button>
-      </div>
-
-      <!-- ── MANCHESTER ── -->
-      <div id="manch-panel-manchester">
-        <div style="font-size:13px;color:var(--mu);background:var(--s2);padding:10px 13px;border-radius:7px;margin-bottom:14px;line-height:1.7"
-             data-fr="Indiquez le nombre de membres de la famille (1er et 2ème degré) atteints pour chaque critère. Score ≥10 → test BRCA recommandé."
-             data-en="Enter the number of family members (1st and 2nd degree) affected for each criterion. Score ≥10 → BRCA testing recommended.">
-          Indiquez le nombre de membres de la famille (1er et 2ème degré) atteints pour chaque critère. Score ≥10 → test BRCA recommandé.
-        </div>
-
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;margin-bottom:14px">
-
-          <div style="background:var(--s2);border-radius:9px;padding:12px;border:1px solid var(--bd)">
-            <div style="font-size:12px;font-weight:700;color:var(--pr);margin-bottom:8px"
-                 data-fr="🎀 Cancer du sein" data-en="🎀 Breast Cancer">🎀 Cancer du sein</div>
-
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-              <label style="font-size:11px;color:var(--tx)" data-fr="< 40 ans (6 pts)" data-en="< 40 years (6 pts)">&lt; 40 ans (6 pts)</label>
-              <input type="number" id="m_breast_under40" min="0" max="5" value="0"
-                     style="width:60px;padding:4px 8px;border-radius:5px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:12px;text-align:center">
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-              <label style="font-size:11px;color:var(--tx)" data-fr="40-49 ans (4 pts)" data-en="40-49 years (4 pts)">40-49 ans (4 pts)</label>
-              <input type="number" id="m_breast_40_49" min="0" max="5" value="0"
-                     style="width:60px;padding:4px 8px;border-radius:5px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:12px;text-align:center">
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-              <label style="font-size:11px;color:var(--tx)" data-fr="50-59 ans (3 pts)" data-en="50-59 years (3 pts)">50-59 ans (3 pts)</label>
-              <input type="number" id="m_breast_50_59" min="0" max="5" value="0"
-                     style="width:60px;padding:4px 8px;border-radius:5px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:12px;text-align:center">
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-              <label style="font-size:11px;color:var(--tx)" data-fr="≥ 60 ans (2 pts)" data-en="≥ 60 years (2 pts)">≥ 60 ans (2 pts)</label>
-              <input type="number" id="m_breast_60_plus" min="0" max="5" value="0"
-                     style="width:60px;padding:4px 8px;border-radius:5px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:12px;text-align:center">
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-              <label style="font-size:11px;color:var(--tx)" data-fr="Bilatéral (8 pts)" data-en="Bilateral (8 pts)">Bilatéral (8 pts)</label>
-              <input type="number" id="m_breast_bilateral" min="0" max="5" value="0"
-                     style="width:60px;padding:4px 8px;border-radius:5px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:12px;text-align:center">
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center">
-              <label style="font-size:11px;color:var(--tx)" data-fr="Homme (8 pts)" data-en="Male (8 pts)">Homme (8 pts)</label>
-              <input type="number" id="m_breast_male" min="0" max="5" value="0"
-                     style="width:60px;padding:4px 8px;border-radius:5px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:12px;text-align:center">
-            </div>
-          </div>
-
-          <div style="background:var(--s2);border-radius:9px;padding:12px;border:1px solid var(--bd)">
-            <div style="font-size:12px;font-weight:700;color:var(--pu);margin-bottom:8px"
-                 data-fr="🔵 Autres cancers" data-en="🔵 Other cancers">🔵 Autres cancers</div>
-
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-              <label style="font-size:11px;color:var(--tx)" data-fr="Ovaire tout âge (5 pts)" data-en="Ovary any age (5 pts)">Ovaire tout âge (5 pts)</label>
-              <input type="number" id="m_ovary_any_age" min="0" max="5" value="0"
-                     style="width:60px;padding:4px 8px;border-radius:5px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:12px;text-align:center">
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-              <label style="font-size:11px;color:var(--tx)" data-fr="Pancréas familial (2 pts)" data-en="Family pancreas (2 pts)">Pancréas familial (2 pts)</label>
-              <input type="number" id="m_pancreas_any" min="0" max="5" value="0"
-                     style="width:60px;padding:4px 8px;border-radius:5px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:12px;text-align:center">
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-              <label style="font-size:11px;color:var(--tx)" data-fr="Prostate < 60 ans (2 pts)" data-en="Prostate < 60 years (2 pts)">Prostate &lt; 60 ans (2 pts)</label>
-              <input type="number" id="m_prostate_under60" min="0" max="5" value="0"
-                     style="width:60px;padding:4px 8px;border-radius:5px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:12px;text-align:center">
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center">
-              <label style="font-size:11px;color:var(--tx)" data-fr="Triple négatif < 40 ans (4 pts)" data-en="Triple negative < 40y (4 pts)">Triple négatif &lt;40 ans (4 pts)</label>
-              <input type="number" id="m_triple_negative_under40" min="0" max="5" value="0"
-                     style="width:60px;padding:4px 8px;border-radius:5px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:12px;text-align:center">
-            </div>
-          </div>
-        </div>
-
-        <button class="btn bp3" style="width:100%" onclick="calcManchester()"
-                data-fr="🧮 Calculer le score de Manchester" data-en="🧮 Calculate Manchester Score">
-          🧮 Calculer le score de Manchester
-        </button>
-        <div id="manchResult" style="margin-top:14px"></div>
-      </div>
-
-      <!-- ── TYRER-CUZICK ── -->
-      <div id="manch-panel-tyrer" style="display:none">
-        <div style="font-size:13px;color:var(--mu);background:var(--s2);padding:10px 13px;border-radius:7px;margin-bottom:14px;line-height:1.7"
-             data-fr="Estimation du risque cumulatif à 10 ans et au cours de la vie (modèle IBIS simplifié). Pour le calcul officiel complet, utiliser l'outil IBIS."
-             data-en="Estimation of 10-year and lifetime cumulative risk (simplified IBIS model). For full official calculation, use the IBIS tool.">
-          Estimation du risque cumulatif à 10 ans et au cours de la vie (modèle IBIS simplifié).
-        </div>
-
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;margin-bottom:14px">
-
-          <div style="background:var(--s2);border-radius:9px;padding:12px;border:1px solid var(--bd)">
-            <div style="font-size:12px;font-weight:700;color:var(--pr);margin-bottom:8px"
-                 data-fr="👤 Données personnelles" data-en="👤 Personal data">👤 Données personnelles</div>
-
-            <div style="margin-bottom:8px">
-              <label style="font-size:11px;color:var(--mu);display:block;margin-bottom:2px"
-                     data-fr="Âge actuel" data-en="Current age">Âge actuel</label>
-              <input type="number" id="tc_age" min="20" max="80" value="45"
-                     style="width:100%;padding:6px 10px;border-radius:5px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:12px">
-            </div>
-            <div style="margin-bottom:8px">
-              <label style="font-size:11px;color:var(--mu);display:block;margin-bottom:2px"
-                     data-fr="IMC (kg/m²)" data-en="BMI (kg/m²)">IMC (kg/m²)</label>
-              <input type="number" id="tc_bmi" min="15" max="50" value="25" step="0.1"
-                     style="width:100%;padding:6px 10px;border-radius:5px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:12px">
-            </div>
-            <div style="margin-bottom:8px">
-              <label style="font-size:11px;color:var(--mu);display:block;margin-bottom:2px"
-                     data-fr="Âge ménarche" data-en="Age at menarche">Âge ménarche</label>
-              <input type="number" id="tc_menarche" min="8" max="18" value="12"
-                     style="width:100%;padding:6px 10px;border-radius:5px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:12px">
-            </div>
-            <div style="margin-bottom:8px">
-              <label style="font-size:11px;color:var(--mu);display:block;margin-bottom:2px"
-                     data-fr="Âge ménopause (laisser vide si non ménopausée)"
-                     data-en="Age at menopause (leave blank if premenopausal)">
-                Âge ménopause (vide si non ménopausée)
-              </label>
-              <input type="number" id="tc_menopause" min="35" max="65" placeholder="—"
-                     style="width:100%;padding:6px 10px;border-radius:5px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:12px">
-            </div>
-          </div>
-
-          <div style="background:var(--s2);border-radius:9px;padding:12px;border:1px solid var(--bd)">
-            <div style="font-size:12px;font-weight:700;color:var(--pu);margin-bottom:8px"
-                 data-fr="🧬 Antécédents &amp; Facteurs de risque"
-                 data-en="🧬 History &amp; Risk factors">🧬 Antécédents &amp; Facteurs de risque</div>
-
-            <div style="margin-bottom:8px">
-              <label style="font-size:11px;color:var(--mu);display:block;margin-bottom:2px"
-                     data-fr="Cancers du sein 1er degré (mère, sœur, fille)"
-                     data-en="1st degree breast cancers (mother, sister, daughter)">
-                Cancers sein 1er degré
-              </label>
-              <input type="number" id="tc_1st" min="0" max="5" value="0"
-                     style="width:100%;padding:6px 10px;border-radius:5px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:12px">
-            </div>
-            <div style="margin-bottom:8px">
-              <label style="font-size:11px;color:var(--mu);display:block;margin-bottom:2px"
-                     data-fr="Cancers du sein 2ème degré" data-en="2nd degree breast cancers">
-                Cancers sein 2ème degré
-              </label>
-              <input type="number" id="tc_2nd" min="0" max="5" value="0"
-                     style="width:100%;padding:6px 10px;border-radius:5px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:12px">
-            </div>
-
-            <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
-              <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--tx);cursor:pointer">
-                <input type="checkbox" id="tc_brca1" style="width:14px;height:14px">
-                <span data-fr="Mutation BRCA1 familiale" data-en="Family BRCA1 mutation">Mutation BRCA1 familiale</span>
-              </label>
-              <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--tx);cursor:pointer">
-                <input type="checkbox" id="tc_brca2" style="width:14px;height:14px">
-                <span data-fr="Mutation BRCA2 familiale" data-en="Family BRCA2 mutation">Mutation BRCA2 familiale</span>
-              </label>
-              <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--tx);cursor:pointer">
-                <input type="checkbox" id="tc_nulliparous" style="width:14px;height:14px">
-                <span data-fr="Nullipare (aucune grossesse)" data-en="Nulliparous (no pregnancies)">Nullipare</span>
-              </label>
-              <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--tx);cursor:pointer">
-                <input type="checkbox" id="tc_hrt" style="width:14px;height:14px">
-                <span data-fr="Traitement hormonal substitutif (THS)" data-en="Hormone replacement therapy (HRT)">THS</span>
-              </label>
-              <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--tx);cursor:pointer">
-                <input type="checkbox" id="tc_atyp" style="width:14px;height:14px">
-                <span data-fr="Hyperplasie atypique (biopsie)" data-en="Atypical hyperplasia (biopsy)">Hyperplasie atypique</span>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <button class="btn bp3" style="width:100%" onclick="calcTyrerCuzick()"
-                data-fr="📊 Calculer le risque Tyrer-Cuzick" data-en="📊 Calculate Tyrer-Cuzick Risk">
-          📊 Calculer le risque Tyrer-Cuzick
-        </button>
-        <div id="tyrerResult" style="margin-top:14px"></div>
-      </div>
-
-      <!-- Référence -->
-      <div style="margin-top:14px;font-size:11px;color:var(--mu);padding:8px 10px;border-left:2px solid var(--bd);line-height:1.5">
-        📚 Evans DGR et al. JNCI 2004;96:370 (PMID 14996858) · Tyrer J et al. Stat Methods Med Res 2004;13:395 (PMID 15622009)<br>
-        🔒 Outil d'aide à la décision — Validation clinique requise · Moustapha Gassama · SenGenoScope
-      </div>
-    </div>
   </div>
 
-
-  <!-- ══ COMPARATEUR DE VARIANTS ══════════════════════════════════════════ -->
-  <div id="sec-compvar" style="display:none">
-    <div style="padding:14px 16px;border-bottom:1px solid var(--bd)">
-      <div style="font-size:15px;font-weight:700;color:var(--tx);margin-bottom:4px"
-           data-fr="⚖️ Comparateur de variants — Analyse côte à côte"
-           data-en="⚖️ Variant Comparator — Side-by-side analysis">
-        ⚖️ Comparateur de variants — Analyse côte à côte
-      </div>
-      <div style="font-size:12px;color:var(--mu)"
-           data-fr="Comparez deux variants selon leurs scores in silico (PolyPhen-2, SIFT, CADD) et leur classification ACMG."
-           data-en="Compare two variants by their in silico scores (PolyPhen-2, SIFT, CADD) and ACMG classification.">
-        Comparez deux variants selon leurs scores in silico (PolyPhen-2, SIFT, CADD) et leur classification ACMG.
-      </div>
-    </div>
-
-    <div style="padding:14px">
-      <!-- Grille côte à côte -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
-
-        <!-- Variant 1 -->
-        <div style="background:var(--s2);border-radius:9px;padding:14px;border:2px solid var(--pr)">
-          <div style="font-size:13px;font-weight:700;color:var(--pr);margin-bottom:10px">
-            🧬 <span data-fr="Variant 1" data-en="Variant 1">Variant 1</span>
-          </div>
-
-          <div style="margin-bottom:8px">
-            <label style="font-size:11px;color:var(--mu);display:block;margin-bottom:2px"
-                   data-fr="HGVS / Nom du variant" data-en="HGVS / Variant name">HGVS / Nom</label>
-            <input type="text" id="cv1_hgvs" placeholder="ex: BRCA1 c.5266dupC"
-                   style="width:100%;padding:7px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:12px">
-          </div>
-          <div style="margin-bottom:8px">
-            <label style="font-size:11px;color:var(--mu);display:block;margin-bottom:2px"
-                   data-fr="Classification ACMG" data-en="ACMG Classification">Classification ACMG</label>
-            <select id="cv1_acmg"
-                    style="width:100%;padding:7px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--s2);color:var(--tx);font-size:12px">
-              <option value="">— Sélectionner —</option>
-              <option value="Pathogène">Pathogène</option>
-              <option value="Probablement Pathogène">Probablement Pathogène</option>
-              <option value="VUS">VUS (Signification incertaine)</option>
-              <option value="Probablement Bénin">Probablement Bénin</option>
-              <option value="Bénin">Bénin</option>
-            </select>
-          </div>
-
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-            <div>
-              <label style="font-size:11px;color:var(--mu);display:block;margin-bottom:2px">PolyPhen-2 (0-1)</label>
-              <input type="number" id="cv1_polyphen" min="0" max="1" step="0.01" placeholder="0.00-1.00"
-                     style="width:100%;padding:6px 8px;border-radius:6px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:12px">
-            </div>
-            <div>
-              <label style="font-size:11px;color:var(--mu);display:block;margin-bottom:2px">SIFT (0-1)</label>
-              <input type="number" id="cv1_sift" min="0" max="1" step="0.001" placeholder="0.000-1.000"
-                     style="width:100%;padding:6px 8px;border-radius:6px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:12px">
-            </div>
-            <div>
-              <label style="font-size:11px;color:var(--mu);display:block;margin-bottom:2px">CADD phred</label>
-              <input type="number" id="cv1_cadd" min="0" max="60" step="0.1" placeholder="0-60"
-                     style="width:100%;padding:6px 8px;border-radius:6px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:12px">
-            </div>
-            <div>
-              <label style="font-size:11px;color:var(--mu);display:block;margin-bottom:2px">Gène</label>
-              <input type="text" id="cv1_gene" placeholder="BRCA1"
-                     style="width:100%;padding:6px 8px;border-radius:6px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:12px">
-            </div>
-          </div>
-        </div>
-
-        <!-- Variant 2 -->
-        <div style="background:var(--s2);border-radius:9px;padding:14px;border:2px solid var(--tl)">
-          <div style="font-size:13px;font-weight:700;color:var(--tl);margin-bottom:10px">
-            🧬 <span data-fr="Variant 2" data-en="Variant 2">Variant 2</span>
-          </div>
-
-          <div style="margin-bottom:8px">
-            <label style="font-size:11px;color:var(--mu);display:block;margin-bottom:2px"
-                   data-fr="HGVS / Nom du variant" data-en="HGVS / Variant name">HGVS / Nom</label>
-            <input type="text" id="cv2_hgvs" placeholder="ex: BRCA2 c.9976A>T"
-                   style="width:100%;padding:7px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:12px">
-          </div>
-          <div style="margin-bottom:8px">
-            <label style="font-size:11px;color:var(--mu);display:block;margin-bottom:2px"
-                   data-fr="Classification ACMG" data-en="ACMG Classification">Classification ACMG</label>
-            <select id="cv2_acmg"
-                    style="width:100%;padding:7px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--s2);color:var(--tx);font-size:12px">
-              <option value="">— Sélectionner —</option>
-              <option value="Pathogène">Pathogène</option>
-              <option value="Probablement Pathogène">Probablement Pathogène</option>
-              <option value="VUS">VUS (Signification incertaine)</option>
-              <option value="Probablement Bénin">Probablement Bénin</option>
-              <option value="Bénin">Bénin</option>
-            </select>
-          </div>
-
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-            <div>
-              <label style="font-size:11px;color:var(--mu);display:block;margin-bottom:2px">PolyPhen-2 (0-1)</label>
-              <input type="number" id="cv2_polyphen" min="0" max="1" step="0.01" placeholder="0.00-1.00"
-                     style="width:100%;padding:6px 8px;border-radius:6px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:12px">
-            </div>
-            <div>
-              <label style="font-size:11px;color:var(--mu);display:block;margin-bottom:2px">SIFT (0-1)</label>
-              <input type="number" id="cv2_sift" min="0" max="1" step="0.001" placeholder="0.000-1.000"
-                     style="width:100%;padding:6px 8px;border-radius:6px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:12px">
-            </div>
-            <div>
-              <label style="font-size:11px;color:var(--mu);display:block;margin-bottom:2px">CADD phred</label>
-              <input type="number" id="cv2_cadd" min="0" max="60" step="0.1" placeholder="0-60"
-                     style="width:100%;padding:6px 8px;border-radius:6px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:12px">
-            </div>
-            <div>
-              <label style="font-size:11px;color:var(--mu);display:block;margin-bottom:2px">Gène</label>
-              <input type="text" id="cv2_gene" placeholder="BRCA2"
-                     style="width:100%;padding:6px 8px;border-radius:6px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:12px">
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Exemples rapides -->
-      <div style="margin-bottom:12px">
-        <div style="font-size:11px;color:var(--mu);margin-bottom:6px"
-             data-fr="Exemples rapides :" data-en="Quick examples:">Exemples rapides :</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button class="btn bsm" style="font-size:11px;background:var(--s2)"
-                  onclick="cvExample('BRCA1 c.5266dupC','Pathogène',0.998,0.001,35,'BRCA1','BRCA2 c.9976A>T','VUS',0.42,0.18,12,'BRCA2')">
-            BRCA1 vs BRCA2
-          </button>
-          <button class="btn bsm" style="font-size:11px;background:var(--s2)"
-                  onclick="cvExample('TP53 R175H','Pathogène',0.999,0.001,45,'TP53','TP53 R248W','Pathogène',0.997,0.002,42,'TP53')">
-            TP53 R175H vs R248W
-          </button>
-          <button class="btn bsm" style="font-size:11px;background:var(--s2)"
-                  onclick="cvExample('EGFR L858R','Pathogène',0.985,0.001,38,'EGFR','EGFR T790M','Probablement Pathogène',0.76,0.05,28,'EGFR')">
-            EGFR L858R vs T790M
-          </button>
-        </div>
-      </div>
-
-      <button class="btn bp3" style="width:100%" onclick="compareVariants()"
-              data-fr="⚖️ Comparer les deux variants" data-en="⚖️ Compare both variants">
-        ⚖️ Comparer les deux variants
-      </button>
-
-      <div id="compvarResult" style="margin-top:14px"></div>
-
-      <div style="margin-top:12px;font-size:11px;color:var(--mu);padding:8px 10px;border-left:2px solid var(--bd);line-height:1.5"
-           data-fr="📚 Richards S et al. Genetics in Medicine 2015;17:405 (PMID 25741868) · Les scores PolyPhen-2, SIFT et CADD sont des prédicteurs in silico. La classification ACMG finale requiert l'intégration des données cliniques."
-           data-en="📚 Richards S et al. Genetics in Medicine 2015;17:405 (PMID 25741868) · PolyPhen-2, SIFT and CADD scores are in silico predictors. Final ACMG classification requires clinical data integration.">
-        📚 Richards S et al. Genetics in Medicine 2015;17:405 (PMID 25741868) · Scores in silico uniquement — validation clinique requise.
-      </div>
-    </div>
-  </div>
-
-
-  <!-- ══ TUMEURS RARES ════════════════════════════════════════════════════ -->
+<!-- ══ TUMEURS RARES ════════════════════════════════════════════════════ -->
   <div id="sec-rare" style="display:none">
     <div style="padding:14px 16px;border-bottom:1px solid var(--bd)">
       <div style="font-size:15px;font-weight:700;color:var(--tx);margin-bottom:4px"

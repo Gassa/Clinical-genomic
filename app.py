@@ -1938,6 +1938,211 @@ if _has_csrf:
         _f = getattr(_mod, _fname, None)
         if _f: csrf.exempt(_f)
 
+
+# ══ MORPHO-GÉNÉTIQUE IA — CLAUDE VISION ════════════════════════════════════
+@app.route('/morpho_analyze', methods=['POST'])
+def morpho_analyze():
+    try:
+        import anthropic as _anth, json as _json
+        data = request.json or {}
+        user_key = (request.headers.get('X-User-Api-Key','') or data.get('user_api_key','')).strip()
+        api_key  = user_key or os.environ.get('ANTHROPIC_API_KEY','')
+        if not api_key:
+            return jsonify({"success": False, "error": "Cle API manquante."})
+        image_b64   = data.get('image_b64','')
+        image_type  = data.get('image_type','image/jpeg')
+        tumor_type  = data.get('tumor_type','breast')
+        stain_type  = data.get('stain_type','HE')
+        clinical_ctx= data.get('clinical_context','')
+        TUMOR_PROMPTS = {
+            "breast":     "cancer du sein (ER/PR/HER2/Ki67, grade SBR, architecture)",
+            "prostate":   "cancer de la prostate (score Gleason/ISUP, envahissement perinerveux)",
+            "pediatric":  "tumeur pediatrique (Wilms/neuroblastome/medulloblastome)",
+            "colorectal": "cancer colorectal (MSI/MMR par IHC, stade pT, budding tumoral)",
+            "melanoma":   "melanome (Breslow mm, Clark, ulceration, TILs)",
+            "lymphoma":   "lymphome (classification OMS, CD20/CD3/Ki67/BCL2)",
+            "kaposi":     "sarcome de Kaposi (stade patch/plaque/nodulaire, HHV-8, contexte VIH africain)",
+            "npc":        "carcinome nasopharynge (type OMS I/II/III, EBV, population africaine)",
+            "gist":       "GIST (cellularite fusiforme/epitheliode, index mitotique, CD117/DOG1)",
+            "rare":       "tumeur rare africaine (contexte epidemiologique africain subsaharien)"
+        }
+        tumor_desc = TUMOR_PROMPTS.get(tumor_type, TUMOR_PROMPTS["breast"])
+        system = """Tu es un anatomopathologiste expert en oncogenomique.
+Analyse l'image histologique et reponds UNIQUEMENT en JSON strict sans markdown.
+Format:
+{
+  "grade": "Grade (ex: SBR III, Gleason 4+3=7)",
+  "molecular_subtype": "Luminal B HER2-negatif",
+  "morphology": {
+    "architecture": "...", "cytology": "...", "stroma": "...",
+    "necrosis": false, "mitotic_index": "5/10 HPF",
+    "tumor_infiltrating_lymphocytes": "Focal"
+  },
+  "ihc_predictions": [
+    {"marker":"ER","predicted_result":"Positif 90%","confidence":85,"clinical_impact":"Hormonotherapie eligible"},
+    {"marker":"PR","predicted_result":"Positif 60%","confidence":75,"clinical_impact":""},
+    {"marker":"HER2","predicted_result":"Negatif (1+)","confidence":80,"clinical_impact":"Anti-HER2 non indique"},
+    {"marker":"Ki67","predicted_result":"35%","confidence":70,"clinical_impact":"Proliferation elevee"}
+  ],
+  "probable_mutations": [
+    {"gene":"PIK3CA","probability":75,"basis":"Architecture tubulaire bien differenciee","therapeutic_target":"Alpelisib"}
+  ],
+  "staging_clues": {
+    "invasion": "Invasion stromale confirmee",
+    "vascular_emboli": false, "perineural_invasion": false, "margins": "Non evaluables"
+  },
+  "african_context": {
+    "relevant": true,
+    "note": "Cancer sein triple negatif plus frequent chez femmes africaines jeunes (40% vs 15%).",
+    "specific_mutations": ["BRCA1","TP53"]
+  },
+  "guidelines": {
+    "primary": "ESMO Breast Cancer 2023",
+    "recommendation": "RCP — chirurgie + chimiotherapie neoadjuvante si TNBC"
+  },
+  "differential_diagnosis": [
+    {"diagnosis":"Carcinome canalaire invasif NOS","probability":85},
+    {"diagnosis":"Carcinome lobulaire invasif","probability":10}
+  ],
+  "quality_assessment": {
+    "image_quality": "Bonne", "confidence_overall": 78
+  },
+  "key_findings": ["Finding 1","Finding 2","Finding 3"],
+  "urgent_flags": [],
+  "pathologist_note": "Analyse IA — Validation anatomopathologiste obligatoire avant decision therapeutique."
+}"""
+        content = []
+        if image_b64:
+            content.append({"type":"image","source":{"type":"base64","media_type":image_type,"data":image_b64}})
+        user_txt = "Analyse cette image histologique de " + tumor_desc + ". Coloration: " + stain_type + "."
+        if clinical_ctx:
+            user_txt += " Contexte: " + clinical_ctx
+        user_txt += " Reponds en JSON strict uniquement."
+        content.append({"type":"text","text":user_txt})
+        client = _anth.Anthropic(api_key=api_key)
+        resp = client.messages.create(
+            model="claude-opus-4-6", max_tokens=4000,
+            system=system,
+            messages=[{"role":"user","content":content}]
+        )
+        raw = resp.content[0].text.strip().lstrip("```json").lstrip("```").rstrip("```").strip()
+        return jsonify({"success":True,"result":_json.loads(raw),"tumor_type":tumor_type})
+    except Exception as e:
+        import logging; logging.error("morpho_analyze: "+str(e))
+        return jsonify({"success":False,"error":str(e)}), 500
+
+
+@app.route('/morpho_pdf', methods=['POST'])
+def morpho_pdf():
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib import colors
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import cm
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+        from reportlab.lib.enums import TA_CENTER
+        from io import BytesIO
+        from datetime import datetime
+        import json as _json
+        data = request.json or {}
+        result = data.get('result', {})
+        tumor_type = data.get('tumor_type','breast')
+        clinical_ctx = data.get('clinical_context','')
+        buf = BytesIO()
+        doc = SimpleDocTemplate(buf, pagesize=A4,
+            leftMargin=2*cm, rightMargin=2*cm, topMargin=2.5*cm, bottomMargin=2*cm)
+        teal = colors.HexColor('#0d9488')
+        dark = colors.HexColor('#1a2332')
+        muted = colors.HexColor('#6b7a8d')
+        warn = colors.HexColor('#dc2626')
+        h1 = ParagraphStyle('H1', fontSize=16, fontName='Helvetica-Bold', textColor=dark, spaceAfter=6)
+        h2 = ParagraphStyle('H2', fontSize=11, fontName='Helvetica-Bold', textColor=teal, spaceBefore=10, spaceAfter=4)
+        bd = ParagraphStyle('BD', fontSize=9, fontName='Helvetica', textColor=dark, spaceAfter=3, leading=13)
+        sm = ParagraphStyle('SM', fontSize=8, fontName='Helvetica', textColor=muted)
+        story = []
+        story.append(Paragraph("SenGenoScope — RAPPORT MORPHO-GÉNÉTIQUE IA", h1))
+        story.append(Paragraph("Genere le " + datetime.now().strftime('%d/%m/%Y a %H:%M') + " · Validation anatomopathologiste requise", sm))
+        story.append(HRFlowable(width="100%", thickness=2, color=teal, spaceAfter=10))
+        tumor_labels = {"breast":"Cancer du sein","prostate":"Prostate","pediatric":"Tumeur pediatrique",
+            "colorectal":"Colorectal","melanoma":"Melanome","lymphoma":"Lymphome",
+            "kaposi":"Sarcome de Kaposi","npc":"Carcinome nasopharynge","gist":"GIST","rare":"Tumeur rare"}
+        meta = [
+            ["Type tumoral", tumor_labels.get(tumor_type, tumor_type)],
+            ["Grade", result.get("grade","—")],
+            ["Sous-type moleculaire", result.get("molecular_subtype","—")],
+            ["Confiance globale", str(result.get("quality_assessment",{}).get("confidence_overall","—")) + "%"],
+            ["Contexte clinique", clinical_ctx or "Non precise"],
+        ]
+        t = Table(meta, colWidths=[4.5*cm, 12*cm])
+        t.setStyle(TableStyle([
+            ('FONTNAME',(0,0),(0,-1),'Helvetica-Bold'), ('FONTSIZE',(0,0),(-1,-1),9),
+            ('TEXTCOLOR',(0,0),(0,-1),teal), ('TOPPADDING',(0,0),(-1,-1),4),
+            ('BOTTOMPADDING',(0,0),(-1,-1),4), ('GRID',(0,0),(-1,-1),0.5,colors.HexColor('#dde3ea')),
+            ('BACKGROUND',(0,0),(0,-1),colors.HexColor('#f0f9ff')),
+        ]))
+        story.append(t); story.append(Spacer(1, 8))
+        findings = result.get('key_findings', [])
+        if findings:
+            story.append(Paragraph("Constats cles", h2))
+            for f in findings:
+                story.append(Paragraph("• " + str(f), bd))
+        morph = result.get('morphology', {})
+        if morph:
+            story.append(Paragraph("Analyse morphologique", h2))
+            for k, v in morph.items():
+                if v is not None and v != '':
+                    story.append(Paragraph("<b>" + k + " :</b> " + str(v), bd))
+        ihc = result.get('ihc_predictions', [])
+        if ihc:
+            story.append(Paragraph("Predictions IHC", h2))
+            rows = [['Marqueur','Resultat predit','Confiance','Impact clinique']]
+            for m in ihc:
+                rows.append([m.get('marker',''), m.get('predicted_result',''),
+                    str(m.get('confidence','')) + '%', m.get('clinical_impact','')])
+            t2 = Table(rows, colWidths=[2.5*cm, 4*cm, 2.5*cm, 7.5*cm])
+            t2.setStyle(TableStyle([
+                ('FONTNAME',(0,0),(-1,0),'Helvetica-Bold'), ('FONTSIZE',(0,0),(-1,-1),9),
+                ('BACKGROUND',(0,0),(-1,0),teal), ('TEXTCOLOR',(0,0),(-1,0),colors.white),
+                ('TOPPADDING',(0,0),(-1,-1),4), ('BOTTOMPADDING',(0,0),(-1,-1),4),
+                ('GRID',(0,0),(-1,-1),0.5,colors.HexColor('#dde3ea')),
+            ]))
+            story.append(t2); story.append(Spacer(1,6))
+        muts = result.get('probable_mutations', [])
+        if muts:
+            story.append(Paragraph("Mutations probables", h2))
+            rows2 = [['Gene','Probabilite','Base','Cible therapeutique']]
+            for m in muts:
+                rows2.append([m.get('gene',''), str(m.get('probability','')) + '%',
+                    str(m.get('basis',''))[:50], m.get('therapeutic_target','')])
+            t3 = Table(rows2, colWidths=[2.5*cm, 2.5*cm, 8*cm, 3.5*cm])
+            t3.setStyle(TableStyle([
+                ('FONTNAME',(0,0),(-1,0),'Helvetica-Bold'), ('FONTSIZE',(0,0),(-1,-1),9),
+                ('BACKGROUND',(0,0),(-1,0),colors.HexColor('#7c3aed')), ('TEXTCOLOR',(0,0),(-1,0),colors.white),
+                ('TOPPADDING',(0,0),(-1,-1),4), ('BOTTOMPADDING',(0,0),(-1,-1),4),
+                ('GRID',(0,0),(-1,-1),0.5,colors.HexColor('#dde3ea')),
+            ]))
+            story.append(t3); story.append(Spacer(1,6))
+        af = result.get('african_context', {})
+        if af.get('relevant'):
+            story.append(Paragraph("Contexte africain", h2))
+            story.append(Paragraph(str(af.get('note','')), bd))
+        gl = result.get('guidelines', {})
+        if gl.get('primary'):
+            story.append(Paragraph("Guidelines", h2))
+            story.append(Paragraph("<b>" + gl.get('primary','') + "</b> — " + gl.get('recommendation',''), bd))
+        note = result.get('pathologist_note','⚠️ Validation anatomopathologiste obligatoire.')
+        story.append(Spacer(1,14))
+        story.append(HRFlowable(width="100%", thickness=1, color=muted, spaceAfter=6))
+        story.append(Paragraph("⚠️ " + note, ParagraphStyle('N', fontSize=9, fontName='Helvetica-Bold', textColor=warn)))
+        doc.build(story)
+        buf.seek(0)
+        from flask import send_file
+        return send_file(buf, mimetype='application/pdf', as_attachment=True,
+            download_name='rapport_morpho_' + datetime.now().strftime('%Y%m%d_%H%M') + '.pdf')
+    except Exception as e:
+        return jsonify({"success":False,"error":str(e)}), 500
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
@@ -2013,81 +2218,7 @@ def admin_dashboard():
     }
     return render_template("admin.html", users=users, stats=stats, logs=logs)
 
-@app.route('/morpho_analyze', methods=['POST'])
-def morpho_analyze():
-    """Route backend pour analyse morpho-génétique via Claude AI."""
-    import base64 as b64
-    data = request.get_json() or {}
-    cancer_type = data.get('cancer_type', 'sein')
-    sample = data.get('sample', 'Biopsie core-needle')
-    stain = data.get('stain', 'HE')
-    context = data.get('context', '')
-    image_b64 = data.get('image_b64', '')
-    image_type = data.get('image_type', 'image/jpeg')
 
-    LABELS = {
-        'sein': 'Cancer du sein',
-        'prostate': 'Cancer de la prostate',
-        'pediatrique': 'Cancers pédiatriques'
-    }
-    label = LABELS.get(cancer_type, cancer_type)
-
-    prompt = f"""Tu es un expert en anatomopathologie oncologique spécialisé dans les populations africaines subsahariennes.
-
-Cancer analysé: {label}
-Prélèvement: {sample} | Coloration: {stain}
-{f'Contexte clinique: {context}' if context else ''}
-{f'Une image histologique est jointe.' if image_b64 else 'Génère une analyse typique pour ce cancer dans les populations africaines.'}
-
-Réponds UNIQUEMENT en JSON valide (sans balises markdown) :
-{{
-  "type_tumoral": "...",
-  "grade": "...",
-  "stade_probable": "...",
-  "recepteurs": "...",
-  "morpho_description": "Description morphologique détaillée (3-4 phrases)",
-  "mutations_probables": ["GENE1", "GENE2"],
-  "niveau_confiance": "Élevé|Modéré|Faible",
-  "guidelines": "...",
-  "contexte_africain": "Spécificités épidémiologiques et génétiques populations africaines (2-3 phrases)",
-  "examens_complementaires": "..."
-}}"""
-
-    if not CLAUDE_AVAILABLE:
-        return jsonify({'error': 'Claude AI non configuré — clé API manquante'})
-
-    try:
-        import anthropic
-        client = anthropic.Anthropic(api_key=os.environ.get('ANTHROPIC_API_KEY',''))
-
-        content = []
-        if image_b64:
-            content.append({
-                'type': 'image',
-                'source': {'type': 'base64', 'media_type': image_type, 'data': image_b64}
-            })
-        content.append({'type': 'text', 'text': prompt})
-
-        resp = client.messages.create(
-            model='claude-haiku-4-5-20251001',
-            max_tokens=1000,
-            messages=[{'role': 'user', 'content': content}]
-        )
-        text = resp.content[0].text.strip().replace('```json','').replace('```','').strip()
-        import json as _json
-        parsed = _json.loads(text)
-        return jsonify(parsed)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-
-app.config['PERMANENT_SESSION_LIFETIME'] = __import__('datetime').timedelta(minutes=30)
-app.config['SESSION_COOKIE_SECURE'] = True
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-
-
-# ══ PATIENTS ══════════════════════════════════════════════════════
 @app.route('/patients/list')
 @login_required
 def list_patients():
