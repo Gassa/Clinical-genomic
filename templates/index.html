@@ -5713,8 +5713,9 @@ function saveToHistory(query) {
   const hist = JSON.parse(localStorage.getItem('sgs_history') || '[]');
   const now = new Date();
   const t = now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
-  const filtered = hist.filter(h => h.q !== query);
-  filtered.unshift({q: query, t});
+  const q_str = typeof query === 'string' ? query : (query && query.query ? query.query : String(query));
+  const filtered = hist.filter(h => h.q !== q_str);
+  filtered.unshift({q: q_str, t});
   localStorage.setItem('sgs_history', JSON.stringify(filtered.slice(0,20)));
 }
 

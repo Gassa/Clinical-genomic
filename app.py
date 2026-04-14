@@ -62,6 +62,48 @@ def sanitize_input(s, max_len=500):
 from datetime import timedelta, datetime
 from werkzeug.utils import secure_filename
 
+
+# ══ VALIDATION MÉDICALE — Filtre requêtes non cliniques ═════════════════════
+MEDICAL_KEYWORDS = {
+    "genes": ["BRCA", "TP53", "KRAS", "EGFR", "MLH1", "MSH2", "APC", "RB1", "PTEN", 
+              "VHL", "ALK", "BRAF", "PALB2", "CDH1", "STK11", "NF1", "RET", "IDH",
+              "ERBB2", "MEN1", "CHEK2", "ATM", "RAD51", "CDKN2A", "SMAD4", "MUTYH",
+              "EPCAM", "PMS2", "MSH6", "MLH3", "POLE", "POLD1", "NTHL1", "NBN",
+              "BRIP1", "RAD51C", "RAD51D", "BARD1", "ATR", "FANCM", "HOXB13"],
+    "cancers": ["cancer", "carcinome", "tumeur", "sarcome", "lymphome", "leucémie", 
+                "mélanome", "gliome", "neuroblastome", "méningiome", "hémoblastose",
+                "carcinoma", "sarcoma", "lymphoma", "leukemia", "melanoma", "glioma",
+                "néoplasie", "néoplasme", "neoplasm", "malignant", "malin", "maligna",
+                "sein", "breast", "poumon", "lung", "colorectal", "colon", "prostate",
+                "ovaire", "ovarian", "pancréas", "pancreatic", "foie", "liver",
+                "rein", "renal", "thyroïde", "thyroid", "utérus", "uterine",
+                "cerveau", "brain", "peau", "skin", "os", "bone", "sang", "blood"],
+    "medical": ["variant", "mutation", "pathogène", "pathogenic", "VUS", "bénin",
+                "benign", "ACMG", "guidelines", "ESMO", "NCCN", "HAS", "traitement",
+                "thérapie", "therapy", "chimiothérapie", "immunothérapie", "targeted",
+                "biomarqueur", "biomarker", "diagnostic", "prognosis", "pronostic",
+                "génomique", "genomic", "séquençage", "sequencing", "NGS", "WES",
+                "syndrome", "hereditary", "héréditaire", "familial", "germinal",
+                "somatique", "somatic", "métastase", "metastasis", "stade", "grade",
+                "histologie", "pathologie", "IHC", "FISH", "TMB", "MSI", "PDL1",
+                "drépanocytose", "thalassémie", "hémoglobine", "paludisme", "VIH",
+                "tuberculose", "hépatite", "pharmacogénomique", "pharmacogenomics"]
+}
+
+def is_medical_query(query: str) -> tuple:
+    """Vérifie si une requête est médicalement pertinente. Retourne (bool, raison)."""
+    if not query or len(query.strip()) < 2:
+        return False, "Requête vide"
+    q_lower = query.lower()
+    for category, keywords in MEDICAL_KEYWORDS.items():
+        for kw in keywords:
+            if kw.lower() in q_lower:
+                return True, f"Terme médical détecté: {kw}"
+    # Vérifier si c'est un terme générique court pouvant être médical
+    if len(query.split()) <= 3 and any(c.isupper() for c in query):
+        return True, "Possible acronyme médical"
+    return False, f"Requête '{query[:50]}' ne semble pas liée à l'oncogénomique clinique"
+
 app = Flask(__name__)
 if _has_csrf:
     csrf = CSRFProtect(app)
@@ -701,6 +743,16 @@ def consequence_types():
 # ── Main analyze ──────────────────────────────────────────────────────────────
 @app.route("/analyze", methods=["POST"])
 def analyze():
+    # Validation médicale
+    _data = request.get_json() or {}
+    _query = _data.get("query", "") or _data.get("message", "")
+    _is_medical, _reason = is_medical_query(_query)
+    if not _is_medical and _query:
+        return jsonify({
+            "error": f"⚕️ Requête non médicale refusée: {_reason}. Cette plateforme est dédiée à l'oncogénomique clinique (gènes, cancers, variants, guidelines).",
+            "medical_only": True,
+            "suggestions": ["BRCA1 cancer du sein", "TP53 Li-Fraumeni", "EGFR NSCLC", "Lynch syndrome MLH1"]
+        }), 400
     ip = request.remote_addr
     if not check_rate_limit(f"analyze_{ip}", max_calls=15, window=60):
         return jsonify({"error": "Rate limit exceeded. Max 15 requests/minute."}), 429
