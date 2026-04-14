@@ -48,3 +48,4 @@ users.db
 __pycache__/
 *.pyc
 patch_*.py
+.github/

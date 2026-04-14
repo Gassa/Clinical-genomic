@@ -1,9 +1,0 @@
-name: CI
-on:
-  push:
-    branches: [ "main" ]
-jobs:
-  skip:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "CI skipped — deployment handled by Render"
