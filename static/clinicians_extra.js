@@ -1726,3 +1726,54 @@ async function analyzeVEPSequence() {
   }
 }
 // ══ FIN VEP IA ═══════════════════════════════════════════════════════════
+
+
+// ══ ANALYSE IA — BOUTONS CONTEXTUELS ════════════════════════════════════
+async function analyzeSeqWithAI() {
+  var seq = (document.getElementById('seqInput')||{}).value || '';
+  var res = document.getElementById('seqAIResult');
+  if (!res) return;
+  if (!seq.trim()) { res.innerHTML='<div style="color:#dc2626;padding:8px">⚠️ Entrez une séquence ADN.</div>'; return; }
+  var userKey = localStorage.getItem('sgs_api_key')||'';
+  if (!userKey) { res.innerHTML='<div style="color:#dc2626;padding:8px">⚠️ Clé API manquante.</div>'; return; }
+  res.innerHTML='<div style="padding:10px;color:var(--mu)">⏳ Analyse séquence en cours…</div>';
+  var prompt = 'Tu es expert en bioinformatique et annotation génomique.\n\nAnalyse cette séquence ADN/HGVS:\n```\n' + seq + '\n```\n\n1. Identification du variant (HGVS c./p.)\n2. Type de conséquence moléculaire\n3. Scores in silico (SIFT, PolyPhen-2, CADD, REVEL, AlphaMissense)\n4. Classification ACMG/AMP 2015 (critères)\n5. Fréquences gnomAD v4 (AFR/EUR/global)\n6. Variants ClinVar similaires\n7. Implications thérapeutiques\n8. Contexte africain (H3Africa, AWI-Gen)';
+  try {
+    var r = await aiFetch('/ai/chat', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:prompt})});
+    var d = await r.json();
+    res.innerHTML = d.response ? '<div class="md-content card" style="padding:14px;margin-top:8px">' + (typeof marked!=='undefined'?marked.parse(d.response):d.response) + '</div>' : '<div style="color:#dc2626">' + (d.error||'Erreur') + '</div>';
+  } catch(e) { res.innerHTML='<div style="color:#dc2626">❌ ' + e.message + '</div>'; }
+}
+
+async function acmgAIAnalyze() {
+  var gene = (document.getElementById('acmgGene')||{}).value || '';
+  var variant = (document.getElementById('acmgVariant')||document.getElementById('acmgHgvs')||{}).value || '';
+  var res = document.getElementById('acmgAIResult');
+  if (!res) return;
+  var userKey = localStorage.getItem('sgs_api_key')||'';
+  if (!userKey) { res.innerHTML='<div style="color:#dc2626;padding:8px">⚠️ Clé API manquante.</div>'; return; }
+  res.innerHTML='<div style="padding:10px;color:var(--mu)">⏳ Classification ACMG IA en cours…</div>';
+  var prompt = 'Tu es expert en classification ACMG/AMP 2015.\n\nGène: ' + (gene||'non précisé') + '\nVariant: ' + (variant||'non précisé') + '\n\n1. Classification ACMG (Pathogène/Prob.Pathogène/VUS/Prob.Bénin/Bénin)\n2. Critères appliqués (PVS1, PS1-4, PM1-6, PP1-5, BA1, BS1-4, BP1-7)\n3. Scores pathogénicité (REVEL, CADD, SpliceAI)\n4. Fréquences populationnelles (gnomAD AFR/EUR)\n5. Données ClinVar/LOVD\n6. Implications cliniques et thérapeutiques\n7. Contexte africain';
+  try {
+    var r = await aiFetch('/ai/chat', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:prompt})});
+    var d = await r.json();
+    res.innerHTML = d.response ? '<div class="md-content card" style="padding:14px;margin-top:8px">' + (typeof marked!=='undefined'?marked.parse(d.response):d.response) + '</div>' : '<div style="color:#dc2626">' + (d.error||'Erreur') + '</div>';
+  } catch(e) { res.innerHTML='<div style="color:#dc2626">❌ ' + e.message + '</div>'; }
+}
+
+async function riskAIAnalyze() {
+  var res = document.getElementById('riskAIResult');
+  if (!res) return;
+  var userKey = localStorage.getItem('sgs_api_key')||'';
+  if (!userKey) { res.innerHTML='<div style="color:#dc2626;padding:8px">⚠️ Clé API manquante.</div>'; return; }
+  var syndrome = (document.querySelector('select[id*=risk], select[id*=syndrome]')||{}).value || 'non précisé';
+  var checked = Array.from(document.querySelectorAll('#sec-risk input[type=checkbox]:checked')).map(function(el){ return el.closest('label')?.textContent?.trim()?.slice(0,50)||''; }).filter(Boolean);
+  res.innerHTML='<div style="padding:10px;color:var(--mu)">⏳ Analyse risque héréditaire IA…</div>';
+  var prompt = 'Tu es un généticien clinicien expert.\n\nSyndrome évalué: ' + syndrome + '\nCritères présents: ' + (checked.join(', ')||'voir données cliniques') + '\n\n1. Probabilité de prédisposition héréditaire\n2. Gènes à tester en priorité\n3. Indication test génétique constitutionnel (OUI/NON + justification NCCN/HAS)\n4. Recommandations surveillance (ESMO/NCCN/HAS)\n5. Conseil génétique familial\n6. Contexte populations africaines subsahariennes (BRCA1/2 fréquences AFR, PALB2)';
+  try {
+    var r = await aiFetch('/ai/chat', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:prompt})});
+    var d = await r.json();
+    res.innerHTML = d.response ? '<div class="md-content card" style="padding:14px;margin-top:8px">' + (typeof marked!=='undefined'?marked.parse(d.response):d.response) + '</div>' : '<div style="color:#dc2626">' + (d.error||'Erreur') + '</div>';
+  } catch(e) { res.innerHTML='<div style="color:#dc2626">❌ ' + e.message + '</div>'; }
+}
+// ══ FIN ANALYSE IA CONTEXTUELS ═══════════════════════════════════════════
