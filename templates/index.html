@@ -489,6 +489,27 @@ function qs(q){document.getElementById('query').value=q;if(typeof runSearch==='f
   <script src="/static/clinicians_extra.js" defer></script>
 </head>
 <body>
+<script>
+// Nettoyage automatique localStorage corrompu
+(function(){
+  try {
+    ['sgs_hist','sgs_history'].forEach(function(key){
+      var raw = localStorage.getItem(key);
+      if (!raw) return;
+      var arr = JSON.parse(raw);
+      if (!Array.isArray(arr)) { localStorage.removeItem(key); return; }
+      var cleaned = arr.filter(function(x){
+        return x && typeof x === 'string' && x !== '[object Object]' ||
+               x && typeof x === 'object' && typeof x.q === 'string' && x.q !== '[object Object]';
+      });
+      localStorage.setItem(key, JSON.stringify(cleaned));
+    });
+  } catch(e) {
+    localStorage.removeItem('sgs_hist');
+    localStorage.removeItem('sgs_history');
+  }
+})();
+</script>
 <div class="shell">
 
 <!-- SIDEBAR -->
@@ -904,7 +925,28 @@ function qs(q){document.getElementById('query').value=q;if(typeof runSearch==='f
           <div class="ol" data-fr="Séquence 2 (optionnel — comparaison / détection de mutations)" data-en="Sequence 2 (optional — comparison / mutation detection)">Séquence 2 (optionnel — comparaison / détection de mutations)</div>
           <textarea class="sa" id="seqIn2" style="min-height:60px" placeholder="Coller une 2ème séquence pour comparer et détecter mutations, ratio Ts/Tv…"></textarea>
         </div>
-        <button class="btn bp3" onclick="analyzeSeq()" data-fr="Analyser la séquence" data-en="Analyze sequence">Analyser la séquence</button>
+        <button class="btn bp3" onclick="analyzeSeq()" data-fr="Analyser la séquence" data-en="Analyze sequence">🧬 Analyser la séquence</button>
+      <button class="btn bp3" onclick="analyzeSeqWithAI()" style="margin-left:8px">🤖 Analyse IA</button>
+      <div id="seqAIResult" style="margin-top:14px"></div>
+      <script>
+      // Enrichir analyzeSeq avec IA
+      var _origAnalyzeSeq = window.analyzeSeq;
+      window.analyzeSeqWithAI = async function() {
+        var seq1 = document.getElementById('seq1') ? document.getElementById('seq1').value : '';
+        var seq2 = document.getElementById('seq2') ? document.getElementById('seq2').value : '';
+        if (!seq1 && !seq2) { alert('Veuillez entrer une séquence'); return; }
+        var res = document.getElementById('seqAIResult');
+        if (res) res.innerHTML = '<div style="padding:10px;color:var(--mu)">⏳ Analyse IA en cours...</div>';
+        var prompt = 'Tu es bioinformaticien expert. Analyse cette séquence ADN/FASTA:\n\n' + seq1.substring(0,500);
+        if (seq2) prompt += '\n\nSéquence 2 (comparaison):\n' + seq2.substring(0,500);
+        prompt += '\n\nFournis:\n1. Type de séquence (exon/intron/promoteur/codant)\n2. Composition GC (%)\n3. Codons stop détectés\n4. Mutations potentielles si 2 séquences\n5. Gènes candidats probable\n6. Impact fonctionnel probable\n7. Recommandation clinique';
+        try {
+          var r = await aiFetch('/ai/chat', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:prompt})});
+          var d = await r.json();
+          if (res) res.innerHTML = d.response ? '<div class="card" style="margin-top:8px;padding:14px">' + (typeof marked!=='undefined'?marked.parse(d.response):d.response) + '</div>' : '<div style="color:red">Erreur: ' + (d.error||'?') + '</div>';
+        } catch(e) { if(res) res.innerHTML = '<div style="color:red">' + e.message + '</div>'; }
+      };
+      </script>
         <div id="seqResult" style="margin-top:13px"></div>
       </div>
     </div>
@@ -1201,6 +1243,23 @@ CNV_data: PTEN del, RB1 del, CDKN2A del, ERBB2 amp..." style="width:100%;padding
       <div class="ag" id="acmg-ben"></div>
       <div style="margin-top:13px;display:flex;gap:8px">
         <button class="btn bp3" onclick="classifyACMG()" data-fr="Classifier ce variant" data-en="Classify this variant">Classifier ce variant</button>
+      <button class="btn" onclick="acmgAIAnalyze()" style="margin-left:8px;background:#7c3aed;color:white">🤖 Interpréter avec IA</button>
+      <div id="acmgAIResult" style="margin-top:14px"></div>
+      <script>
+      async function acmgAIAnalyze() {
+        var selected = Array.from(document.querySelectorAll('.ac2.selected,.ac2[aria-pressed=true],.acmg-selected')).map(function(el){ return el.querySelector('.ac-code')?.textContent || el.textContent.trim().substring(0,10); });
+        var score = document.getElementById('acmgScore')?.textContent || document.getElementById('acmgResult')?.textContent || '';
+        var res = document.getElementById('acmgAIResult');
+        if (!res) return;
+        res.innerHTML = '<div style="padding:10px;color:var(--mu)">⏳ Interprétation ACMG en cours...</div>';
+        var prompt = 'Interprète cette classification ACMG/AMP 2015 (Richards et al. Genetics in Medicine 2015):\n\nCritères sélectionnés: ' + (selected.join(', ') || 'aucun') + '\nScore calculé: ' + score + '\n\n1. Classification finale (Pathogène/Probablement pathogène/VUS/Bénin)\n2. Justification selon les règles ACMG\n3. Recommandations cliniques\n4. Limites de cette classification\n5. Contexte populations africaines si pertinent';
+        try {
+          var r = await aiFetch('/ai/chat', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:prompt})});
+          var d = await r.json();
+          res.innerHTML = d.response ? '<div class="card" style="margin-top:8px;padding:14px">' + (typeof marked!=='undefined'?marked.parse(d.response):d.response) + '</div>' : '<div style="color:red">' + (d.error||'Erreur') + '</div>';
+        } catch(e) { res.innerHTML = '<div style="color:red">' + e.message + '</div>'; }
+      }
+      </script>
         <button class="btn bgh2 bsm" onclick="resetACMG()" data-fr="Réinitialiser" data-en="Reset">Réinitialiser</button>
       </div>
       <div id="acmgResult" style="margin-top:13px"></div>
@@ -2367,8 +2426,13 @@ function setLang(l){
 
 // ══ HISTORY ═══════════════════════════════════════════════════════════════
 let hist=JSON.parse(localStorage.getItem('sgs_hist')||'[]').filter(x=>x&&typeof x==='string');
-async function addHist(q){if(!q||typeof q!=='string'||!q.trim())return;hist=[q,...hist.filter(x=>x&&x!==q)].slice(0,10);localStorage.setItem('sgs_hist',JSON.stringify(hist));renderHist();}
-async function renderHist(){const b=document.getElementById('histBar'),t=document.getElementById('histTags');if(!hist.length){b.style.display='none';return;}b.style.display='flex';t.innerHTML=hist.map(q=>`<span class="ht3" onclick="qs('${q.replace(/'/g,"\\'")}')">  ${q}</span>`).join('');}
+async function addHist(q){
+  const qs = typeof q === 'string' ? q.trim() : (q && q.query ? q.query : null);
+  if (!qs || qs === '[object Object]' || qs.length < 2) return;
+  hist=[qs,...hist.filter(x=>typeof x==='string'&&x!==qs)].slice(0,10);
+  localStorage.setItem('sgs_hist',JSON.stringify(hist));renderHist();}
+async function renderHist(){const b=document.getElementById('histBar'),t=document.getElementById('histTags');hist=hist.filter(x=>typeof x==='string'&&x!=='[object Object]');
+  if(!hist.length){b.style.display='none';return;}b.style.display='flex';t.innerHTML=hist.map(q=>`<span class="ht3" onclick="qs('${q.replace(/'/g,"\\'")}')">  ${q}</span>`).join('');}
 
 // ══ BOOKMARKS ═════════════════════════════════════════════════════════════
 let bks=JSON.parse(localStorage.getItem('sgs_bks')||'[]');
@@ -2937,6 +3001,24 @@ async function loadSyndrome(name){
     <div class="rc" id="rcGrid">${d.criteria_available.map(c=>`<div class="ri" id="rc-${c.id}" onclick="togRisk('${c.id}','${name}')"><div class="rcb">✓</div><div style="font-size:13px">${c.label}</div><div class="rw">+${c.weight} pts</div></div>`).join('')}</div>
     <div style="margin-top:11px;display:flex;gap:7px">
       <button class="btn bp3" onclick="compRisk('${name}')">Calculer le risque</button>
+      <button class="btn" onclick="riskAIAnalyze()" style="margin-left:8px;background:#7c3aed;color:white">🤖 Analyse IA du risque</button>
+      <div id="riskAIResult" style="margin-top:14px"></div>
+      <script>
+      async function riskAIAnalyze() {
+        var syndrome = document.querySelector('.risk-syndrome-select, select[name=syndrome]')?.value || '';
+        var score = document.getElementById('riskScore')?.textContent || document.getElementById('riskResult')?.textContent || '';
+        var checked = Array.from(document.querySelectorAll('input[type=checkbox]:checked')).map(function(el){ return el.parentElement?.textContent?.trim().substring(0,40); }).filter(Boolean);
+        var res = document.getElementById('riskAIResult');
+        if (!res) return;
+        res.innerHTML = '<div style="padding:10px;color:var(--mu)">⏳ Analyse du risque héréditaire...</div>';
+        var prompt = 'Tu es un généticien clinicien expert. Analyse ce profil de risque héréditaire:\n\nSyndrome évalué: ' + (syndrome || 'Non précisé') + '\nCritères présents: ' + (checked.join(', ') || 'voir résultat') + '\nScore/Résultat: ' + score + '\n\n1. Probabilité de prédisposition héréditaire\n2. Gènes à tester en priorité\n3. Indication test génétique constitutionnel (OUI/NON + justification)\n4. Recommandations surveillance (guidelines ESMO/NCCN/HAS)\n5. Conseil génétique familial recommandé\n6. Contexte populations africaines subsahariennes';
+        try {
+          var r = await aiFetch('/ai/chat', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:prompt})});
+          var d = await r.json();
+          res.innerHTML = d.response ? '<div class="card" style="margin-top:8px;padding:14px">' + (typeof marked!=='undefined'?marked.parse(d.response):d.response) + '</div>' : '<div style="color:red">' + (d.error||'Erreur') + '</div>';
+        } catch(e) { res.innerHTML = '<div style="color:red">' + e.message + '</div>'; }
+      }
+      </script>
       <button class="btn bgh2 bsm" onclick="resetRisk('${name}')">Réinitialiser</button>
     </div>`;
   document.getElementById('riskResult').innerHTML='';
