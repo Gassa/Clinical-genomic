@@ -2181,8 +2181,8 @@ function setLang(l){
 }
 
 // ══ HISTORY ═══════════════════════════════════════════════════════════════
-let hist=JSON.parse(localStorage.getItem('sgs_hist')||'[]');
-async function addHist(q){hist=[q,...hist.filter(x=>x!==q)].slice(0,10);localStorage.setItem('sgs_hist',JSON.stringify(hist));renderHist();}
+let hist=JSON.parse(localStorage.getItem('sgs_hist')||'[]').filter(x=>x&&typeof x==='string');
+async function addHist(q){if(!q||typeof q!=='string'||!q.trim())return;hist=[q,...hist.filter(x=>x&&x!==q)].slice(0,10);localStorage.setItem('sgs_hist',JSON.stringify(hist));renderHist();}
 async function renderHist(){const b=document.getElementById('histBar'),t=document.getElementById('histTags');if(!hist.length){b.style.display='none';return;}b.style.display='flex';t.innerHTML=hist.map(q=>`<span class="ht3" onclick="qs('${q.replace(/'/g,"\\'")}')">  ${q}</span>`).join('');}
 
 // ══ BOOKMARKS ═════════════════════════════════════════════════════════════
@@ -3902,6 +3902,81 @@ function updateApiKeyBtn(){
   }
 }
 
+
+
+// ══ VALIDATEUR REQUÊTES MÉDICALES ════════════════════════════════════════
+const _MEDICAL_WHITELIST = {
+  genes: ['BRCA1','BRCA2','TP53','KRAS','EGFR','HER2','ERBB2','ALK','ROS1','MET','BRAF',
+    'PIK3CA','PTEN','APC','MLH1','MSH2','MSH6','PMS2','CDH1','STK11','PALB2','CHEK2',
+    'ATM','BRIP1','RAD51','NBN','NF1','NF2','VHL','RB1','WT1','MEN1','RET','CDKN2A',
+    'FGFR1','FGFR2','FGFR3','NTRK1','NTRK2','NTRK3','MYC','MYCN','IDH1','IDH2',
+    'TERT','ARID1A','SMAD4','FBXW7','NOTCH1','SF3B1','U2AF1','DNMT3A','NPM1',
+    'FLT3','JAK2','MPL','CALR','CSF3R','KIT','PDGFRA','PDGFRB','ABL1','BCR',
+    'CDK4','CDK6','CCND1','MDM2','KEAP1','STK11','CTNNB1','AXIN1','HIF1A',
+    'VEGFA','KDR','MET','CMET','RNF43','RSPO3','POLE','MUTYH','EPCAM',
+    'HOXB13','AR','ESR1','PGR','FOXA1','RUNX1','CEBPA','WT1','EZH2',
+    'DNMT3B','TET2','ASXL1','SRSF2','ZRSR2','KDM6A','SETD2','ATRX',
+    'DAXX','MAX','SDHB','SDHC','SDHD','SDHA','VHL','FH','KIF1B',
+    'HHV8','EBV','HPV','MSI','MMR','TMB','HRD','LOH','FISH','IHC'],
+  cancer_terms: ['cancer','carcinome','carcinoma','sarcoma','sarcome','lymphome','lymphoma',
+    'leucemie','leukemia','melanome','melanoma','gliome','glioma','meningiome',
+    'neuroblastome','neuroblastoma','mesotheliome','mesothelioma','myelome','myeloma',
+    'adenocarcinome','adenocarcinoma','squamous','epidermoid','transitional',
+    'hepatocellular','cholangiocarcinoma','pancreatic','gastric','colorectal',
+    'breast','sein','prostate','ovaire','ovarian','uterus','endometrial',
+    'pulmonaire','lung','thyroid','thyroide','renal','reins','bladder','vessie',
+    'cervical','col','esophageal','oesophage','gastrique','stomach','bowel',
+    'intestin','colon','rectum','brain','cerveau','testicular','testicule',
+    'skin','peau','bone','os','muscle','soft tissue','tissu mou',
+    'pediatric','wilms','ewing','osteosarcome','rhabdomyosarcome','medulloblastome',
+    'hodgkin','burkitt','kaposi','nasopharyngeal','nasopharynge',
+    'oncologie','oncology','oncogenetique','oncogenomique','genomique',
+    'variant','mutation','pathogene','pathogenic','benin','benign','vus',
+    'acmg','nccn','esmo','guidelines','hereditary','hereditaire','germinal',
+    'somatique','somatic','fusion','amplification','deletion','translocation',
+    'therapy','therapie','targeted','ciblee','immunotherapy','immunotherapie',
+    'chemotherapy','chimiotherapie','radiotherapy','radiotherapie',
+    'prs','polygenic','gwas','snp','haplotype','penetrance',
+    'brca','lynch','cowden','gorlin','li-fraumeni','hereditary','familial',
+    'tmb','msi','mss','msi-h','msi-l','hnpcc','polyposis','hamartoma',
+    'tne','net','gist','stromal','neuroendocrine','carcinoide','carcinoid',
+    'metastase','metastasis','staging','grade','stade','tnm','recurrence',
+    'survival','survie','prognosis','pronostic','biomarker','biomarqueur',
+    'sequencage','sequencing','ngs','wes','wgs','panel','biopsy','biopsie',
+    'ihc','fish','pcr','qpcr','rtpcr','methylation','expression','rna',
+    'drug','medicament','inhibitor','inhibiteur','antibody','anticorps',
+    'olaparib','niraparib','rucaparib','talazoparib','veliparib',
+    'pembrolizumab','nivolumab','atezolizumab','durvalumab','ipilimumab',
+    'trastuzumab','pertuzumab','bevacizumab','cetuximab','panitumumab',
+    'imatinib','dasatinib','nilotinib','osimertinib','erlotinib','gefitinib',
+    'afatinib','lorlatinib','alectinib','crizotinib','brigatinib',
+    'vemurafenib','dabrafenib','trametinib','cobimetinib','binimetinib',
+    'palbociclib','ribociclib','abemaciclib','everolimus','temsirolimus',
+    'alpelisib','idelalisib','copanlisib','buparlisib',
+    'selumetinib','cobimetinib','ulixertinib','mekinist',
+    'larotrectinib','entrectinib','repotrectinib','taletrectinib',
+    'selpercatinib','pralsetinib','capmatinib','tepotinib','savolitinib',
+    'adagrasib','sotorasib','divarasib','glecirasib',
+    'sacituzumab','fam-trastuzumab','enfortumab','tisotumab',
+    'african','africain','senegal','senegalais','subsaharien','h3africa','awigen']
+};
+
+function _isMedicalQuery(q) {
+  if (!q || q.length < 2) return false;
+  var lower = q.toLowerCase();
+  // Toujours autoriser les gènes connus
+  for (var g of _MEDICAL_WHITELIST.genes) {
+    if (lower.includes(g.toLowerCase())) return true;
+  }
+  // Autoriser les termes oncologiques
+  for (var t of _MEDICAL_WHITELIST.cancer_terms) {
+    if (lower.includes(t)) return true;
+  }
+  // Autoriser les identifiants médicaux (rs, PMID, NM_, NP_, c., p.)
+  if (/\b(rs\d+|pmid|nm_|np_|chr\d|c\.\d|p\.\w|hg19|hg38|grch)/.test(lower)) return true;
+  return false;
+}
+// ══ FIN VALIDATEUR ═══════════════════════════════════════════════════════
 
 // ══ FLUSH EARLY CALLS (appels reçus avant chargement complet) ════════════
 if(typeof _pendingCalls !== 'undefined'){
@@ -5678,7 +5753,7 @@ function toggleHistorique() {
   panel.style.cssText = 'position:fixed;top:56px;right:280px;width:320px;max-height:400px;background:var(--bg);border:1px solid var(--bd);border-radius:12px;z-index:8888;box-shadow:0 8px 32px rgba(0,0,0,0.15);overflow:hidden';
   
   const recent = JSON.parse(localStorage.getItem('sgs_history') || '[]');
-  const rows = recent.length ? recent.slice(0,10).filter(h => h && h.q).map((h,i) => `
+  const rows = recent.length ? recent.slice(0,10).filter(h => h && h.q && typeof h.q === 'string' && h.q !== '[object Object]').map((h,i) => `
     <div onclick="qs && qs('${h.q.replace(/'/g,"\'")}');document.getElementById('historiquePanel').remove()"
       style="padding:10px 14px;border-bottom:1px solid var(--bd);cursor:pointer;display:flex;align-items:center;gap:8px;font-size:12px"
       onmouseover="this.style.background='var(--s2)'" onmouseout="this.style.background=''">
