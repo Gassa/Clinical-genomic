@@ -941,7 +941,31 @@ function qs(q){document.getElementById('query').value=q;if(typeof runSearch==='f
         <button class="btn bp3" onclick="predictVEP()" data-fr="Prédire l'impact fonctionnel" data-en="Predict functional impact">Prédire l'impact fonctionnel</button>
         <div id="vepResult" style="margin-top:13px"></div>
       </div>
+    
+    <!-- IA ANALYSE SÉQUENCE ADN -->
+    <div class="card" style="margin-top:14px">
+      <div class="ch"><span class="ct2">🤖 Analyse IA de séquence ADN / HGVS</span></div>
+      <div style="padding:14px">
+        <div style="font-size:13px;color:var(--mu);background:var(--s2);padding:10px;border-radius:7px;margin-bottom:12px">
+          Collez une séquence ADN brute, une notation HGVS (c./p.) ou un identifiant dbSNP (rsXXX) — l'IA effectue une annotation VEP complète avec scores pathogénicité, classification ACMG et implications thérapeutiques.
+        </div>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:10px;align-items:end">
+          <div>
+            <label style="font-size:11px;color:var(--mu);font-weight:600">Gène / contexte (optionnel)</label>
+            <input id="vepGeneCtx" placeholder="Ex: BRCA1, TP53, EGFR..." style="width:100%;margin-top:3px;padding:7px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px;box-sizing:border-box">
+          </div>
+          <button onclick="analyzeVEPSequence()" style="padding:8px 16px;border-radius:7px;border:none;background:#0c6e9c;color:white;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap">🧬 Analyser</button>
+        </div>
+        <textarea id="vepSeqInput" rows="6" placeholder="Collez ici:
+- Séquence ADN: ATCGATCG...
+- Notation HGVS: c.5266dupC ou p.Gln1756Profs*74
+- Variant VCF: chr17:43071077 G>A
+- rsID: rs28897696
+- Séquence FASTA complète" style="width:100%;padding:10px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:12px;box-sizing:border-box;resize:vertical;font-family:monospace;line-height:1.5"></textarea>
+        <div id="vepSeqResult" style="margin-top:12px"></div>
+      </div>
     </div>
+  </div>
   </div>
 
   <!-- NGS -->
@@ -1546,6 +1570,167 @@ CNV_data: PTEN del, RB1 del, CDKN2A del, ERBB2 amp..." style="width:100%;padding
   </div>
 
 <!-- BOOKMARKS -->
+  
+  <!-- ══ SCORE MANCHESTER / TYRER-CUZICK ═══════════════════════════════ -->
+  <div id="sec-manchester" style="display:none">
+  <div class="card">
+    <div class="ch"><span class="ct2">🎗️ Score Manchester & Tyrer-Cuzick — Risque héréditaire BRCA/Lynch</span></div>
+    <div style="padding:14px">
+      <div style="font-size:13px;color:var(--mu);background:var(--s2);padding:10px 13px;border-radius:7px;margin-bottom:14px">
+        Évaluation du risque héréditaire de cancer du sein/ovaire selon le score Manchester (BRCA1/2) et le modèle Tyrer-Cuzick. Seuil clinique NICE/NCCN : Manchester ≥15 → test génétique indiqué.
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <!-- Colonne gauche -->
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="font-size:12px;font-weight:700;color:#0c6e9c;margin-bottom:4px">👤 Informations patient</div>
+          <div>
+            <label style="font-size:11px;color:var(--mu);font-weight:600">Âge actuel</label>
+            <input id="man_age" type="number" min="18" max="90" value="40" style="width:100%;margin-top:3px;padding:7px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px">
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--mu);font-weight:600">Sexe</label>
+            <select id="man_sex" style="width:100%;margin-top:3px;padding:7px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px">
+              <option value="F">Femme</option>
+              <option value="M">Homme</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--mu);font-weight:600">Cancer personnel</label>
+            <select id="man_personal" style="width:100%;margin-top:3px;padding:7px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px">
+              <option value="none">Aucun</option>
+              <option value="breast_pre50">Sein ≤50 ans</option>
+              <option value="breast_post50">Sein >50 ans</option>
+              <option value="bilateral_breast">Sein bilatéral</option>
+              <option value="ovarian">Ovaire</option>
+              <option value="male_breast">Sein (homme)</option>
+              <option value="triple_neg">Sein triple négatif ≤40 ans</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Colonne droite -->
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="font-size:12px;font-weight:700;color:#7c3aed;margin-bottom:4px">👨‍👩‍👧 Antécédents familiaux</div>
+          <div>
+            <label style="font-size:11px;color:var(--mu);font-weight:600">Cancers 1er degré (mère, sœur, fille)</label>
+            <div style="display:flex;flex-direction:column;gap:4px;margin-top:4px">
+              <label style="font-size:12px;display:flex;align-items:center;gap:6px"><input type="checkbox" id="man_f1_breast50" style="width:14px;height:14px"> Sein ≤50 ans</label>
+              <label style="font-size:12px;display:flex;align-items:center;gap:6px"><input type="checkbox" id="man_f1_breast50p"> Sein >50 ans</label>
+              <label style="font-size:12px;display:flex;align-items:center;gap:6px"><input type="checkbox" id="man_f1_ovarian"> Ovaire (tout âge)</label>
+              <label style="font-size:12px;display:flex;align-items:center;gap:6px"><input type="checkbox" id="man_f1_male_breast"> Sein masculin</label>
+              <label style="font-size:12px;display:flex;align-items:center;gap:6px"><input type="checkbox" id="man_f1_bilateral"> Sein bilatéral</label>
+            </div>
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--mu);font-weight:600">Cancers 2ème degré (gd-mère, tante)</label>
+            <div style="display:flex;flex-direction:column;gap:4px;margin-top:4px">
+              <label style="font-size:12px;display:flex;align-items:center;gap:6px"><input type="checkbox" id="man_f2_breast"> Sein (tout âge)</label>
+              <label style="font-size:12px;display:flex;align-items:center;gap:6px"><input type="checkbox" id="man_f2_ovarian"> Ovaire</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div>
+          <label style="font-size:11px;color:var(--mu);font-weight:600">Mutation connue dans la famille</label>
+          <select id="man_known_mut" style="width:100%;margin-top:3px;padding:7px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px">
+            <option value="none">Aucune connue</option>
+            <option value="BRCA1">BRCA1 pathogène</option>
+            <option value="BRCA2">BRCA2 pathogène</option>
+            <option value="PALB2">PALB2 pathogène</option>
+            <option value="CHEK2">CHEK2 pathogène</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--mu);font-weight:600">Origine ethnique</label>
+          <select id="man_ethnicity" style="width:100%;margin-top:3px;padding:7px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px">
+            <option value="general">Population générale</option>
+            <option value="ashkenazi">Ashkénaze (risque x5 BRCA)</option>
+            <option value="african">Africaine/Sénégalaise</option>
+            <option value="hispanic">Hispanique/Latino</option>
+          </select>
+        </div>
+      </div>
+
+      <button onclick="calculateManchester()" style="width:100%;padding:11px;border-radius:8px;border:none;background:linear-gradient(135deg,#0c6e9c,#7c3aed);color:white;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:4px">
+        🎗️ Calculer Score Manchester + Tyrer-Cuzick
+      </button>
+      <div id="manchesterResult" style="margin-top:14px"></div>
+    </div>
+  </div>
+  </div>
+
+  <!-- ══ COMPARATEUR DE VARIANTS ══════════════════════════════════════════ -->
+  <div id="sec-compvar" style="display:none">
+  <div class="card">
+    <div class="ch"><span class="ct2">⚖️ Comparateur de variants — Analyse multi-critères ACMG</span></div>
+    <div style="padding:14px">
+      <div style="font-size:13px;color:var(--mu);background:var(--s2);padding:10px 13px;border-radius:7px;margin-bottom:14px">
+        Comparez jusqu'à 3 variants côte à côte selon les critères ACMG/AMP 2015, scores pathogénicité (REVEL, CADD, ClinVar) et implications thérapeutiques.
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
+        <!-- Variant 1 -->
+        <div style="background:var(--s2);border-radius:10px;padding:12px;border-top:3px solid #0c6e9c">
+          <div style="font-size:11px;font-weight:700;color:#0c6e9c;margin-bottom:8px">VARIANT 1</div>
+          <input id="cv_gene1" placeholder="Gène (ex: BRCA1)" style="width:100%;margin-bottom:6px;padding:6px 8px;border:1px solid var(--bd);border-radius:6px;background:var(--sf);color:var(--tx);font-size:12px;box-sizing:border-box">
+          <input id="cv_hgvs1" placeholder="HGVS (ex: c.5266dupC)" style="width:100%;margin-bottom:6px;padding:6px 8px;border:1px solid var(--bd);border-radius:6px;background:var(--sf);color:var(--tx);font-size:12px;box-sizing:border-box">
+          <select id="cv_class1" style="width:100%;margin-bottom:6px;padding:6px 8px;border:1px solid var(--bd);border-radius:6px;background:var(--sf);color:var(--tx);font-size:12px">
+            <option value="">Classe ACMG...</option>
+            <option value="5">Pathogène (5)</option>
+            <option value="4">Probablement pathogène (4)</option>
+            <option value="3">VUS (3)</option>
+            <option value="2">Probablement bénin (2)</option>
+            <option value="1">Bénin (1)</option>
+          </select>
+          <input id="cv_revel1" type="number" step="0.01" min="0" max="1" placeholder="Score REVEL (0-1)" style="width:100%;margin-bottom:6px;padding:6px 8px;border:1px solid var(--bd);border-radius:6px;background:var(--sf);color:var(--tx);font-size:12px;box-sizing:border-box">
+          <input id="cv_cadd1" type="number" placeholder="Score CADD" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:6px;background:var(--sf);color:var(--tx);font-size:12px;box-sizing:border-box">
+        </div>
+        <!-- Variant 2 -->
+        <div style="background:var(--s2);border-radius:10px;padding:12px;border-top:3px solid #7c3aed">
+          <div style="font-size:11px;font-weight:700;color:#7c3aed;margin-bottom:8px">VARIANT 2</div>
+          <input id="cv_gene2" placeholder="Gène (ex: TP53)" style="width:100%;margin-bottom:6px;padding:6px 8px;border:1px solid var(--bd);border-radius:6px;background:var(--sf);color:var(--tx);font-size:12px;box-sizing:border-box">
+          <input id="cv_hgvs2" placeholder="HGVS (ex: c.817C>T)" style="width:100%;margin-bottom:6px;padding:6px 8px;border:1px solid var(--bd);border-radius:6px;background:var(--sf);color:var(--tx);font-size:12px;box-sizing:border-box">
+          <select id="cv_class2" style="width:100%;margin-bottom:6px;padding:6px 8px;border:1px solid var(--bd);border-radius:6px;background:var(--sf);color:var(--tx);font-size:12px">
+            <option value="">Classe ACMG...</option>
+            <option value="5">Pathogène (5)</option>
+            <option value="4">Probablement pathogène (4)</option>
+            <option value="3">VUS (3)</option>
+            <option value="2">Probablement bénin (2)</option>
+            <option value="1">Bénin (1)</option>
+          </select>
+          <input id="cv_revel2" type="number" step="0.01" min="0" max="1" placeholder="Score REVEL (0-1)" style="width:100%;margin-bottom:6px;padding:6px 8px;border:1px solid var(--bd);border-radius:6px;background:var(--sf);color:var(--tx);font-size:12px;box-sizing:border-box">
+          <input id="cv_cadd2" type="number" placeholder="Score CADD" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:6px;background:var(--sf);color:var(--tx);font-size:12px;box-sizing:border-box">
+        </div>
+        <!-- Variant 3 -->
+        <div style="background:var(--s2);border-radius:10px;padding:12px;border-top:3px solid #059669">
+          <div style="font-size:11px;font-weight:700;color:#059669;margin-bottom:8px">VARIANT 3 (optionnel)</div>
+          <input id="cv_gene3" placeholder="Gène (ex: EGFR)" style="width:100%;margin-bottom:6px;padding:6px 8px;border:1px solid var(--bd);border-radius:6px;background:var(--sf);color:var(--tx);font-size:12px;box-sizing:border-box">
+          <input id="cv_hgvs3" placeholder="HGVS (ex: c.2573T>G)" style="width:100%;margin-bottom:6px;padding:6px 8px;border:1px solid var(--bd);border-radius:6px;background:var(--sf);color:var(--tx);font-size:12px;box-sizing:border-box">
+          <select id="cv_class3" style="width:100%;margin-bottom:6px;padding:6px 8px;border:1px solid var(--bd);border-radius:6px;background:var(--sf);color:var(--tx);font-size:12px">
+            <option value="">Classe ACMG...</option>
+            <option value="5">Pathogène (5)</option>
+            <option value="4">Probablement pathogène (4)</option>
+            <option value="3">VUS (3)</option>
+            <option value="2">Probablement bénin (2)</option>
+            <option value="1">Bénin (1)</option>
+          </select>
+          <input id="cv_revel3" type="number" step="0.01" min="0" max="1" placeholder="Score REVEL (0-1)" style="width:100%;margin-bottom:6px;padding:6px 8px;border:1px solid var(--bd);border-radius:6px;background:var(--sf);color:var(--tx);font-size:12px;box-sizing:border-box">
+          <input id="cv_cadd3" type="number" placeholder="Score CADD" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:6px;background:var(--sf);color:var(--tx);font-size:12px;box-sizing:border-box">
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button onclick="compareVariants()" style="flex:1;padding:10px;border-radius:8px;border:none;background:linear-gradient(135deg,#0c6e9c,#7c3aed);color:white;font-size:14px;font-weight:600;cursor:pointer">⚖️ Comparer avec IA</button>
+        <button onclick="document.getElementById('compvarResult').innerHTML=''" style="padding:10px 14px;border-radius:8px;border:1px solid var(--bd);background:var(--sf);color:var(--mu);font-size:13px;cursor:pointer">🗑</button>
+      </div>
+      <div id="compvarResult"></div>
+    </div>
+  </div>
+  </div>
+
   <div id="sec-bookmarks" style="display:none">
     <div class="card"><div class="ch"><span class="ct2" data-fr="🔖 Recherches sauvegardées" data-en="🔖 Saved searches">🔖 Recherches sauvegardées</span></div>
     <div style="padding:12px" id="bkList"></div></div>

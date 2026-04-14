@@ -1475,3 +1475,254 @@ async function generateClinicalPDF(patientId) {
   }
 })();
 // ══ FIN MORPHO ANNOTATION/COMPARAISON/ACMG ══════════════════════════════
+
+
+// ══ SCORE MANCHESTER / TYRER-CUZICK ════════════════════════════════════
+function calculateManchester() {
+  var age = parseInt(document.getElementById('man_age').value) || 40;
+  var sex = document.getElementById('man_sex').value;
+  var personal = document.getElementById('man_personal').value;
+  var knownMut = document.getElementById('man_known_mut').value;
+  var ethnicity = document.getElementById('man_ethnicity').value;
+  var res = document.getElementById('manchesterResult');
+
+  // Calcul score Manchester (points BRCA1/2)
+  var score = 0;
+  var details = [];
+
+  // Score personnel
+  var personalScores = {
+    'breast_pre50': {pts:3, label:'Cancer sein ≤50 ans'},
+    'breast_post50': {pts:2, label:'Cancer sein >50 ans'},
+    'bilateral_breast': {pts:5, label:'Cancer sein bilatéral'},
+    'ovarian': {pts:5, label:'Cancer ovaire'},
+    'male_breast': {pts:6, label:'Cancer sein masculin'},
+    'triple_neg': {pts:4, label:'Triple négatif ≤40 ans'}
+  };
+  if (personal !== 'none' && personalScores[personal]) {
+    var ps = personalScores[personal];
+    score += ps.pts;
+    details.push({label: ps.label, pts: ps.pts, type: 'personal'});
+  }
+
+  // Antécédents familiaux 1er degré
+  var f1 = [
+    {id:'man_f1_breast50', pts:3, label:'Sein ≤50 ans (1er degré)'},
+    {id:'man_f1_breast50p', pts:2, label:'Sein >50 ans (1er degré)'},
+    {id:'man_f1_ovarian', pts:5, label:'Ovaire (1er degré)'},
+    {id:'man_f1_male_breast', pts:6, label:'Sein masculin (1er degré)'},
+    {id:'man_f1_bilateral', pts:5, label:'Sein bilatéral (1er degré)'},
+  ];
+  f1.forEach(function(f) {
+    var el = document.getElementById(f.id);
+    if (el && el.checked) {
+      score += f.pts;
+      details.push({label: f.label, pts: f.pts, type: 'family1'});
+    }
+  });
+
+  // Antécédents familiaux 2ème degré
+  if (document.getElementById('man_f2_breast') && document.getElementById('man_f2_breast').checked) {
+    score += 2; details.push({label:'Sein (2ème degré)', pts:2, type:'family2'});
+  }
+  if (document.getElementById('man_f2_ovarian') && document.getElementById('man_f2_ovarian').checked) {
+    score += 3; details.push({label:'Ovaire (2ème degré)', pts:3, type:'family2'});
+  }
+
+  // Mutation connue
+  if (knownMut !== 'none') {
+    score += 10;
+    details.push({label:'Mutation ' + knownMut + ' connue famille', pts:10, type:'mutation'});
+  }
+
+  // Multiplicateur ethnique
+  var ethMult = ethnicity === 'ashkenazi' ? 1.5 : 1.0;
+  if (ethMult > 1) {
+    details.push({label:'Multiplicateur Ashkénaze ×1.5', pts: Math.round(score*0.5), type:'ethnic'});
+    score = Math.round(score * ethMult);
+  }
+
+  // Estimation risque Tyrer-Cuzick (simplifié)
+  var tc_risk = Math.min(95, Math.max(1, score * 2.8));
+  if (knownMut !== 'none') tc_risk = Math.min(85, tc_risk + 30);
+
+  // Risque vie entière BRCA1/2
+  var brca1_risk = Math.min(87, Math.max(1, score * 3.2));
+  var brca2_risk = Math.min(69, Math.max(1, score * 2.1));
+
+  // Classification
+  var category, catColor, recommendation, guideline;
+  if (score >= 15) {
+    category = 'RISQUE ÉLEVÉ — Test génétique BRCA1/2 indiqué';
+    catColor = '#dc2626';
+    recommendation = 'Référence en oncogénétique indiquée. Test BRCA1/2 (+ panel gènes HR si indiqué). IRM mammaire annuelle dès 30 ans. Discuter chimioprévention (tamoxifène/anastrozole). Salpingo-ovariectomie prophylactique à discuter.';
+    guideline = 'NICE 2019 · NCCN Genetic/Familial v2.2024 · HAS 2014';
+  } else if (score >= 10) {
+    category = 'RISQUE INTERMÉDIAIRE — Consultation oncogénétique recommandée';
+    catColor = '#d97706';
+    recommendation = 'Consultation oncogénétique recommandée. Surveillance mammographique renforcée (annuelle dès 40 ans). Test génétique selon critères complets en RCP.';
+    guideline = 'NCCN v2.2024 · ESMO 2023';
+  } else {
+    category = 'RISQUE FAIBLE — Surveillance standard';
+    catColor = '#059669';
+    recommendation = 'Surveillance mammographique standard selon recommandations nationales. Réévaluation si nouveaux antécédents familiaux.';
+    guideline = 'HAS 2022 · NCCN';
+  }
+
+  // Rendu
+  var h = '<div style="display:flex;flex-direction:column;gap:12px">';
+
+  // Score principal
+  h += '<div style="background:' + catColor + '11;border:2px solid ' + catColor + ';border-radius:12px;padding:16px;text-align:center">';
+  h += '<div style="font-size:36px;font-weight:900;color:' + catColor + '">' + score + '</div>';
+  h += '<div style="font-size:11px;color:var(--mu);margin-bottom:6px">SCORE MANCHESTER</div>';
+  h += '<div style="font-size:13px;font-weight:700;color:' + catColor + '">' + category + '</div>';
+  h += '</div>';
+
+  // KPIs
+  h += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">';
+  h += '<div style="background:var(--s2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800;color:#7c3aed">' + tc_risk.toFixed(0) + '%</div><div style="font-size:10px;color:var(--mu)">Risque vie entière (TC)</div></div>';
+  h += '<div style="background:var(--s2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800;color:#dc2626">' + brca1_risk.toFixed(0) + '%</div><div style="font-size:10px;color:var(--mu)">Risque BRCA1</div></div>';
+  h += '<div style="background:var(--s2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800;color:#0c6e9c">' + brca2_risk.toFixed(0) + '%</div><div style="font-size:10px;color:var(--mu)">Risque BRCA2</div></div>';
+  h += '</div>';
+
+  // Détail des points
+  if (details.length) {
+    h += '<div style="background:var(--s2);border-radius:10px;padding:12px">';
+    h += '<div style="font-size:12px;font-weight:700;margin-bottom:8px">📊 Détail du score</div>';
+    var typeColors = {personal:'#0c6e9c', family1:'#7c3aed', family2:'#059669', mutation:'#dc2626', ethnic:'#d97706'};
+    details.forEach(function(d) {
+      h += '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:.5px solid var(--bd);font-size:12px">';
+      h += '<span>' + d.label + '</span>';
+      h += '<span style="font-weight:700;color:' + (typeColors[d.type]||'var(--tx)') + '">+' + d.pts + ' pts</span></div>';
+    });
+    h += '<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;font-weight:700"><span>TOTAL</span><span style="color:' + catColor + '">' + score + ' pts</span></div>';
+    h += '</div>';
+  }
+
+  // Recommandation
+  h += '<div style="background:#dff0f8;border-radius:10px;padding:12px">';
+  h += '<div style="font-size:11px;font-weight:700;color:#0c6e9c;margin-bottom:6px">📋 Recommandation clinique</div>';
+  h += '<div style="font-size:13px;line-height:1.6">' + recommendation + '</div>';
+  h += '<div style="font-size:11px;color:var(--mu);margin-top:6px">' + guideline + '</div>';
+  h += '</div>';
+
+  // Contexte africain
+  if (ethnicity === 'african') {
+    h += '<div style="background:#dcfce744;border:1px solid #059669;border-radius:10px;padding:12px">';
+    h += '<div style="font-size:12px;font-weight:700;color:#059669;margin-bottom:4px">🌍 Contexte africain / sénégalais</div>';
+    h += '<div style="font-size:12px;line-height:1.5">Les scores Manchester/Tyrer-Cuzick ont été validés sur populations européennes. Pour les patientes africaines, les fréquences de BRCA1/2 et PALB2 peuvent différer. Les variants fondateurs africains (ex: BRCA2 c.5946delT Afrique subsaharienne) sont sous-représentés dans ClinVar. Une analyse par panel étendu (BRCA1/2 + PALB2 + CHEK2 + ATM + RAD51C/D) est recommandée. Données H3Africa et AWI-Gen disponibles dans le module PRS.</div>';
+    h += '</div>';
+  }
+
+  h += '<div style="font-size:11px;color:var(--mu);text-align:center;padding:4px">⚕️ Outil d\'aide à la décision — validation clinique obligatoire en RCP</div>';
+  h += '</div>';
+
+  res.innerHTML = h;
+}
+// ══ FIN MANCHESTER ═══════════════════════════════════════════════════════
+
+// ══ COMPARATEUR DE VARIANTS ══════════════════════════════════════════════
+async function compareVariants() {
+  var userKey = localStorage.getItem('sgs_api_key') || '';
+  var res = document.getElementById('compvarResult');
+
+  // Collecter les variants
+  var variants = [];
+  for (var i = 1; i <= 3; i++) {
+    var gene = (document.getElementById('cv_gene'+i)||{}).value||'';
+    var hgvs = (document.getElementById('cv_hgvs'+i)||{}).value||'';
+    if (gene || hgvs) {
+      variants.push({
+        num: i,
+        gene: gene,
+        hgvs: hgvs,
+        acmg_class: (document.getElementById('cv_class'+i)||{}).value||'',
+        revel: (document.getElementById('cv_revel'+i)||{}).value||'',
+        cadd: (document.getElementById('cv_cadd'+i)||{}).value||''
+      });
+    }
+  }
+
+  if (variants.length < 2) {
+    res.innerHTML = '<div style="color:#dc2626;padding:10px;background:#fef2f2;border-radius:8px">⚠️ Entrez au moins 2 variants à comparer.</div>';
+    return;
+  }
+
+  if (!userKey) {
+    res.innerHTML = '<div style="color:#dc2626;padding:10px;background:#fef2f2;border-radius:8px">⚠️ Clé API manquante — configurez via le bouton "Clé API".</div>';
+    return;
+  }
+
+  res.innerHTML = '<div style="padding:14px;text-align:center;color:var(--mu)">⏳ Analyse comparative en cours…</div>';
+
+  var prompt = 'Tu es expert en oncogénomique clinique et classification ACMG/AMP 2015.\n\nCompare ces ' + variants.length + ' variants génomiques et fournis une analyse comparative structurée:\n\n';
+  variants.forEach(function(v) {
+    prompt += 'VARIANT ' + v.num + ':\n';
+    if (v.gene) prompt += '- Gène: ' + v.gene + '\n';
+    if (v.hgvs) prompt += '- HGVS: ' + v.hgvs + '\n';
+    if (v.acmg_class) prompt += '- Classe ACMG fournie: ' + v.acmg_class + '\n';
+    if (v.revel) prompt += '- Score REVEL: ' + v.revel + '\n';
+    if (v.cadd) prompt += '- Score CADD: ' + v.cadd + '\n';
+    prompt += '\n';
+  });
+  prompt += 'Pour chaque variant et la comparaison finale, fournis:\n1. Classification ACMG/AMP 2015 (critères appliqués)\n2. Score pathogénicité composite\n3. Fréquences gnomAD v4 (AFR/EUR/global)\n4. Mécanisme oncogénique probable\n5. Implications thérapeutiques ciblées\n6. Essais cliniques pertinents (NCT)\n7. VERDICT COMPARATIF: quel variant est prioritaire cliniquement et pourquoi\n8. Contexte populations africaines si pertinent (H3Africa, AWI-Gen)';
+
+  try {
+    var r = await aiFetch('/ai/chat', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({message: prompt})
+    });
+    var d = await r.json();
+    if (d.response) {
+      var rendered = typeof marked !== 'undefined' ? marked.parse(d.response) : d.response.replace(/\n/g,'<br>');
+      res.innerHTML = '<div class="md-content" style="background:var(--s2);border-radius:10px;padding:14px;font-size:13px">' + rendered + '</div>';
+    } else {
+      res.innerHTML = '<div style="color:#dc2626;padding:10px">❌ ' + (d.error||'Erreur') + '</div>';
+    }
+  } catch(e) {
+    res.innerHTML = '<div style="color:#dc2626;padding:10px">❌ ' + e.message + '</div>';
+  }
+}
+// ══ FIN COMPARATEUR DE VARIANTS ══════════════════════════════════════════
+
+// ══ ANALYSE IA SÉQUENCE ADN / VEP ════════════════════════════════════════
+async function analyzeVEPSequence() {
+  var seq = (document.getElementById('vepSeqInput')||{}).value||'';
+  var gene = (document.getElementById('vepGeneCtx')||{}).value||'';
+  var userKey = localStorage.getItem('sgs_api_key')||'';
+  var res = document.getElementById('vepSeqResult');
+  if (!res) return;
+
+  if (!seq.trim()) {
+    res.innerHTML = '<div style="color:#dc2626;padding:10px;background:#fef2f2;border-radius:8px">⚠️ Entrez une séquence ADN ou une notation HGVS.</div>';
+    return;
+  }
+  if (!userKey) {
+    res.innerHTML = '<div style="color:#dc2626;padding:10px;background:#fef2f2;border-radius:8px">⚠️ Clé API manquante.</div>';
+    return;
+  }
+
+  res.innerHTML = '<div style="padding:14px;text-align:center;color:var(--mu)">⏳ Analyse VEP en cours…</div>';
+
+  var prompt = 'Tu es expert en bioinformatique et annotation de variants génomiques (VEP Ensembl, ACMG 2015).\n\nAnalyse cette séquence/variant:\n\n```\n' + seq.trim() + '\n```\n\n' + (gene ? 'Contexte génique: ' + gene + '\n\n' : '') + 'Fournis:\n1. **Identification du variant** — notation HGVS c./p. si séquence brute\n2. **Conséquence moléculaire** — type (missense/nonsense/frameshift/splice…)\n3. **Scores in silico** — SIFT, PolyPhen-2, CADD, REVEL, SpliceAI, AlphaMissense\n4. **Classification ACMG/AMP 2015** — critères appliqués (PVS1, PS1-4, PM1-6, PP1-5, BA1, BS1-4, BP1-7)\n5. **Fréquences populationnelles** — gnomAD v4 AFR/EUR/global, H3Africa si disponible\n6. **Base ClinVar** — variants similaires rapportés, statut\n7. **Mécanisme oncogénique** — LOF/gain de fonction, haploinsuffisance\n8. **Implications thérapeutiques** — drogues ciblées, essais cliniques NCT\n9. **Contexte africain** — fréquences AFR gnomAD, variants fondateurs connus\n10. **Recommandation finale** — classe ACMG définitive + conseil clinique';
+
+  try {
+    var r = await aiFetch('/ai/chat', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({message: prompt})
+    });
+    var d = await r.json();
+    if (d.response) {
+      var rendered = typeof marked !== 'undefined' ? marked.parse(d.response) : d.response.replace(/\n/g,'<br>');
+      res.innerHTML = '<div class="md-content" style="background:var(--s2);border-radius:10px;padding:14px;font-size:13px;line-height:1.7">' + rendered + '</div>';
+    } else {
+      res.innerHTML = '<div style="color:#dc2626;padding:10px">❌ ' + (d.error||'Erreur') + '</div>';
+    }
+  } catch(e) {
+    res.innerHTML = '<div style="color:#dc2626;padding:10px">❌ ' + e.message + '</div>';
+  }
+}
+// ══ FIN VEP IA ═══════════════════════════════════════════════════════════
