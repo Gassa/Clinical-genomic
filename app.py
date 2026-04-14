@@ -2143,6 +2143,58 @@ def morpho_pdf():
         return jsonify({"success":False,"error":str(e)}), 500
 
 
+
+@app.route('/morpho_compare', methods=['POST'])
+def morpho_compare():
+    """Comparaison avant/après traitement de deux images histologiques."""
+    try:
+        import anthropic as _anth, json as _json
+        data = request.json or {}
+        user_key = (request.headers.get('X-User-Api-Key','') or data.get('user_api_key','')).strip()
+        api_key  = user_key or os.environ.get('ANTHROPIC_API_KEY','')
+        if not api_key:
+            return jsonify({"success": False, "error": "Cle API manquante."})
+        before_b64 = data.get('before_b64','')
+        after_b64  = data.get('after_b64','')
+        clinical_ctx = data.get('clinical_context','')
+        if not before_b64 or not after_b64:
+            return jsonify({"success": False, "error": "Les deux images sont requises."})
+        system = """Tu es anatomopathologiste expert en reponse tumorale.
+Compare les deux images histologiques (avant/apres traitement) et reponds UNIQUEMENT en JSON strict:
+{
+  "response_evaluation": "Reponse complete / Reponse partielle / Absence de reponse / Progression",
+  "pathological_response_pct": 75,
+  "changes": "Description detaillee des changements morphologiques observes",
+  "residual_disease": "Description maladie residuelle",
+  "ki67_change": "Avant 45% → Apres 12% (reduction 73%)",
+  "necrosis_change": "Augmentation necrose de 10% a 60%",
+  "immune_response": "Infiltrat lymphocytaire augmente",
+  "grade_change": "Reduction grade SBR III vers II",
+  "recommendation": "Recommendation therapeutique basee sur la reponse",
+  "rcb_class": "RCB-0 / RCB-I / RCB-II / RCB-III",
+  "note": "Note anatomopathologiste"
+}"""
+        content = [
+            {"type":"text","text":"Image 1 — AVANT traitement:"},
+            {"type":"image","source":{"type":"base64","media_type":"image/jpeg","data":before_b64}},
+            {"type":"text","text":"Image 2 — APRES traitement:"},
+            {"type":"image","source":{"type":"base64","media_type":"image/jpeg","data":after_b64}},
+            {"type":"text","text":"Compare ces deux images et evalue la reponse au traitement. " + 
+             ("Contexte: " + clinical_ctx if clinical_ctx else "") + " Reponds en JSON strict."}
+        ]
+        client = _anth.Anthropic(api_key=api_key)
+        resp = client.messages.create(
+            model="claude-opus-4-6", max_tokens=2000,
+            system=system,
+            messages=[{"role":"user","content":content}]
+        )
+        raw = resp.content[0].text.strip().lstrip("```json").lstrip("```").rstrip("```").strip()
+        return jsonify({"success":True,"result":_json.loads(raw)})
+    except Exception as e:
+        import logging; logging.error("morpho_compare: "+str(e))
+        return jsonify({"success":False,"error":str(e)}), 500
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)

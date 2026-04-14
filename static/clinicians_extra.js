@@ -1235,3 +1235,243 @@ async function generateClinicalPDF(patientId) {
   };
 })();
 // ══ FIN MORPHO-GÉNÉTIQUE IA ══════════════════════════════════════════════
+
+
+// ══ MORPHO — ANNOTATION CANVAS ══════════════════════════════════════════
+(function(){
+  var _canvas=null, _ctx=null, _tool='arrow', _drawing=false;
+  var _sx=0, _sy=0, _annots=[], _bgImg=null;
+
+  function initCanvas(){
+    var img = document.getElementById('morphoPreview');
+    _canvas = document.getElementById('morphoCanvas');
+    if(!img||!_canvas||!img.src||img.style.display==='none') return false;
+    _canvas.width=img.naturalWidth||img.width||800;
+    _canvas.height=img.naturalHeight||img.height||600;
+    _canvas.style.maxWidth='100%';
+    _ctx=_canvas.getContext('2d');
+    _bgImg=img;
+    _ctx.drawImage(img,0,0,_canvas.width,_canvas.height);
+    return true;
+  }
+
+  function redraw(){
+    if(!_ctx||!_bgImg) return;
+    _ctx.drawImage(_bgImg,0,0,_canvas.width,_canvas.height);
+    _annots.forEach(function(a){drawAnnot(a);});
+  }
+
+  function drawAnnot(a){
+    _ctx.strokeStyle=a.color||'#ff0000';
+    _ctx.fillStyle=a.color||'#ff0000';
+    _ctx.lineWidth=2;
+    if(a.type==='rect'){
+      _ctx.strokeRect(a.x,a.y,a.w,a.h);
+    } else if(a.type==='circle'){
+      _ctx.beginPath();
+      var r=Math.sqrt(a.w*a.w+a.h*a.h)/2;
+      _ctx.arc(a.x+a.w/2,a.y+a.h/2,r,0,2*Math.PI);
+      _ctx.stroke();
+    } else if(a.type==='arrow'){
+      var ex=a.x+a.w, ey=a.y+a.h;
+      _ctx.beginPath();_ctx.moveTo(a.x,a.y);_ctx.lineTo(ex,ey);_ctx.stroke();
+      var angle=Math.atan2(ey-a.y,ex-a.x);var hs=12;
+      _ctx.beginPath();
+      _ctx.moveTo(ex,ey);
+      _ctx.lineTo(ex-hs*Math.cos(angle-0.4),ey-hs*Math.sin(angle-0.4));
+      _ctx.lineTo(ex-hs*Math.cos(angle+0.4),ey-hs*Math.sin(angle+0.4));
+      _ctx.closePath();_ctx.fill();
+    } else if(a.type==='text'&&a.text){
+      _ctx.font='16px sans-serif';_ctx.fillText(a.text,a.x,a.y);
+    }
+  }
+
+  function getPos(e){
+    var rect=_canvas.getBoundingClientRect();
+    var scaleX=_canvas.width/rect.width, scaleY=_canvas.height/rect.height;
+    var touch=e.touches?e.touches[0]:e;
+    return {x:(touch.clientX-rect.left)*scaleX, y:(touch.clientY-rect.top)*scaleY};
+  }
+
+  window.setAnnotTool=function(t){
+    _tool=t;
+    ['arrow','circle','rect','text'].forEach(function(id){
+      var b=document.getElementById('annot'+id.charAt(0).toUpperCase()+id.slice(1));
+      if(b){b.style.background=t===id?'#ede9fe':'var(--sf)';b.style.borderColor=t===id?'#7c3aed':'var(--bd)';}
+    });
+  };
+
+  window.morphoToggleAnnotate=function(){
+    var zone=document.getElementById('morphoAnnotateZone');
+    if(!zone) return;
+    if(zone.style.display==='none'){
+      zone.style.display='block';
+      setTimeout(function(){
+        if(initCanvas()){
+          _canvas.onmousedown=function(e){
+            _drawing=true; var p=getPos(e); _sx=p.x; _sy=p.y;
+          };
+          _canvas.onmousemove=function(e){
+            if(!_drawing) return;
+            var p=getPos(e);
+            redraw();
+            _ctx.strokeStyle=document.getElementById('annotColor').value;
+            _ctx.fillStyle=document.getElementById('annotColor').value;
+            _ctx.lineWidth=2;
+            if(_tool==='rect') _ctx.strokeRect(_sx,_sy,p.x-_sx,p.y-_sy);
+            else if(_tool==='circle'){_ctx.beginPath();var r=Math.sqrt(Math.pow(p.x-_sx,2)+Math.pow(p.y-_sy,2))/2;_ctx.arc((_sx+p.x)/2,(_sy+p.y)/2,r,0,2*Math.PI);_ctx.stroke();}
+            else if(_tool==='arrow'){
+              _ctx.beginPath();_ctx.moveTo(_sx,_sy);_ctx.lineTo(p.x,p.y);_ctx.stroke();
+              var ang=Math.atan2(p.y-_sy,p.x-_sx),hs=12;
+              _ctx.beginPath();_ctx.moveTo(p.x,p.y);
+              _ctx.lineTo(p.x-hs*Math.cos(ang-0.4),p.y-hs*Math.sin(ang-0.4));
+              _ctx.lineTo(p.x-hs*Math.cos(ang+0.4),p.y-hs*Math.sin(ang+0.4));
+              _ctx.closePath();_ctx.fill();
+            }
+          };
+          _canvas.onmouseup=function(e){
+            if(!_drawing) return; _drawing=false;
+            var p=getPos(e);
+            var col=document.getElementById('annotColor').value;
+            if(_tool==='text'){
+              var txt=prompt('Texte annotation :'); if(!txt) return;
+              _annots.push({type:'text',x:_sx,y:_sy,text:txt,color:col});
+            } else {
+              _annots.push({type:_tool,x:_sx,y:_sy,w:p.x-_sx,h:p.y-_sy,color:col});
+            }
+            redraw();
+          };
+        }
+      }, 100);
+      document.getElementById('morphoAnnotateBtn').style.background='#7c3aed';
+      document.getElementById('morphoAnnotateBtn').style.color='white';
+    } else {
+      zone.style.display='none';
+      document.getElementById('morphoAnnotateBtn').style.background='#ede9fe';
+      document.getElementById('morphoAnnotateBtn').style.color='#7c3aed';
+    }
+  };
+
+  window.morphoClearAnnot=function(){_annots=[];redraw();};
+
+  window.morphoSaveAnnot=function(){
+    if(!_canvas) return;
+    var a=document.createElement('a');
+    a.download='annotation_histologique_'+new Date().toISOString().slice(0,10)+'.png';
+    a.href=_canvas.toDataURL('image/png'); a.click();
+  };
+
+  // ── COMPARAISON AVANT/APRÈS ─────────────────────────────────
+  var _beforeB64=null, _afterB64=null;
+
+  window.morphoToggleCompare=function(){
+    var z=document.getElementById('morphoCompareZone');
+    if(!z) return;
+    z.style.display=z.style.display==='none'?'block':'none';
+  };
+
+  window.morphoLoadCompare=function(input,side){
+    var file=input.files[0]; if(!file) return;
+    var rd=new FileReader();
+    rd.onload=function(e){
+      var src=e.target.result;
+      if(side==='before'){
+        _beforeB64=src.split(',')[1];
+        document.getElementById('morphoBeforePreview').src=src;
+        document.getElementById('morphoBeforePreview').style.display='block';
+        document.getElementById('morphoBeforeHint').style.display='none';
+      } else {
+        _afterB64=src.split(',')[1];
+        document.getElementById('morphoAfterPreview').src=src;
+        document.getElementById('morphoAfterPreview').style.display='block';
+        document.getElementById('morphoAfterHint').style.display='none';
+      }
+    };
+    rd.readAsDataURL(file);
+  };
+
+  window.morphoCompareAnalyze=async function(){
+    var userKey=localStorage.getItem('sgs_api_key')||'';
+    if(!userKey){alert('Clé API manquante');return;}
+    if(!_beforeB64||!_afterB64){alert('Chargez les deux images (avant et après)');return;}
+    var res=document.getElementById('morphoCompareResult');
+    res.innerHTML='<div style="padding:12px;text-align:center;color:var(--mu)">⏳ Comparaison des deux images en cours…</div>';
+    try{
+      var r=await fetch('/morpho_compare',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','X-User-Api-Key':userKey},
+        body:JSON.stringify({
+          before_b64:_beforeB64, after_b64:_afterB64,
+          tumor_type:document.getElementById('morphoStain')?document.getElementById('morphoStain').value:'HE',
+          clinical_context:document.getElementById('morphoClinical').value,
+          user_api_key:userKey
+        })
+      });
+      var d=await r.json();
+      if(d.success&&d.result){
+        var result=d.result;
+        var h='<div style="background:var(--s2);border-radius:10px;padding:14px;margin-top:8px">';
+        h+='<div style="font-size:13px;font-weight:700;margin-bottom:10px">📊 Résultats de la comparaison</div>';
+        if(result.response_evaluation){
+          var re_eval=result.response_evaluation;
+          var rc=re_eval==='Réponse complète'?'#059669':re_eval==='Réponse partielle'?'#d97706':'#dc2626';
+          h+='<div style="background:'+rc+'22;border:1.5px solid '+rc+';border-radius:8px;padding:10px;margin-bottom:10px;text-align:center">';
+          h+='<div style="font-size:16px;font-weight:800;color:'+rc+'">'+re_eval+'</div></div>';
+        }
+        if(result.changes)h+='<div style="font-size:13px;margin-bottom:8px"><b>Changements observés :</b><br>'+result.changes+'</div>';
+        if(result.residual_disease)h+='<div style="font-size:13px;margin-bottom:8px"><b>Maladie résiduelle :</b> '+result.residual_disease+'</div>';
+        if(result.ki67_change)h+='<div style="font-size:13px;margin-bottom:8px"><b>Ki67 avant→après :</b> '+result.ki67_change+'</div>';
+        if(result.recommendation)h+='<div style="background:#dff0f8;border-radius:8px;padding:10px;font-size:13px"><b>Recommandation :</b> '+result.recommendation+'</div>';
+        h+='</div>';
+        res.innerHTML=h;
+      } else {
+        res.innerHTML='<div style="color:#dc2626;padding:10px">❌ '+(d.error||'Erreur')+'</div>';
+      }
+    }catch(e){res.innerHTML='<div style="color:#dc2626;padding:10px">❌ '+e.message+'</div>';}
+  };
+
+  // ── INTÉGRATION ACMG ────────────────────────────────────────
+  window.morphoSendToACMG=function(){
+    // Récupérer les mutations identifiées et les envoyer au classificateur ACMG
+    if(!window._morphoResultGlobal) return;
+    var muts=window._morphoResultGlobal.probable_mutations||[];
+    if(!muts.length){alert('Aucune mutation identifiée à envoyer');return;}
+    var topMut=muts[0];
+    // Préremplir le classificateur ACMG
+    var geneInput=document.getElementById('acmgGene');
+    var varInput=document.getElementById('acmgVariant');
+    if(geneInput) geneInput.value=topMut.gene||'';
+    // Naviguer vers ACMG
+    if(typeof showSec==='function') showSec('acmg');
+    // Afficher notification
+    setTimeout(function(){
+      var n=document.createElement('div');
+      n.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0c6e9c;color:white;padding:10px 20px;border-radius:8px;z-index:9999;font-size:13px;font-weight:500';
+      n.textContent='🧬 Gène '+topMut.gene+' pré-rempli dans ACMG Classifier';
+      document.body.appendChild(n);
+      setTimeout(function(){n.remove();},3000);
+    },200);
+  };
+
+  // Exposer _mResult globalement pour ACMG
+  var origAnalyze=window.morphoAnalyze;
+  if(origAnalyze){
+    window.morphoAnalyze=async function(){
+      await origAnalyze();
+      if(window._mResultInternal) window._morphoResultGlobal=window._mResultInternal;
+    };
+  }
+
+  // Afficher bouton annotation quand image chargée
+  var origHandleFile=window.morphoHandleFile;
+  if(origHandleFile){
+    window.morphoHandleFile=function(file){
+      origHandleFile(file);
+      setTimeout(function(){
+        var btn=document.getElementById('morphoAnnotateBtn');
+        if(btn) btn.style.display='inline-flex';
+      },300);
+    };
+  }
+})();
+// ══ FIN MORPHO ANNOTATION/COMPARAISON/ACMG ══════════════════════════════
