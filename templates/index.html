@@ -5207,6 +5207,14 @@ function renderRareTumors(list) {
            style="font-size:11px;color:var(--mu);text-decoration:none;padding:3px 8px;border:1px solid var(--bd);border-radius:5px">
           📚 PubMed
         </a>`}
+        <!-- Bouton IA -->
+        <div style="margin-top:10px;border-top:1px solid var(--bd);padding-top:8px">
+          <button onclick="rareAIDeepAnalyze('${t.id}','${t.name.replace(/'/g,String.fromCharCode(39))}')"
+            style="width:100%;padding:7px;border-radius:7px;border:none;background:linear-gradient(135deg,${t.color},#7c3aed);color:white;font-size:12px;font-weight:600;cursor:pointer">
+            🤖 Analyse IA approfondie
+          </button>
+          <div id="rareAI_${t.id}" style="margin-top:8px"></div>
+        </div>
       </div>
     </div>
   `).join('');
