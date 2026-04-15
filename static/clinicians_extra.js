@@ -2051,7 +2051,17 @@ Score global 1-100 avec interprétation et urgence de prise en charge.`;
       scanner_abdomen:'scanner abdomino-pelvien',irm_sein:'IRM mammaire',
       irm_cerebrale:'IRM cérébrale',irm_prostate:'IRM prostate (PI-RADS)',
       mammo:'mammographie (BI-RADS)',echo:'échographie',
-      pet_scan:'PET-scan TEP-TDM',scintigraphie:'scintigraphie osseuse'
+      pet_scan:'PET-scan TEP-TDM',scintigraphie:'scintigraphie osseuse',
+      rx_pelvis:'radiographie pelvienne / bassin',rx_rachis:'radiographie rachis',
+      rx_os:'radiographie osseuse',rx_abdomen:'radiographie abdomen ASP',
+      rx_crane:'radiographie crânienne',scanner_cerveau:'scanner cérébral',
+      scanner_rachis:'scanner rachis',scanner_os:'scanner osseux',
+      scanner_cou:'scanner cervical ORL',irm_pelvis:'IRM pelvienne',
+      irm_foie:'IRM hépatique',irm_rachis:'IRM rachis',
+      irm_os:'IRM ostéo-articulaire',irm_cou:'IRM cervicale ORL',
+      echo_thyroide:'échographie thyroïde TIRADS',echo_pelvienne:'échographie pelvienne',
+      echo_hepatique:'échographie hépatique',uroscanner:'uro-scanner voies urinaires',
+      coloscanner:'coloscopie virtuelle coloscanner'
     };
     var typeDesc = typeLabels[radioType]||radioType;
 
