@@ -2195,3 +2195,122 @@ Score global 1-100 avec interprétation et urgence de prise en charge.`;
   };
 })();
 // ══ FIN ANALYSE RADIOGRAPHIE IA ══════════════════════════════════════════
+
+
+// ══ TUMEURS RARES — ANALYSE IA APPROFONDIE ═══════════════════════════════
+async function rareAIDeepAnalyze(tumorId, tumorName) {
+  var userKey = localStorage.getItem('sgs_api_key')||'';
+  var resDiv = document.getElementById('rareAI_'+tumorId);
+  if (!resDiv) return;
+  if (!userKey) {
+    resDiv.innerHTML='<div style="color:#dc2626;padding:8px;background:#fef2f2;border-radius:6px;font-size:12px">⚠️ Clé API manquante — configurez via "Clé API".</div>';
+    return;
+  }
+  // Toggle
+  if (resDiv.dataset.loaded === '1') {
+    resDiv.innerHTML=''; resDiv.dataset.loaded='0'; return;
+  }
+  resDiv.innerHTML='<div style="padding:10px;text-align:center;color:var(--mu);font-size:12px">⏳ Analyse IA en cours…</div>';
+
+  var prompt = `Tu es un oncologue expert en tumeurs rares avec une expertise particulière sur l'Afrique subsaharienne.
+
+TUMEUR: ${tumorName}
+
+Fournis une analyse clinique ultra-complète et structurée:
+
+## 🧬 Génomique moléculaire complète
+- Mutations drivers (fréquences précises avec sources COSMIC/TCGA)
+- Voies de signalisation impliquées (PI3K/AKT, RAS/MAPK, WNT...)
+- Score TMB, MSI, HRD si pertinent
+- Fusions géniques spécifiques
+
+## 💊 Thérapies ciblées — Niveau de preuve
+- 1ère ligne: médicament, dose, schéma, étude pivot (PMID)
+- 2ème ligne et alternatives
+- Thérapies en développement (Phase I/II)
+- Résistances et mécanismes
+
+## 🏥 Guidelines 2024
+- ESMO, NCCN, INCA, COG (pour pédiatrique)
+- Critères d'éligibilité au test génétique
+- Recommandations de séquençage (panel/WES/WGS)
+
+## 🔬 Biomarqueurs prédictifs & Diagnostiques
+- IHC obligatoire (marqueurs, seuils)
+- FISH/CISH indications
+- Séquençage NGS recommandé
+- Biopsie liquide (ctDNA)
+
+## 📊 Pronostic & Survie
+- Survie globale médiane par stade
+- Facteurs pronostiques positifs/négatifs
+- Score pronostique validé
+
+## 🌍 Épidémiologie & Spécificités africaines subsahariennes
+- Incidence réelle en Afrique vs monde (données H3Africa, IARC GLOBOCAN)
+- Facteurs de risque spécifiques (VIH, VHB/VHC, HPV, malaria, aflatoxine...)
+- Variants génomiques africains spécifiques (AWI-Gen, gnomAD AFR)
+- Délai diagnostic typique et impact sur survie
+- Disponibilité des thérapies (ARV, génériques, accès imatinib...)
+- Programmes régionaux (PEPFAR, SIOPE Africa, AMCC)
+
+## 🧪 Essais Cliniques Actifs
+- NCT en cours (titre, phase, éligibilité, pays africains inclus)
+- Études observationnelles pertinentes
+
+## ⚡ Points clés pour le clinicien en Afrique subsaharienne
+- Red flags à ne pas manquer
+- Diagnostic différentiel critique
+- Prise en charge en ressources limitées
+- Référencement vers centre expert`;
+
+  try {
+    var r = await aiFetch('/ai/chat', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({message: prompt})
+    });
+    var d = await r.json();
+    if (d.response) {
+      resDiv.innerHTML = '<div class="md-content" style="background:var(--s2);border-radius:8px;padding:14px;font-size:12px;line-height:1.7;max-height:600px;overflow-y:auto">' +
+        (typeof marked !== 'undefined' ? marked.parse(d.response) : d.response.replace(/\n/g,'<br>')) +
+        '<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">' +
+        '<button onclick="rareAIExport(\''+tumorId+'\',\''+tumorName.replace(/'/g,"\\'")+'\')" style="padding:5px 10px;border-radius:6px;border:none;background:#dc2626;color:white;font-size:11px;cursor:pointer">📄 Exporter PDF</button>' +
+        '<button onclick="rareAISendToClinician(\''+tumorName.replace(/'/g,"\\'")+'\',this)" style="padding:5px 10px;border-radius:6px;border:none;background:#7c3aed;color:white;font-size:11px;cursor:pointer">🩺 Consulter clinicien IA</button>' +
+        '<button onclick="document.getElementById(\'rareAI_'+tumorId+'\').innerHTML=\'\';document.getElementById(\'rareAI_'+tumorId+'\').dataset.loaded=\'0\'" style="padding:5px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--sf);font-size:11px;cursor:pointer">✕ Fermer</button>' +
+        '</div></div>';
+      resDiv.dataset.loaded='1';
+    } else {
+      resDiv.innerHTML='<div style="color:#dc2626;padding:8px;font-size:12px">❌ '+(d.error||'Erreur')+'</div>';
+    }
+  } catch(e) {
+    resDiv.innerHTML='<div style="color:#dc2626;padding:8px;font-size:12px">❌ '+e.message+'</div>';
+  }
+}
+
+async function rareAISendToClinician(tumorName, btn) {
+  // Pré-remplir le champ clinicien et naviguer vers les cliniciens virtuels
+  var input = document.getElementById('clinicianInput');
+  if (input) {
+    input.value = 'Patient présentant une ' + tumorName + '. Veuillez me donner votre avis spécialisé sur la prise en charge de ce cas, notamment les thérapies ciblées disponibles et le suivi recommandé selon les guidelines ESMO/NCCN 2024.';
+  }
+  if (typeof showSec === 'function') showSec('clinicians');
+  setTimeout(function(){
+    var n=document.createElement('div');
+    n.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#7c3aed;color:white;padding:10px 20px;border-radius:8px;z-index:9999;font-size:13px;font-weight:500';
+    n.textContent='🩺 Cas pré-rempli dans Cliniciens Virtuels';
+    document.body.appendChild(n);
+    setTimeout(function(){n.remove();},3000);
+  },200);
+}
+
+async function rareAIExport(tumorId, tumorName) {
+  var content = document.getElementById('rareAI_'+tumorId);
+  if (!content) return;
+  var text = content.innerText || content.textContent;
+  var blob = new Blob(['ANALYSE IA — ' + tumorName + '\n' + new Date().toLocaleDateString('fr-FR') + '\n\n' + text], {type:'text/plain'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'analyse_' + tumorId + '_' + new Date().toISOString().slice(0,10) + '.txt';
+  a.click(); URL.revokeObjectURL(a.href);
+}
+// ══ FIN TUMEURS RARES IA APPROFONDIE ════════════════════════════════════
