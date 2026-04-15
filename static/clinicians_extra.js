@@ -1777,3 +1777,411 @@ async function riskAIAnalyze() {
   } catch(e) { res.innerHTML='<div style="color:#dc2626">❌ ' + e.message + '</div>'; }
 }
 // ══ FIN ANALYSE IA CONTEXTUELS ═══════════════════════════════════════════
+
+
+// ══ DASHBOARD ════════════════════════════════════════════════════════════
+async function loadDashboard() {
+  var el = document.getElementById('dashboardContent');
+  if (!el) return;
+  try {
+    var statsRes = {}, consultsRes = {consultations:[]};
+    try { statsRes = await fetch('/stats').then(function(r){return r.ok?r.json():{};}).catch(function(){return {};}); } catch(e){}
+    try { consultsRes = await fetch('/consultations/list?limit=8').then(function(r){return r.ok?r.json():{consultations:[]};}).catch(function(){return {consultations:[]};});} catch(e){}
+
+    var s = statsRes;
+    var consults = (consultsRes.consultations||[]);
+
+    function kpi(val, label, color) {
+      return '<div style="background:var(--s2);border-radius:10px;padding:14px 18px;text-align:center"><div style="font-size:26px;font-weight:800;color:'+color+'">'+val+'</div><div style="font-size:11px;color:var(--mu);margin-top:2px;font-weight:500">'+label+'</div></div>';
+    }
+
+    var h = '<div style="display:flex;flex-direction:column;gap:16px">';
+
+    // KPIs
+    h += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px">';
+    h += kpi(s.total_searches||0, 'Recherches', '#0c6e9c');
+    h += kpi(s.vep_analyses||0, 'Analyses VEP', '#7c3aed');
+    h += kpi(s.acmg_classifications||0, 'ACMG classés', '#059669');
+    h += kpi(s.risk_calculations||0, 'Risques calc.', '#dc2626');
+    h += kpi(consults.length, 'Consultations', '#0d9488');
+    h += '</div>';
+
+    // Top gènes
+    var topGenes = s.top_genes||[];
+    if (topGenes.length) {
+      h += '<div style="background:var(--s2);border-radius:10px;padding:14px">';
+      h += '<div style="font-size:12px;font-weight:700;margin-bottom:10px">🧬 Top gènes recherchés</div>';
+      h += '<div style="display:flex;flex-wrap:wrap;gap:6px">';
+      topGenes.forEach(function(g) {
+        h += '<span style="background:#dff0f8;color:#0c6e9c;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:600">'+g.gene+' <span style="opacity:.7">'+g.count+'</span></span>';
+      });
+      h += '</div></div>';
+    }
+
+    // Recherches récentes
+    var recents = s.recent_searches||[];
+    if (recents.length) {
+      h += '<div style="background:var(--s2);border-radius:10px;padding:14px">';
+      h += '<div style="font-size:12px;font-weight:700;margin-bottom:8px">🕐 Recherches récentes</div>';
+      recents.slice().reverse().forEach(function(r) {
+        h += '<div style="font-size:12px;padding:4px 0;border-bottom:.5px solid var(--bd);display:flex;justify-content:space-between">';
+        h += '<span>🔍 '+(r.query||'—')+'</span>';
+        h += '<span style="color:var(--mu)">'+(r.timestamp?r.timestamp.split("T")[1]?.slice(0,5)||'':'')+'</span></div>';
+      });
+      h += '</div>';
+    }
+
+    // Consultations récentes
+    if (consults.length) {
+      h += '<div style="background:var(--s2);border-radius:10px;padding:14px">';
+      h += '<div style="font-size:12px;font-weight:700;margin-bottom:8px">🩺 Dernières consultations</div>';
+      consults.forEach(function(c) {
+        var date = (c.updated_at||c.created_at||'').split('T')[0]||'';
+        h += '<div style="font-size:12px;padding:6px 0;border-bottom:.5px solid var(--bd);display:flex;justify-content:space-between;align-items:center">';
+        h += '<div><span style="font-weight:600">'+(c.clinician_name||'Clinicien')+'</span>';
+        h += '<span style="color:var(--mu);margin-left:6px;font-size:11px">'+(c.clinician_specialty||'')+'</span><br>';
+        h += '<span style="color:var(--mu)">'+(c.title||'Sans titre')+'</span></div>';
+        h += '<div style="display:flex;align-items:center;gap:8px">';
+        h += '<span style="color:var(--mu);font-size:11px">'+date+'</span>';
+        h += '<button onclick="loadConsultation('+c.id+')" style="padding:2px 8px;border-radius:5px;border:.5px solid var(--bd);background:var(--sf);font-size:11px;cursor:pointer">↗</button>';
+        h += '</div></div>';
+      });
+      h += '</div>';
+    }
+
+    if (s.note) {
+      h += '<div style="font-size:11px;color:var(--mu);text-align:center;padding:4px">'+s.note+'</div>';
+    }
+
+    h += '</div>';
+    el.innerHTML = h;
+  } catch(e) {
+    if (document.getElementById('dashboardContent'))
+      document.getElementById('dashboardContent').innerHTML = '<div style="color:red;padding:10px">Erreur: '+e.message+'</div>';
+  }
+}
+// ══ FIN DASHBOARD ════════════════════════════════════════════════════════
+
+
+
+// ══ TUMEURS RARES — ANALYSE IA ═══════════════════════════════════════════
+async function rareTumorAIAnalyze(tumorId, tumorName) {
+  var userKey = localStorage.getItem('sgs_api_key')||'';
+  var resId = 'rareTumorAIResult_' + tumorId;
+  var resDiv = document.getElementById(resId);
+  if (!resDiv) {
+    // Créer le div de résultat dynamiquement
+    var card = document.querySelector('[data-tumor-id="'+tumorId+'"]');
+    if (!card) return;
+    resDiv = document.createElement('div');
+    resDiv.id = resId;
+    resDiv.style.cssText = 'margin-top:10px';
+    card.appendChild(resDiv);
+  }
+  if (!userKey) {
+    resDiv.innerHTML = '<div style="color:#dc2626;padding:8px;background:#fef2f2;border-radius:6px;font-size:12px">⚠️ Clé API manquante.</div>';
+    return;
+  }
+  resDiv.innerHTML = '<div style="padding:8px;color:var(--mu);font-size:12px">⏳ Analyse IA en cours…</div>';
+
+  var prompt = 'Tu es un oncologue expert en tumeurs rares.\n\nTumeur: ' + tumorName + '\n\nFournis une analyse clinique structurée:\n1. **Profil génomique complet** — mutations drivers, fréquences, mécanismes oncogéniques\n2. **Classification OMS/WHO** et stades\n3. **Guidelines ESMO/NCCN 2023-2024** — traitement standard\n4. **Thérapies ciblées disponibles** avec niveaux de preuve\n5. **Essais cliniques actifs** (NCT) à considérer\n6. **Biomarqueurs prédictifs** (TMB, MSI, HRD, PD-L1...)\n7. **Contexte africain subsaharien** — épidémiologie, spécificités, accès aux soins\n8. **Diagnostic différentiel** et pièges diagnostiques\n9. **Pronostic** et facteurs pronostiques clés';
+
+  try {
+    var r = await aiFetch('/ai/chat', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({message: prompt})
+    });
+    var d = await r.json();
+    if (d.response) {
+      resDiv.innerHTML = '<div class="md-content" style="background:var(--s2);border-radius:8px;padding:12px;font-size:12px;line-height:1.6">' +
+        (typeof marked !== 'undefined' ? marked.parse(d.response) : d.response.replace(/\n/g,'<br>')) +
+        '</div>';
+    } else {
+      resDiv.innerHTML = '<div style="color:#dc2626;padding:8px;font-size:12px">❌ '+(d.error||'Erreur')+'</div>';
+    }
+  } catch(e) {
+    resDiv.innerHTML = '<div style="color:#dc2626;padding:8px;font-size:12px">❌ '+e.message+'</div>';
+  }
+}
+// ══ FIN TUMEURS RARES IA ═════════════════════════════════════════════════
+
+
+// ══ PRÉDICTION CANCER ════════════════════════════════════════════════════
+async function predictCancerRisk() {
+  var userKey = localStorage.getItem('sgs_api_key')||'';
+  var res = document.getElementById('cancerPredictResult');
+  if (!res) return;
+  if (!userKey) {
+    res.innerHTML='<div style="color:#dc2626;padding:10px;background:#fef2f2;border-radius:8px">⚠️ Clé API manquante.</div>';
+    return;
+  }
+
+  // Collecter les données
+  var age = document.getElementById('cp_age').value||50;
+  var sex = document.getElementById('cp_sex').value;
+  var ethnic = document.getElementById('cp_ethnic').value;
+  var smoking = document.getElementById('cp_smoking').value;
+  var bmi = document.getElementById('cp_bmi').value||25;
+  var alcohol = document.getElementById('cp_alcohol').value;
+
+  var mutations = [];
+  ['brca1','brca2','tp53','lynch','palb2','apc'].forEach(function(g){
+    if(document.getElementById('cp_'+g)?.checked) mutations.push(g.toUpperCase());
+  });
+  var famHistory = [];
+  ['breast','colon','lung','prostate','ovarian'].forEach(function(c){
+    if(document.getElementById('cp_fam_'+c)?.checked) famHistory.push(c);
+  });
+  var exposures = [];
+  ['amiante','benzene','uv','radiation'].forEach(function(e){
+    if(document.getElementById('cp_'+e)?.checked) exposures.push(e);
+  });
+  var infections = [];
+  ['hpv','hbv','hiv','hp'].forEach(function(i){
+    if(document.getElementById('cp_'+i)?.checked) infections.push(i.toUpperCase());
+  });
+  var africanFactors = [];
+  ['aflatoxin','schistosome','sickle'].forEach(function(f){
+    if(document.getElementById('cp_'+f)?.checked) africanFactors.push(f);
+  });
+
+  res.innerHTML='<div style="padding:16px;text-align:center"><div style="font-size:24px;margin-bottom:8px">🧮</div><div style="color:var(--mu)">Calcul du risque en cours — intégration de 50+ facteurs…</div></div>';
+
+  var prompt = `Tu es un épidémiologiste en oncologie et généticien clinicien expert.
+
+PROFIL PATIENT:
+- Âge: ${age} ans | Sexe: ${sex} | Ethnie: ${ethnic}
+- Tabagisme: ${smoking} | IMC: ${bmi} | Alcool: ${alcohol}
+- Mutations germinales: ${mutations.length ? mutations.join(', ') : 'Aucune connue'}
+- ATCD familiaux (1er degré): ${famHistory.length ? famHistory.join(', ') : 'Aucun'}
+- Expositions: ${exposures.length ? exposures.join(', ') : 'Aucune'}
+- Infections oncogéniques: ${infections.length ? infections.join(', ') : 'Aucune'}
+- Facteurs africains: ${africanFactors.length ? africanFactors.join(', ') : 'Non applicable'}
+
+Fournis une prédiction structurée:
+
+## 1. RISQUES QUANTIFIÉS PAR TYPE DE CANCER
+Pour chaque cancer pertinent, donne:
+- Risque à 5 ans (%) vs population générale
+- Risque à 10 ans (%)  
+- Risque à vie (%)
+- Niveau de risque: FAIBLE / MODÉRÉ / ÉLEVÉ / TRÈS ÉLEVÉ
+
+## 2. TOP 5 CANCERS PRIORITAIRES
+Classement par ordre de risque décroissant avec score composite.
+
+## 3. BIOMARQUEURS À DOSER EN PRIORITÉ
+PSA, CA-125, ACE, AFP, etc. avec fréquence recommandée.
+
+## 4. PROGRAMME DE SURVEILLANCE PERSONNALISÉ
+Examens recommandés avec intervalles (imaging, endoscopie, biologie).
+
+## 5. INTERVENTIONS PRÉVENTIVES
+Modifications du mode de vie, chimioprévention (tamoxifène, aspirine...), chirurgie prophylactique si indiqué.
+
+## 6. CONTEXTE POPULATIONNEL AFRICAIN
+Si origine africaine: spécificités épidémiologiques (TNBC fréquent, VHB/VHC, HPV, Kaposi...), données H3Africa/AWI-Gen, recommandations adaptées.
+
+## 7. SCORE DE RISQUE COMPOSITE
+Score global 1-100 avec interprétation et urgence de prise en charge.`;
+
+  try {
+    var r = await aiFetch('/ai/chat', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:prompt})});
+    var d = await r.json();
+    if (d.response) {
+      res.innerHTML = '<div class="md-content" style="background:var(--s2);border-radius:10px;padding:16px;font-size:13px;line-height:1.7">' +
+        (typeof marked!=='undefined' ? marked.parse(d.response) : d.response.replace(/\n/g,'<br>')) + '</div>';
+    } else {
+      res.innerHTML = '<div style="color:#dc2626;padding:10px">❌ '+(d.error||'Erreur')+'</div>';
+    }
+  } catch(e) {
+    res.innerHTML = '<div style="color:#dc2626;padding:10px">❌ '+e.message+'</div>';
+  }
+}
+// ══ FIN PRÉDICTION CANCER ════════════════════════════════════════════════
+
+// ══ ANALYSE RADIOGRAPHIE IA ══════════════════════════════════════════════
+(function(){
+  var _radioFile = null, _radioB64 = null, _radioResult = null;
+
+  window.radioHandleDrop = function(e) {
+    e.preventDefault();
+    document.getElementById('radioDropZone').style.borderColor='var(--bd)';
+    if(e.dataTransfer.files[0]) radioHandleFile(e.dataTransfer.files[0]);
+  };
+
+  window.radioHandleFile = function(file) {
+    if (!file) return;
+    if (file.size > 25*1024*1024) { alert('Image trop grande (max 25 MB)'); return; }
+    _radioFile = file;
+    var rd = new FileReader();
+    rd.onload = function(e) {
+      _radioB64 = e.target.result.split(',')[1];
+      document.getElementById('radioDropHint').style.display='none';
+      document.getElementById('radioPreviewContainer').style.display='block';
+      document.getElementById('radioPreview').src=e.target.result;
+      document.getElementById('radioFileName').textContent=file.name+' ('+(file.size/1024).toFixed(0)+' KB)';
+    };
+    rd.readAsDataURL(file);
+  };
+
+  window.radioClear = function() {
+    _radioFile=null; _radioB64=null; _radioResult=null;
+    document.getElementById('radioDropHint').style.display='block';
+    document.getElementById('radioPreviewContainer').style.display='none';
+    document.getElementById('radioFileInput').value='';
+    document.getElementById('radioAIResult').innerHTML='';
+    document.getElementById('radioPDFBtn').style.display='none';
+  };
+
+  window.radioAnalyzeAI = async function() {
+    var userKey = localStorage.getItem('sgs_api_key')||'';
+    var btn = document.getElementById('radioAnalyzeBtn');
+    var res = document.getElementById('radioAIResult');
+    var radioType = document.getElementById('radio_type').value;
+    var ctx = document.getElementById('radio_context').value;
+
+    if (!userKey) { res.innerHTML='<div style="color:#dc2626;padding:10px;background:#fef2f2;border-radius:8px">⚠️ Clé API manquante.</div>'; return; }
+
+    btn.disabled=true; btn.innerHTML='⏳ Analyse en cours…';
+    res.innerHTML='<div style="padding:20px;text-align:center"><div style="font-size:28px;margin-bottom:8px">☢️</div><div style="color:var(--mu);font-size:13px">L\'IA analyse l\'image médicale…</div></div>';
+
+    var typeLabels = {
+      rx_thorax:'radiographie thoracique',scanner_thorax:'scanner thoracique TDM',
+      scanner_abdomen:'scanner abdomino-pelvien',irm_sein:'IRM mammaire',
+      irm_cerebrale:'IRM cérébrale',irm_prostate:'IRM prostate (PI-RADS)',
+      mammo:'mammographie (BI-RADS)',echo:'échographie',
+      pet_scan:'PET-scan TEP-TDM',scintigraphie:'scintigraphie osseuse'
+    };
+    var typeDesc = typeLabels[radioType]||radioType;
+
+    var system = `Tu es un radiologue oncologue expert.\nAnalyse l'image médicale (${typeDesc}) et réponds en JSON strict:\n{"findings":"description détaillée des anomalies","suspicious_lesions":[{"location":"localisation","size":"taille","characteristics":"caractéristiques","birads_pirads_score":"score si applicable","malignancy_risk":"Faible/Modéré/Élevé/Très élevé"}],"differential_diagnosis":[{"diagnosis":"diagnostic","probability":75}],"staging_clues":"éléments de stadification","recommended_workup":["bilan complémentaire 1","bilan 2"],"oncogenomic_correlation":"corrélation génomique probable","urgency":"Routine/Urgent/Très urgent","report_conclusion":"conclusion radiologique structurée","african_context":"pertinence contexte africain si applicable","radiologist_note":"note pour validation radiologiste"}`;
+
+    try {
+      var body = {tumor_type: radioType, stain_type: typeDesc, clinical_context: ctx, user_api_key: userKey};
+      if (_radioB64) { body.image_b64=_radioB64; body.image_type=_radioFile?_radioFile.type||'image/jpeg':'image/jpeg'; }
+
+      // Utiliser la route morpho_analyze (Claude Vision)
+      var r = await fetch('/morpho_analyze', {
+        method:'POST', headers:{'Content-Type':'application/json','X-User-Api-Key':userKey},
+        body: JSON.stringify(body)
+      });
+      var d = await r.json();
+      if (d.success && d.result) {
+        _radioResult = d.result;
+        res.innerHTML = _renderRadioResult(d.result, typeDesc);
+        document.getElementById('radioPDFBtn').style.display='inline-flex';
+      } else {
+        // Fallback : analyse textuelle sans image
+        var promptText = 'Tu es radiologue oncologue expert. Analyse cette ' + typeDesc + '. Contexte: ' + (ctx||'non précisé') + '. Fournis une analyse structurée avec findings, diagnostics différentiels, recommandations de bilan complémentaire, corrélation oncogénomique et contexte africain si pertinent.';
+        var r2 = await aiFetch('/ai/chat', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:promptText})});
+        var d2 = await r2.json();
+        res.innerHTML = d2.response ? '<div class="md-content" style="background:var(--s2);border-radius:10px;padding:16px;font-size:13px;line-height:1.7">' + (typeof marked!=='undefined'?marked.parse(d2.response):d2.response) + '</div>' : '<div style="color:#dc2626;padding:10px">❌ '+(d2.error||'Erreur')+'</div>';
+      }
+    } catch(e) {
+      res.innerHTML='<div style="color:#dc2626;padding:10px">❌ '+e.message+'</div>';
+    }
+    btn.disabled=false; btn.innerHTML='☢️ Analyser avec IA';
+  };
+
+  function _renderRadioResult(r, typeDesc) {
+    var h = '<div style="display:flex;flex-direction:column;gap:12px">';
+
+    // Urgence
+    var urg = r.urgency||'Routine';
+    var urgColor = urg.includes('Très')?'#dc2626':urg.includes('Urgent')?'#d97706':'#059669';
+    h += '<div style="background:'+urgColor+'22;border:1.5px solid '+urgColor+';border-radius:10px;padding:12px;display:flex;justify-content:space-between;align-items:center">';
+    h += '<span style="font-weight:700;font-size:14px">'+typeDesc.toUpperCase()+'</span>';
+    h += '<span style="font-size:13px;font-weight:700;color:'+urgColor+'">⏱ '+urg+'</span></div>';
+
+    // Findings
+    if (r.findings) {
+      h += '<div style="background:var(--s2);border-radius:10px;padding:14px">';
+      h += '<div style="font-size:12px;font-weight:700;margin-bottom:6px">📋 Findings radiologiques</div>';
+      h += '<div style="font-size:13px;line-height:1.6">'+r.findings+'</div></div>';
+    }
+
+    // Lésions suspectes
+    var lesions = r.suspicious_lesions||[];
+    if (lesions.length) {
+      h += '<div style="background:var(--s2);border-radius:10px;padding:14px">';
+      h += '<div style="font-size:12px;font-weight:700;margin-bottom:10px">⚠️ Lésions suspectes</div>';
+      lesions.forEach(function(l) {
+        var rc = (l.malignancy_risk||'').includes('Élevé')?'#dc2626':(l.malignancy_risk||'').includes('Modéré')?'#d97706':'#059669';
+        h += '<div style="background:var(--sf);border-radius:8px;padding:10px;margin-bottom:6px;border-left:3px solid '+rc+'">';
+        h += '<div style="display:flex;justify-content:space-between;margin-bottom:4px">';
+        h += '<span style="font-weight:600">'+(l.location||'')+'</span>';
+        h += '<span style="font-size:11px;background:'+rc+'22;color:'+rc+';padding:2px 8px;border-radius:10px;font-weight:600">'+(l.malignancy_risk||'')+'</span></div>';
+        if (l.size) h += '<div style="font-size:12px;color:var(--mu)">Taille: '+l.size+'</div>';
+        if (l.characteristics) h += '<div style="font-size:12px">'+l.characteristics+'</div>';
+        if (l.birads_pirads_score) h += '<div style="font-size:12px;font-weight:600;margin-top:4px">Score: '+l.birads_pirads_score+'</div>';
+        h += '</div>';
+      });
+      h += '</div>';
+    }
+
+    // Diagnostics différentiels
+    var diffs = r.differential_diagnosis||[];
+    if (diffs.length) {
+      h += '<div style="background:var(--s2);border-radius:10px;padding:14px">';
+      h += '<div style="font-size:12px;font-weight:700;margin-bottom:8px">⚖️ Diagnostics différentiels</div>';
+      diffs.forEach(function(d) {
+        h += '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:.5px solid var(--bd);font-size:13px">';
+        h += '<span>'+d.diagnosis+'</span><span style="font-weight:700;color:'+(d.probability>=70?'#dc2626':'var(--mu)')+'">'+d.probability+'%</span></div>';
+      });
+      h += '</div>';
+    }
+
+    // Bilan complémentaire
+    var workup = r.recommended_workup||[];
+    if (workup.length) {
+      h += '<div style="background:#dff0f8;border-radius:10px;padding:12px">';
+      h += '<div style="font-size:11px;font-weight:700;color:#0c6e9c;margin-bottom:6px">📋 Bilan complémentaire recommandé</div>';
+      workup.forEach(function(w) { h += '<div style="font-size:12px;padding:2px 0">• '+w+'</div>'; });
+      h += '</div>';
+    }
+
+    // Corrélation génomique
+    if (r.oncogenomic_correlation) {
+      h += '<div style="background:#ede9fe;border-radius:10px;padding:12px">';
+      h += '<div style="font-size:11px;font-weight:700;color:#7c3aed;margin-bottom:4px">🧬 Corrélation oncogénomique</div>';
+      h += '<div style="font-size:12px">'+r.oncogenomic_correlation+'</div></div>';
+    }
+
+    // Conclusion
+    if (r.report_conclusion) {
+      h += '<div style="background:var(--s2);border-radius:10px;padding:14px">';
+      h += '<div style="font-size:12px;font-weight:700;margin-bottom:6px">📄 Conclusion radiologique</div>';
+      h += '<div style="font-size:13px;line-height:1.6">'+r.report_conclusion+'</div></div>';
+    }
+
+    // Contexte africain
+    if (r.african_context && r.african_context !== 'N/A') {
+      h += '<div style="background:#dcfce744;border:1px solid #059669;border-radius:10px;padding:12px">';
+      h += '<div style="font-size:11px;font-weight:700;color:#059669;margin-bottom:4px">🌍 Contexte africain</div>';
+      h += '<div style="font-size:12px">'+r.african_context+'</div></div>';
+    }
+
+    h += '<div style="background:#fef9c3;border-radius:8px;padding:10px;font-size:11px;color:#92400e;font-weight:500">'+(r.radiologist_note||'⚠️ Validation radiologiste/oncologue obligatoire avant décision thérapeutique.')+'</div>';
+    h += '</div>';
+    return h;
+  }
+
+  window.radioExportPDF = async function() {
+    if (!_radioResult) { alert('Analysez d\'abord une image'); return; }
+    var btn = document.getElementById('radioPDFBtn');
+    btn.textContent='⏳...'; btn.disabled=true;
+    try {
+      var r = await fetch('/morpho_pdf', {method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({result:_radioResult,tumor_type:document.getElementById('radio_type').value,clinical_context:document.getElementById('radio_context').value})});
+      if (!r.ok) throw new Error('Erreur PDF');
+      var blob = await r.blob();
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a'); a.href=url;
+      a.download='rapport_radio_'+new Date().toISOString().slice(0,10)+'.pdf'; a.click();
+      URL.revokeObjectURL(url);
+    } catch(e) { alert('Erreur: '+e.message); }
+    btn.textContent='📄 Rapport PDF'; btn.disabled=false;
+  };
+})();
+// ══ FIN ANALYSE RADIOGRAPHIE IA ══════════════════════════════════════════

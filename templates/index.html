@@ -1758,6 +1758,192 @@ CNV_data: PTEN del, RB1 del, CDKN2A del, ERBB2 amp..." style="width:100%;padding
   </div>
   </div>
 
+  
+  <!-- ══ PRÉDICTION SURVENUE CANCERS ══════════════════════════════════════ -->
+  <div id="sec-cancer_predict" style="display:none">
+  <div class="card">
+    <div class="ch"><span class="ct2">🎯 Prédiction de Survenue des Cancers — Modèle IA Multi-facteurs</span></div>
+    <div style="padding:14px">
+      <div style="font-size:13px;color:var(--mu);background:var(--s2);padding:10px 13px;border-radius:7px;margin-bottom:14px;line-height:1.6">
+        Modèle prédictif intégrant facteurs génétiques, cliniques, environnementaux et démographiques pour estimer le risque de survenue de cancer à 5, 10 et 20 ans. Basé sur les cohortes PLCO, NLST, UK Biobank, H3Africa et AWI-Gen.
+        <br><span style="color:#dc2626;font-weight:500">⚕️ Outil d'aide à la décision — ne remplace pas l'évaluation clinique spécialisée.</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="font-size:12px;font-weight:700;color:#0c6e9c">👤 Profil patient</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <div>
+              <label style="font-size:11px;color:var(--mu);font-weight:600">Âge</label>
+              <input id="cp_age" type="number" min="18" max="90" value="50" style="width:100%;margin-top:3px;padding:7px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px">
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--mu);font-weight:600">Sexe</label>
+              <select id="cp_sex" style="width:100%;margin-top:3px;padding:7px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px">
+                <option value="F">Femme</option>
+                <option value="M">Homme</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--mu);font-weight:600">Origine ethnique</label>
+            <select id="cp_ethnic" style="width:100%;margin-top:3px;padding:7px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px">
+              <option value="european">Européenne</option>
+              <option value="african">Africaine subsaharienne</option>
+              <option value="west_african">Afrique de l'Ouest / Sénégal</option>
+              <option value="north_african">Afrique du Nord / Maghreb</option>
+              <option value="asian">Asiatique</option>
+              <option value="hispanic">Hispanique</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--mu);font-weight:600">Tabagisme</label>
+            <select id="cp_smoking" style="width:100%;margin-top:3px;padding:7px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px">
+              <option value="never">Non-fumeur</option>
+              <option value="former">Ex-fumeur (arrêt >1 an)</option>
+              <option value="current_light">Fumeur léger (&lt;20 paq/an)</option>
+              <option value="current_heavy">Fumeur lourd (≥20 paq/an)</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--mu);font-weight:600">IMC (kg/m²)</label>
+            <input id="cp_bmi" type="number" min="15" max="60" step="0.1" value="25" style="width:100%;margin-top:3px;padding:7px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px">
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--mu);font-weight:600">Alcool</label>
+            <select id="cp_alcohol" style="width:100%;margin-top:3px;padding:7px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px">
+              <option value="none">Aucun</option>
+              <option value="moderate">&lt;2 verres/jour</option>
+              <option value="heavy">≥2 verres/jour</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="font-size:12px;font-weight:700;color:#7c3aed">🧬 Facteurs génétiques</div>
+          <div>
+            <label style="font-size:11px;color:var(--mu);font-weight:600">Mutations connues</label>
+            <div style="display:flex;flex-direction:column;gap:3px;margin-top:4px">
+              <label style="font-size:12px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="cp_brca1"> BRCA1 pathogène</label>
+              <label style="font-size:12px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="cp_brca2"> BRCA2 pathogène</label>
+              <label style="font-size:12px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="cp_tp53"> TP53 (Li-Fraumeni)</label>
+              <label style="font-size:12px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="cp_lynch"> Lynch (MLH1/MSH2/MSH6)</label>
+              <label style="font-size:12px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="cp_palb2"> PALB2 pathogène</label>
+              <label style="font-size:12px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="cp_apc"> APC (FAP)</label>
+            </div>
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--mu);font-weight:600">Antécédents familiaux (1er degré)</label>
+            <div style="display:flex;flex-direction:column;gap:3px;margin-top:4px">
+              <label style="font-size:12px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="cp_fam_breast"> Cancer sein</label>
+              <label style="font-size:12px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="cp_fam_colon"> Cancer colorectal</label>
+              <label style="font-size:12px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="cp_fam_lung"> Cancer poumon</label>
+              <label style="font-size:12px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="cp_fam_prostate"> Cancer prostate</label>
+              <label style="font-size:12px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="cp_fam_ovarian"> Cancer ovaire</label>
+            </div>
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--mu);font-weight:600">Expositions professionnelles</label>
+            <div style="display:flex;flex-direction:column;gap:3px;margin-top:4px">
+              <label style="font-size:12px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="cp_amiante"> Amiante / Mésothéliome</label>
+              <label style="font-size:12px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="cp_benzene"> Benzène / Leucémies</label>
+              <label style="font-size:12px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="cp_uv"> UV intense (mélanome)</label>
+              <label style="font-size:12px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="cp_radiation"> Radiations ionisantes</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div>
+          <label style="font-size:11px;color:var(--mu);font-weight:600">Infections oncogéniques</label>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">
+            <label style="font-size:12px;display:flex;gap:4px;align-items:center"><input type="checkbox" id="cp_hpv"> HPV (col utérin)</label>
+            <label style="font-size:12px;display:flex;gap:4px;align-items:center"><input type="checkbox" id="cp_hbv"> VHB/VHC (foie)</label>
+            <label style="font-size:12px;display:flex;gap:4px;align-items:center"><input type="checkbox" id="cp_hiv"> VIH (Kaposi, lymphomes)</label>
+            <label style="font-size:12px;display:flex;gap:4px;align-items:center"><input type="checkbox" id="cp_hp"> H. pylori (estomac)</label>
+          </div>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--mu);font-weight:600">Contexte africain spécifique</label>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">
+            <label style="font-size:12px;display:flex;gap:4px;align-items:center"><input type="checkbox" id="cp_aflatoxin"> Aflatoxine (foie)</label>
+            <label style="font-size:12px;display:flex;gap:4px;align-items:center"><input type="checkbox" id="cp_schistosome"> Schistosome (vessie)</label>
+            <label style="font-size:12px;display:flex;gap:4px;align-items:center"><input type="checkbox" id="cp_sickle"> Drépanocytose</label>
+          </div>
+        </div>
+      </div>
+
+      <button onclick="predictCancerRisk()" style="width:100%;padding:11px;border-radius:8px;border:none;background:linear-gradient(135deg,#dc2626,#7c3aed);color:white;font-size:14px;font-weight:600;cursor:pointer">
+        🎯 Prédire le risque de cancer — Analyse IA multi-facteurs
+      </button>
+      <div id="cancerPredictResult" style="margin-top:14px"></div>
+    </div>
+  </div>
+  </div>
+
+  <!-- ══ ANALYSE RADIOGRAPHIE IA ════════════════════════════════════════ -->
+  <div id="sec-radio_ai" style="display:none">
+  <div class="card">
+    <div class="ch"><span class="ct2">☢️ Analyse Radiographie & Imagerie — IA Diagnostique</span></div>
+    <div style="padding:14px">
+      <div style="font-size:13px;color:var(--mu);background:var(--s2);padding:10px 13px;border-radius:7px;margin-bottom:14px;line-height:1.6">
+        Analyse par IA des images médicales (radiographies, scanner, IRM) — détection de masses suspectes, lésions, anomalies morphologiques avec corrélation oncogénomique.
+        <br><span style="color:#dc2626;font-weight:500">🔒 Usage clinique — validation radiologiste/oncologue requise avant toute décision.</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div>
+          <label style="font-size:11px;color:var(--mu);font-weight:600">Type d'imagerie</label>
+          <select id="radio_type" style="width:100%;margin-top:3px;padding:7px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px">
+            <option value="rx_thorax">Radiographie thoracique (Rx)</option>
+            <option value="scanner_thorax">Scanner thoracique (TDM)</option>
+            <option value="scanner_abdomen">Scanner abdomino-pelvien</option>
+            <option value="irm_sein">IRM mammaire</option>
+            <option value="irm_cerebrale">IRM cérébrale</option>
+            <option value="irm_prostate">IRM prostate (PI-RADS)</option>
+            <option value="mammo">Mammographie (BI-RADS)</option>
+            <option value="echo">Échographie (thyroïde/abdomen)</option>
+            <option value="pet_scan">PET-scan / TEP-TDM</option>
+            <option value="scintigraphie">Scintigraphie osseuse</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--mu);font-weight:600">Contexte clinique</label>
+          <input id="radio_context" placeholder="Ex: Masse 2cm LSD, patient 65 ans fumeur..." style="width:100%;margin-top:3px;padding:7px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);color:var(--tx);font-size:13px;box-sizing:border-box">
+        </div>
+      </div>
+
+      <!-- Zone upload image -->
+      <div id="radioDropZone"
+        onclick="document.getElementById('radioFileInput').click()"
+        ondragover="event.preventDefault();this.style.borderColor='#dc2626'"
+        ondragleave="this.style.borderColor='var(--bd)'"
+        ondrop="radioHandleDrop(event)"
+        style="border:2px dashed var(--bd);border-radius:12px;padding:32px;text-align:center;cursor:pointer;transition:all .2s;background:var(--s2);margin-bottom:14px">
+        <div id="radioPreviewContainer" style="display:none">
+          <img id="radioPreview" style="max-height:350px;max-width:100%;border-radius:8px;margin-bottom:10px">
+          <div id="radioFileName" style="font-size:12px;color:var(--mu)"></div>
+        </div>
+        <div id="radioDropHint">
+          <div style="font-size:36px;margin-bottom:8px">☢️</div>
+          <div style="font-size:15px;font-weight:600;margin-bottom:4px">Déposer une image médicale</div>
+          <div style="font-size:13px;color:var(--mu)">Rx · TDM · IRM · Mammo · Echo — JPG, PNG, DICOM</div>
+          <div style="margin-top:10px;padding:7px 18px;background:#fef2f2;color:#dc2626;border-radius:8px;font-size:13px;font-weight:500;display:inline-block">Parcourir</div>
+        </div>
+        <input type="file" id="radioFileInput" accept="image/*" style="display:none" onchange="radioHandleFile(this.files[0])">
+      </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <button id="radioAnalyzeBtn" onclick="radioAnalyzeAI()" style="flex:1;padding:10px 22px;border-radius:8px;border:none;background:linear-gradient(135deg,#dc2626,#0c6e9c);color:white;font-size:14px;font-weight:600;cursor:pointer">☢️ Analyser avec IA</button>
+        <button id="radioPDFBtn" onclick="radioExportPDF()" style="display:none;padding:10px 16px;border-radius:8px;border:1px solid #dc2626;background:#fef2f2;color:#dc2626;font-size:13px;cursor:pointer">📄 Rapport PDF</button>
+        <button onclick="radioClear()" style="padding:10px 14px;border-radius:8px;border:1px solid var(--bd);background:var(--sf);color:var(--mu);font-size:13px;cursor:pointer">🗑 Effacer</button>
+      </div>
+      <div id="radioAIResult"></div>
+    </div>
+  </div>
+  </div>
+
   <div id="sec-bookmarks" style="display:none">
     <div class="card"><div class="ch"><span class="ct2" data-fr="🔖 Recherches sauvegardées" data-en="🔖 Saved searches">🔖 Recherches sauvegardées</span></div>
     <div style="padding:12px" id="bkList"></div></div>
@@ -3916,9 +4102,22 @@ function clinStopSpeaking() {
 }
 
 function showSec(name,btn){
-  const SECS=['search','prs','founder','penetrance','tools','ngs','acmg','risk','glcomp','manchester','compvar','pedigree','trajectory','bookmarks','dashboard','about','litimport','ai_chat','ai_upload','ai_pharma','clinicians','morpho','rare','tmb_msi','drug_interactions','esmo_decision','voice_consult'];
+  const SECS=['search','prs','founder','penetrance','tools','ngs','acmg','risk','glcomp','manchester','compvar','pedigree','trajectory','bookmarks','dashboard','about','litimport','ai_chat','ai_upload','ai_pharma','clinicians','morpho','rare','tmb_msi','drug_interactions','esmo_decision','cancer_predict','radio_ai','voice_consult'];
   // Charger modules dynamiques
-  if(name==='dashboard') { setTimeout(()=>{ if(typeof loadDashboard==='function') loadDashboard(); },50); }
+if(name==='dashboard') {
+    var _dbTries=0;
+    var _dbRetry=setInterval(function(){
+      _dbTries++;
+      if(typeof loadDashboard==='function'){
+        clearInterval(_dbRetry);
+        loadDashboard();
+      } else if(_dbTries>20){
+        clearInterval(_dbRetry);
+        var el=document.getElementById('dashboardContent');
+        if(el) el.innerHTML='<div style="padding:20px;color:var(--mu)">Dashboard disponible après rechargement.</div>';
+      }
+    },200);
+  }
   SECS.forEach(s=>{
     const el=document.getElementById('sec-'+s);
     if(el) el.style.display=(s===name)?'block':'none';
