@@ -2153,6 +2153,7 @@ CNV_data: PTEN del, RB1 del, CDKN2A del, ERBB2 amp..." style="width:100%;padding
       <div style="display:flex;gap:8px;margin-left:auto">
         <button id="pdfBtn" onclick="downloadPDF()" style="display:none;padding:6px 14px;border-radius:8px;border:none;background:#dc2626;color:white;font-size:12px;font-weight:500;cursor:pointer">📄 Exporter PDF</button>
         <button onclick="downloadRapportComplet()" style="padding:6px 14px;border-radius:8px;border:none;background:#7c3aed;color:white;font-size:12px;font-weight:500;cursor:pointer">📋 Rapport Complet</button>
+        <button onclick="openSharePatient(_trajectoryPatient, document.getElementById('trajectoryTitle') ? document.getElementById('trajectoryTitle').textContent : 'Patient')" style="padding:6px 14px;border-radius:8px;border:none;background:#0891b2;color:white;font-size:12px;font-weight:500;cursor:pointer">👥 Partager</button>
         <button onclick="showPatientSelectorForTrajectory()" style="padding:6px 14px;border-radius:8px;border:none;background:#0d9488;color:white;font-size:12px;font-weight:500;cursor:pointer">👤 Choisir un patient</button>
       </div>
     </div>
@@ -6413,6 +6414,97 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => addClinVarAlerts(gene, 'c.5266dupC', 'VUS', 'Pathogène'), 5000);
   }
 });
+</script>
+
+<script>
+// ══ PARTAGE DE CAS ════════════════════════════════════════════════════════════
+function openSharePatient(pid, nom) {
+  let panel = document.getElementById('sharePanel');
+  if (panel) { panel.remove(); return; }
+  
+  panel = document.createElement('div');
+  panel.id = 'sharePanel';
+  panel.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--bg);border:1px solid var(--bd);border-radius:14px;z-index:9999;box-shadow:0 16px 48px rgba(0,0,0,0.2);padding:24px;width:380px;max-width:95vw';
+  
+  panel.innerHTML = `
+    <div style="font-size:15px;font-weight:700;margin-bottom:4px">👥 Partager le dossier</div>
+    <div style="font-size:13px;color:var(--mu);margin-bottom:16px">${nom}</div>
+    <label style="font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase">Email du collègue</label>
+    <input id="shareEmailInput" type="email" placeholder="medecin@hopital.sn"
+      style="width:100%;margin-top:6px;padding:10px;border:1px solid var(--bd);border-radius:8px;background:var(--sf);color:var(--tx);font-size:13px;box-sizing:border-box">
+    <div id="shareMsg" style="margin-top:8px;font-size:12px;min-height:20px"></div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button onclick="document.getElementById('sharePanel').remove()"
+        style="flex:1;padding:10px;border-radius:8px;border:1px solid var(--bd);background:transparent;cursor:pointer;font-size:13px">Annuler</button>
+      <button onclick="confirmShare(${pid})"
+        style="flex:1;padding:10px;border-radius:8px;border:none;background:#0891b2;color:white;cursor:pointer;font-size:13px;font-weight:600">📤 Partager</button>
+    </div>`;
+  
+  document.body.appendChild(panel);
+  setTimeout(() => document.getElementById('shareEmailInput').focus(), 100);
+}
+
+async function confirmShare(pid) {
+  const email = document.getElementById('shareEmailInput').value.trim();
+  const msg = document.getElementById('shareMsg');
+  if (!email) { msg.style.color='#dc2626'; msg.textContent='Email requis'; return; }
+  
+  msg.style.color='var(--mu)'; msg.textContent='Envoi en cours...';
+  
+  try {
+    const res = await fetch('/patients/' + pid + '/share', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email})
+    }).then(r => r.json());
+    
+    if (res.success) {
+      msg.style.color = '#16a34a';
+      msg.textContent = '✅ ' + res.message;
+      if (typeof addNotification === 'function') {
+        addNotification('Dossier partagé', res.message, '👥');
+      }
+      setTimeout(() => document.getElementById('sharePanel') && document.getElementById('sharePanel').remove(), 2000);
+    } else {
+      msg.style.color = '#dc2626';
+      msg.textContent = '❌ ' + res.error;
+    }
+  } catch(e) {
+    msg.style.color = '#dc2626';
+    msg.textContent = '❌ Erreur: ' + e.message;
+  }
+}
+
+async function openSharedWithMe() {
+  const res = await fetch('/shared-patients').then(r => r.json());
+  
+  let panel = document.getElementById('sharedPanel');
+  if (panel) { panel.remove(); }
+  
+  panel = document.createElement('div');
+  panel.id = 'sharedPanel';
+  panel.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--bg);border:1px solid var(--bd);border-radius:14px;z-index:9999;box-shadow:0 16px 48px rgba(0,0,0,0.2);width:480px;max-width:95vw;max-height:80vh;overflow:hidden;display:flex;flex-direction:column';
+  
+  const rows = res.length ? res.map(p => `
+    <div style="padding:12px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:13px;font-weight:600">${p.nom} ${p.prenom}</div>
+        <div style="font-size:11px;color:var(--mu)">${p.diagnostic || 'Pas de diagnostic'} · Partagé par ${p.owner}</div>
+      </div>
+      <button onclick="loadTrajectory(${p.id},'${p.nom} ${p.prenom}');document.getElementById('sharedPanel').remove();showSec('trajectory')"
+        style="padding:6px 12px;border-radius:6px;border:none;background:#0891b2;color:white;font-size:11px;cursor:pointer">Voir</button>
+    </div>`).join('') 
+    : '<div style="padding:24px;text-align:center;color:var(--mu)">Aucun dossier partagé avec vous.</div>';
+  
+  panel.innerHTML = `
+    <div style="padding:16px 20px;border-bottom:1px solid var(--bd);background:var(--s2);display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:15px;font-weight:700">👥 Dossiers partagés avec moi (${res.length})</div>
+      <button onclick="document.getElementById('sharedPanel').remove()" style="background:none;border:none;cursor:pointer;font-size:20px">×</button>
+    </div>
+    <div style="overflow-y:auto;flex:1">${rows}</div>`;
+  
+  document.body.appendChild(panel);
+}
 </script>
 </body>
 </html>

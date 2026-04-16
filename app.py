@@ -1235,6 +1235,112 @@ def rapport_complet(pid):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+@app.route('/patients/<int:pid>/share', methods=['POST'])
+@login_required
+def share_patient(pid):
+    """Partager un dossier patient avec un collègue par email"""
+    try:
+        uid = session['user_id']
+        conn, _db = get_conn()
+        cur = conn.cursor()
+        ph = "%s" if _db == "pg" else "?"
+        
+        # Vérifier que le patient appartient à l'utilisateur
+        cur.execute(f"SELECT nom, prenom FROM patients WHERE id={ph} AND user_id={ph}", (pid, uid))
+        patient = cur.fetchone()
+        if not patient:
+            conn.close()
+            return jsonify({"success": False, "error": "Patient non trouvé"}), 404
+        
+        data = request.json or {}
+        target_email = data.get('email', '').strip().lower()
+        
+        if not target_email:
+            conn.close()
+            return jsonify({"success": False, "error": "Email requis"})
+        
+        # Trouver l'utilisateur cible
+        cur.execute(f"SELECT id, name FROM users WHERE email={ph}", (target_email,))
+        target_user = cur.fetchone()
+        
+        if not target_user:
+            conn.close()
+            return jsonify({"success": False, "error": "Utilisateur non trouvé sur SenGenoScope"})
+        
+        target_uid = target_user[0]
+        target_name = target_user[1]
+        
+        if target_uid == uid:
+            conn.close()
+            return jsonify({"success": False, "error": "Vous ne pouvez pas partager avec vous-même"})
+        
+        # Créer table shared_patients si nécessaire
+        if _db == "pg":
+            cur.execute("""CREATE TABLE IF NOT EXISTS shared_patients (
+                id SERIAL PRIMARY KEY,
+                patient_id INTEGER NOT NULL,
+                owner_id INTEGER NOT NULL,
+                shared_with INTEGER NOT NULL,
+                shared_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(patient_id, shared_with)
+            )""")
+        else:
+            cur.execute("""CREATE TABLE IF NOT EXISTS shared_patients (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                patient_id INTEGER NOT NULL,
+                owner_id INTEGER NOT NULL,
+                shared_with INTEGER NOT NULL,
+                shared_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(patient_id, shared_with)
+            )""")
+        
+        # Partager
+        try:
+            cur.execute(f"INSERT INTO shared_patients (patient_id, owner_id, shared_with) VALUES ({ph},{ph},{ph})",
+                (pid, uid, target_uid))
+        except Exception:
+            pass  # Déjà partagé
+        
+        conn.commit()
+        conn.close()
+        
+        nom_complet = f"{patient[0]} {patient[1] or ''}".strip()
+        return jsonify({
+            "success": True,
+            "message": f"Dossier de {nom_complet} partagé avec {target_name}"
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/shared-patients', methods=['GET'])
+@login_required
+def get_shared_patients():
+    """Récupérer les dossiers partagés avec moi"""
+    try:
+        uid = session['user_id']
+        conn, _db = get_conn()
+        cur = conn.cursor()
+        ph = "%s" if _db == "pg" else "?"
+        
+        cur.execute(f"""SELECT p.id, p.nom, p.prenom, p.diagnostic, u.name as owner_name, sp.shared_at
+            FROM shared_patients sp
+            JOIN patients p ON p.id = sp.patient_id
+            JOIN users u ON u.id = sp.owner_id
+            WHERE sp.shared_with={ph}
+            ORDER BY sp.shared_at DESC""", (uid,))
+        
+        rows = cur.fetchall()
+        conn.close()
+        
+        return jsonify([{
+            "id": r[0], "nom": r[1], "prenom": r[2] or "",
+            "diagnostic": r[3] or "", "owner": r[4],
+            "shared_at": str(r[5])
+        } for r in rows])
+    except Exception as e:
+        return jsonify([])
+
 @app.route("/stats")
 def stats():
     record_search("", [])  # ping stats
