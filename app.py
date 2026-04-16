@@ -2391,59 +2391,40 @@ def admin_logout():
 @app.route("/admin")
 @admin_required
 def admin_dashboard():
-    from datetime import datetime
+    import urllib.request as _ur, json as _json
+    SUPA_URL = "https://rfbayzcgceiyxdmxaoml.supabase.co"
+    SUPA_KEY = os.environ.get("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmYmF5emNnY2VpeXhkbXhhb21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0MzExNDMsImV4cCI6MjA5MTAwNzE0M30.ydhV6XhQowpGWoarjVfDz25kIFLrXr2UxkEWRXiLz70")
+    hdrs = {"apikey": SUPA_KEY, "Authorization": f"Bearer {SUPA_KEY}"}
+    
     try:
-        from supabase_client import get_supabase
-        sb = get_supabase()
-        
-        # Lire utilisateurs depuis Supabase user_profiles
-        users_res = sb.table('user_profiles').select('*').order('created_at', desc=True).execute()
-        users = users_res.data or []
-        
-        # Stats
-        from datetime import date
-        today = date.today().isoformat()
-        new_today = sum(1 for u in users if u.get('created_at','').startswith(today))
-        total = len(users)
-        
-        # Connexions récentes depuis login_logs si disponible
-        try:
-            logs_res = sb.table('login_logs').select('*').order('login_at', desc=True).limit(50).execute()
-            logs = logs_res.data or []
-            logins_today = sum(1 for l in logs if l.get('login_at','').startswith(today))
-        except:
-            logs = []
-            logins_today = 0
-
-    except Exception as e:
+        req = _ur.Request(f"{SUPA_URL}/rest/v1/user_profiles?select=*&order=created_at.desc", headers=hdrs)
+        with _ur.urlopen(req) as r:
+            users = _json.loads(r.read())
+    except:
         users = []
-        logs = []
-        total = new_today = logins_today = 0
+    
+    try:
+        req2 = _ur.Request(f"{SUPA_URL}/rest/v1/institutions?select=*", headers=hdrs)
+        with _ur.urlopen(req2) as r:
+            insts = {i['id']: i['name'] for i in _json.loads(r.read())}
+    except:
+        insts = {}
 
-    # Construire tableau HTML utilisateurs
+    from datetime import date
+    today = date.today().isoformat()
+    total = len(users)
+    new_today = sum(1 for u in users if str(u.get('created_at','')).startswith(today))
+
     rows = ""
     for i, u in enumerate(users, 1):
-        name = u.get('full_name') or u.get('name') or '—'
-        institution = u.get('institution') or '—'
-        email = u.get('email') or '—'
-        created = str(u.get('created_at','—'))[:10]
-        last_login = str(u.get('last_login') or u.get('updated_at','—'))[:10]
-        rows += f"""<tr style="border-bottom:1px solid #e5e7eb">
-            <td style="padding:10px 12px;color:#6b7280">{i}</td>
-            <td style="padding:10px 12px;font-weight:500">{name}</td>
-            <td style="padding:10px 12px;color:#6b7280">{institution}</td>
-            <td style="padding:10px 12px;color:#0891b2">{email}</td>
-            <td style="padding:10px 12px;color:#6b7280">{created}</td>
-            <td style="padding:10px 12px;color:#6b7280">{last_login}</td>
-        </tr>"""
-
-    log_rows = ""
-    for l in logs[:50]:
-        log_rows += f"""<tr style="border-bottom:1px solid #e5e7eb">
-            <td style="padding:8px 12px;color:#6b7280">{str(l.get('login_at',''))[:19]}</td>
-            <td style="padding:8px 12px;font-weight:500">{l.get('name') or '—'}</td>
-            <td style="padding:8px 12px;color:#0891b2">{l.get('email') or '—'}</td>
-            <td style="padding:8px 12px;color:#6b7280">{l.get('ip_address') or '—'}</td>
+        inst_name = insts.get(u.get('institution_id'), '—')
+        rows += f"""<tr>
+            <td>{i}</td>
+            <td><strong>{u.get('full_name','—')}</strong></td>
+            <td>{inst_name}</td>
+            <td style="color:#0891b2">{u.get('email','—')}</td>
+            <td>{u.get('specialty') or '—'}</td>
+            <td>{str(u.get('created_at','—'))[:10]}</td>
         </tr>"""
 
     return f"""<!DOCTYPE html>
@@ -2451,57 +2432,50 @@ def admin_dashboard():
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>SenGenoScope — Admin</title>
+<title>SenGenoScope Admin</title>
 <style>
-  * {{ box-sizing:border-box; margin:0; padding:0; }}
-  body {{ font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:#f3f4f6; color:#111827; }}
-  .header {{ background:#0e7490; color:white; padding:16px 32px; display:flex; justify-content:space-between; align-items:center; }}
-  .header h1 {{ font-size:20px; font-weight:700; }}
-  .signout {{ background:rgba(255,255,255,0.2); color:white; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; font-size:13px; }}
-  .container {{ max-width:1200px; margin:32px auto; padding:0 24px; }}
-  .kpi-grid {{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:32px; }}
-  .kpi {{ background:white; border-radius:12px; padding:24px; box-shadow:0 1px 3px rgba(0,0,0,.1); }}
-  .kpi .num {{ font-size:36px; font-weight:700; color:#0e7490; }}
-  .kpi .lbl {{ font-size:13px; color:#6b7280; margin-top:4px; }}
-  .card {{ background:white; border-radius:12px; padding:24px; box-shadow:0 1px 3px rgba(0,0,0,.1); margin-bottom:24px; }}
-  .card h2 {{ font-size:16px; font-weight:600; margin-bottom:16px; }}
-  table {{ width:100%; border-collapse:collapse; }}
-  th {{ text-align:left; padding:10px 12px; font-size:12px; font-weight:600; color:#6b7280; text-transform:uppercase; border-bottom:2px solid #e5e7eb; }}
-  tr:hover {{ background:#f9fafb; }}
-  @media(max-width:768px) {{ .kpi-grid {{ grid-template-columns:repeat(2,1fr); }} }}
+* {{ box-sizing:border-box; margin:0; padding:0; }}
+body {{ font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:#f3f4f6; color:#111827; }}
+.header {{ background:linear-gradient(135deg,#0e7490,#0891b2); color:white; padding:16px 32px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 8px rgba(0,0,0,.2); }}
+.header h1 {{ font-size:20px; font-weight:700; }}
+.container {{ max-width:1200px; margin:32px auto; padding:0 24px; }}
+.kpi-grid {{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:32px; }}
+.kpi {{ background:white; border-radius:12px; padding:28px 24px; box-shadow:0 1px 4px rgba(0,0,0,.08); border-left:4px solid #0891b2; }}
+.kpi .num {{ font-size:42px; font-weight:700; color:#0891b2; }}
+.kpi .lbl {{ font-size:13px; color:#6b7280; margin-top:6px; font-weight:500; }}
+.card {{ background:white; border-radius:12px; padding:24px; box-shadow:0 1px 4px rgba(0,0,0,.08); margin-bottom:24px; }}
+.card h2 {{ font-size:16px; font-weight:600; margin-bottom:16px; color:#111827; }}
+table {{ width:100%; border-collapse:collapse; }}
+th {{ text-align:left; padding:10px 14px; font-size:11px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:.05em; border-bottom:2px solid #e5e7eb; background:#f9fafb; }}
+td {{ padding:12px 14px; font-size:13px; border-bottom:1px solid #f3f4f6; }}
+tr:hover td {{ background:#f9fafb; }}
+.badge {{ display:inline-block; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; background:#e0f2fe; color:#0369a1; }}
+a.signout {{ background:rgba(255,255,255,0.2); color:white; padding:8px 18px; border-radius:8px; font-size:13px; text-decoration:none; font-weight:500; }}
+a.signout:hover {{ background:rgba(255,255,255,0.3); }}
+@media(max-width:768px) {{ .kpi-grid {{ grid-template-columns:1fr 1fr; }} }}
 </style>
 </head>
 <body>
 <div class="header">
   <h1>🧬 SenGenoScope — Admin Dashboard</h1>
   <div style="display:flex;align-items:center;gap:16px">
-    <span style="font-size:14px">Dr. Moustapha Gassama</span>
-    <a href="/admin/logout" style="background:rgba(255,255,255,0.2);color:white;border:none;padding:8px 16px;border-radius:8px;font-size:13px;text-decoration:none">Sign out</a>
+    <span style="font-size:14px;opacity:.9">Dr. Moustapha Gassama</span>
+    <a href="/admin/logout" class="signout">Déconnexion</a>
   </div>
 </div>
 <div class="container">
   <div class="kpi-grid">
-    <div class="kpi"><div class="num">{total}</div><div class="lbl">Total users</div></div>
-    <div class="kpi"><div class="num">{new_today}</div><div class="lbl">New today</div></div>
-    <div class="kpi"><div class="num">{logins_today}</div><div class="lbl">Logins today</div></div>
-    <div class="kpi"><div class="num">{len(logs)}</div><div class="lbl">Recent connections</div></div>
+    <div class="kpi"><div class="num">{total}</div><div class="lbl">👥 Utilisateurs inscrits</div></div>
+    <div class="kpi"><div class="num">{new_today}</div><div class="lbl">🆕 Nouveaux aujourd'hui</div></div>
+    <div class="kpi"><div class="num">{len(insts)}</div><div class="lbl">🏥 Institutions</div></div>
   </div>
   <div class="card">
-    <h2>👥 Registered users ({total})</h2>
+    <h2>👥 Tous les utilisateurs inscrits ({total})</h2>
     <table>
       <thead><tr>
-        <th>#</th><th>Name</th><th>Institution</th><th>Email</th><th>Registered</th><th>Last login</th>
+        <th>#</th><th>Nom</th><th>Institution</th><th>Email</th><th>Spécialité</th><th>Inscrit le</th>
       </tr></thead>
-      <tbody>{rows if rows else '<tr><td colspan="6" style="padding:24px;text-align:center;color:#6b7280">No users found in Supabase</td></tr>'}</tbody>
-    </table>
-  </div>
-  <div class="card">
-    <h2>📋 Recent connections (last 50)</h2>
-    <table>
-      <thead><tr>
-        <th>Date &amp; time</th><th>Name</th><th>Email</th><th>IP address</th>
-      </tr></thead>
-      <tbody>{log_rows if log_rows else '<tr><td colspan="4" style="padding:24px;text-align:center;color:#6b7280">No login logs available</td></tr>'}</tbody>
+      <tbody>{rows if rows else '<tr><td colspan="6" style="padding:24px;text-align:center;color:#9ca3af">Aucun utilisateur</td></tr>'}</tbody>
     </table>
   </div>
 </div>
