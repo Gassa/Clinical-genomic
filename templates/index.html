@@ -2153,7 +2153,7 @@ CNV_data: PTEN del, RB1 del, CDKN2A del, ERBB2 amp..." style="width:100%;padding
       <div style="display:flex;gap:8px;margin-left:auto">
         <button id="pdfBtn" onclick="downloadPDF()" style="display:none;padding:6px 14px;border-radius:8px;border:none;background:#dc2626;color:white;font-size:12px;font-weight:500;cursor:pointer">📄 Exporter PDF</button>
         <button onclick="downloadRapportComplet()" style="padding:6px 14px;border-radius:8px;border:none;background:#7c3aed;color:white;font-size:12px;font-weight:500;cursor:pointer">📋 Rapport Complet</button>
-        <button onclick="openSharePatient(_trajectoryPatient, document.getElementById('trajectoryTitle') ? document.getElementById('trajectoryTitle').textContent : 'Patient')" style="padding:6px 14px;border-radius:8px;border:none;background:#0891b2;color:white;font-size:12px;font-weight:500;cursor:pointer">👥 Partager</button>
+        <button onclick="if(!_trajectoryPatient){alert('Sélectionnez un patient d\'abord');return;} openSharePatient(_trajectoryPatient, _trajectoryName || 'Patient')" style="padding:6px 14px;border-radius:8px;border:none;background:#0891b2;color:white;font-size:12px;font-weight:500;cursor:pointer">👥 Partager</button>
         <button onclick="showPatientSelectorForTrajectory()" style="padding:6px 14px;border-radius:8px;border:none;background:#0d9488;color:white;font-size:12px;font-weight:500;cursor:pointer">👤 Choisir un patient</button>
       </div>
     </div>
