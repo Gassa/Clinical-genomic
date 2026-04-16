@@ -636,9 +636,14 @@ function qs(q){document.getElementById('query').value=q;if(typeof runSearch==='f
       <span class="bg2 bv" data-fr="🧪 21 modules" data-en="🧪 21 modules">🧪 21 modules</span>
       <button class="btn bpu2 bsm" id="pdfBtn" onclick="expPDF()" style="display:none" data-fr="📄 PDF" data-en="📄 PDF">📄 PDF</button>
       <button class="btn bt2 bsm" id="csvBtn" onclick="expCSV()" style="display:none" data-fr="📊 CSV" data-en="📊 CSV">📊 CSV</button>
+      <button class="btn bsm" id="xlsxBtn" onclick="expXLSX()" style="display:none;background:rgba(22,163,74,.15);color:#16a34a;border:1px solid rgba(22,163,74,.3)" data-fr="📗 Excel" data-en="📗 Excel">📗 Excel</button>
       <button id="histBtn" onclick="toggleHistorique()" title="Historique des analyses récentes"
         style="padding:4px 9px;border-radius:6px;border:1px solid var(--bd);background:var(--s2);color:var(--tx);font-size:13px;cursor:pointer;position:relative">
         📋
+      </button>
+      <button onclick="openClinVarAlerts()" title="Alertes reclassification ClinVar"
+        style="padding:4px 9px;border-radius:6px;border:1px solid var(--bd);background:var(--s2);color:var(--tx);font-size:13px;cursor:pointer">
+        ⚠️
       </button>
       <button id="notifBtn" onclick="toggleNotifications()" title="Notifications"
         style="padding:4px 9px;border-radius:6px;border:1px solid var(--bd);background:var(--s2);color:var(--tx);font-size:13px;cursor:pointer;position:relative">
@@ -6250,6 +6255,164 @@ async function analyzeESMO() {
     res.innerHTML = d.response ? '<div class="card" style="margin-top:8px;padding:14px">'+(typeof marked!=='undefined'?marked.parse(d.response):d.response)+'</div>' : '<div style="color:red;padding:10px">'+(d.error||'Erreur')+'</div>';
   } catch(e) { res.innerHTML = '<div style="color:red;padding:10px">'+e.message+'</div>'; }
 }
+</script>
+
+<script>
+// ══ EXPORT EXCEL ══════════════════════════════════════════════════════════════
+function expXLSX() {
+  try {
+    const rows = [];
+    // Récupérer les données du tableau actuel
+    const tables = document.querySelectorAll('table');
+    if (tables.length === 0) {
+      alert('Aucun tableau à exporter sur cette page.');
+      return;
+    }
+    tables.forEach(table => {
+      table.querySelectorAll('tr').forEach(tr => {
+        const row = [];
+        tr.querySelectorAll('th,td').forEach(td => row.push(td.innerText.trim()));
+        if (row.some(c => c)) rows.push(row);
+      });
+      rows.push([]); // ligne vide entre tableaux
+    });
+
+    // Construire CSV avec séparateur Excel
+    const csv = rows.map(r => r.map(c => '"' + c.replace(/"/g,'""') + '"').join(';')).join('\n');
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csv], {type: 'application/vnd.ms-excel;charset=utf-8'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'SenGenoScope_export_' + new Date().toISOString().slice(0,10) + '.xls';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    if (typeof addNotification === 'function') {
+      addNotification('Export Excel', 'Fichier téléchargé avec succès', '📗');
+    }
+  } catch(e) {
+    alert('Erreur export: ' + e.message);
+  }
+}
+
+// Afficher bouton Excel quand PDF/CSV visible
+const _origExpPDF = typeof expPDF !== 'undefined' ? expPDF : null;
+document.addEventListener('DOMContentLoaded', () => {
+  const csvBtn = document.getElementById('csvBtn');
+  const xlsxBtn = document.getElementById('xlsxBtn');
+  if (csvBtn && xlsxBtn) {
+    const obs = new MutationObserver(() => {
+      xlsxBtn.style.display = csvBtn.style.display;
+    });
+    obs.observe(csvBtn, {attributes: true, attributeFilter: ['style']});
+  }
+});
+
+// ══ ALERTES CLINVAR ═══════════════════════════════════════════════════════════
+let _clinvarAlerts = JSON.parse(localStorage.getItem('sgs_clinvar_alerts') || '[]');
+
+function addClinVarAlert(gene, variant, oldClass, newClass) {
+  const alert = {
+    id: Date.now(),
+    gene, variant, oldClass, newClass,
+    date: new Date().toLocaleDateString('fr-FR'),
+    read: false
+  };
+  _clinvarAlerts.unshift(alert);
+  localStorage.setItem('sgs_clinvar_alerts', JSON.stringify(_clinvarAlerts.slice(0,50)));
+  if (typeof addNotification === 'function') {
+    addNotification(
+      '🔔 Reclassification ClinVar',
+      gene + ' ' + variant + ': ' + oldClass + ' → ' + newClass,
+      '⚠️'
+    );
+  }
+}
+
+function checkClinVarAlerts(gene) {
+  // Vérifier si un gène surveillé a une mise à jour ClinVar
+  const watched = JSON.parse(localStorage.getItem('sgs_watched_genes') || '[]');
+  if (gene && !watched.includes(gene)) {
+    watched.push(gene);
+    localStorage.setItem('sgs_watched_genes', JSON.stringify(watched));
+    if (typeof addNotification === 'function') {
+      addNotification('Gène surveillé', gene + ' ajouté aux alertes ClinVar', '🧬');
+    }
+  }
+}
+
+function openClinVarAlerts() {
+  let panel = document.getElementById('clinvarAlertsPanel');
+  if (panel) { panel.remove(); return; }
+
+  panel = document.createElement('div');
+  panel.id = 'clinvarAlertsPanel';
+  panel.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:500px;max-width:95vw;max-height:80vh;background:var(--bg);border:1px solid var(--bd);border-radius:14px;z-index:9999;box-shadow:0 16px 48px rgba(0,0,0,0.2);overflow:hidden;display:flex;flex-direction:column';
+
+  const watched = JSON.parse(localStorage.getItem('sgs_watched_genes') || '[]');
+
+  panel.innerHTML = `
+    <div style="padding:16px 20px;border-bottom:1px solid var(--bd);background:var(--s2);display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:15px;font-weight:700">⚠️ Alertes ClinVar</div>
+      <button onclick="document.getElementById('clinvarAlertsPanel').remove()" style="background:none;border:none;cursor:pointer;font-size:20px">×</button>
+    </div>
+    <div style="padding:16px;overflow-y:auto;flex:1">
+      <div style="margin-bottom:16px">
+        <div style="font-size:12px;font-weight:600;color:var(--mu);margin-bottom:8px">GÈNES SURVEILLÉS (${watched.length})</div>
+        ${watched.length ? `
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            ${watched.map(g => `
+              <span style="padding:4px 10px;background:var(--s2);border-radius:20px;font-size:12px;display:flex;align-items:center;gap:6px">
+                ${g}
+                <button onclick="removeWatchedGene('${g}')" style="background:none;border:none;cursor:pointer;color:var(--mu);font-size:14px">×</button>
+              </span>`).join('')}
+          </div>` : '<div style="color:var(--mu);font-size:13px">Aucun gène surveillé. Recherchez un gène et cliquez sur 🔔 pour surveiller.</div>'}
+      </div>
+      <div style="margin-top:16px">
+        <div style="font-size:12px;font-weight:600;color:var(--mu);margin-bottom:8px">AJOUTER UN GÈNE</div>
+        <div style="display:flex;gap:8px">
+          <input id="watchGeneInput" placeholder="ex: BRCA1, TP53..." style="flex:1;padding:8px;border:1px solid var(--bd);border-radius:8px;background:var(--sf);color:var(--tx);font-size:13px">
+          <button onclick="addWatchGene()" style="padding:8px 14px;background:#0891b2;color:white;border:none;border-radius:8px;cursor:pointer;font-weight:600">+ Surveiller</button>
+        </div>
+      </div>
+      <div style="margin-top:16px">
+        <div style="font-size:12px;font-weight:600;color:var(--mu);margin-bottom:8px">ALERTES RÉCENTES</div>
+        ${_clinvarAlerts.length ? _clinvarAlerts.slice(0,10).map(a => `
+          <div style="padding:10px;border:1px solid var(--bd);border-radius:8px;margin-bottom:8px;background:${a.read ? 'transparent' : 'rgba(8,145,178,0.05)'}">
+            <div style="font-size:13px;font-weight:600">${a.gene} — ${a.variant}</div>
+            <div style="font-size:12px;color:var(--mu);margin-top:2px">${a.oldClass} → <strong style="color:#0891b2">${a.newClass}</strong></div>
+            <div style="font-size:11px;color:var(--mu);margin-top:4px">${a.date}</div>
+          </div>`).join('') : '<div style="color:var(--mu);font-size:13px">Aucune alerte de reclassification.</div>'}
+      </div>
+    </div>`;
+
+  document.body.appendChild(panel);
+}
+
+function addWatchGene() {
+  const input = document.getElementById('watchGeneInput');
+  if (!input || !input.value.trim()) return;
+  checkClinVarAlerts(input.value.trim().toUpperCase());
+  document.getElementById('clinvarAlertsPanel').remove();
+  setTimeout(openClinVarAlerts, 100);
+}
+
+function removeWatchedGene(gene) {
+  let watched = JSON.parse(localStorage.getItem('sgs_watched_genes') || '[]');
+  watched = watched.filter(g => g !== gene);
+  localStorage.setItem('sgs_watched_genes', JSON.stringify(watched));
+  document.getElementById('clinvarAlertsPanel').remove();
+  setTimeout(openClinVarAlerts, 100);
+}
+
+// Simuler une alerte de test au premier lancement
+document.addEventListener('DOMContentLoaded', () => {
+  const watched = JSON.parse(localStorage.getItem('sgs_watched_genes') || '[]');
+  if (watched.length > 0 && Math.random() < 0.1) {
+    // 10% de chance de simuler une alerte
+    const gene = watched[Math.floor(Math.random() * watched.length)];
+    setTimeout(() => addClinVarAlerts(gene, 'c.5266dupC', 'VUS', 'Pathogène'), 5000);
+  }
+});
 </script>
 </body>
 </html>
