@@ -3,6 +3,7 @@ app.py — SenGenoScope v1.0
 Flask backend complet — sans clé API Claude requise
 """
 import logging
+import threading
 from flask import Flask, render_template, request, jsonify, send_file, Response, session, redirect, url_for
 try:
     from flask_wtf.csrf import CSRFProtect
@@ -310,6 +311,33 @@ def db_lastrowid(cur, conn, db_type):
         return cur.fetchone()[0]
     return cur.lastrowid
 
+
+def send_email(to_email, subject, body_html):
+    """Envoie un email à n'importe quel utilisateur."""
+    smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
+    smtp_port = int(os.environ.get("SMTP_PORT", "587"))
+    smtp_user = os.environ.get("SMTP_USER", "")
+    smtp_pass = os.environ.get("SMTP_PASS", "")
+    if not smtp_user or not smtp_pass:
+        logging.info(f"[EMAIL] Non configuré — à: {to_email}, sujet: {subject}")
+        return False
+    try:
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+        msg = MIMEMultipart("alternative")
+        msg["From"] = f"SenGenoScope <{smtp_user}>"
+        msg["To"] = to_email
+        msg["Subject"] = f"🧬 SenGenoScope — {subject}"
+        msg.attach(MIMEText(body_html, "html"))
+        with smtplib.SMTP(smtp_host, smtp_port) as server:
+            server.starttls()
+            server.login(smtp_user, smtp_pass)
+            server.sendmail(smtp_user, to_email, msg.as_string())
+        logging.info(f"[EMAIL] Envoyé à {to_email}: {subject}")
+        return True
+    except Exception as e:
+        logging.error(f"[EMAIL] Erreur: {e}")
+        return False
 
 def send_admin_email(subject, body):
     """Envoie un email d'alerte à l'admin."""
@@ -1306,6 +1334,47 @@ def share_patient(pid):
         conn.close()
         
         nom_complet = f"{patient[0]} {patient[1] or ''}".strip()
+        
+        # Envoyer email de notification
+        owner_name = session.get('user_name', 'Un collègue')
+        body_html = f"""
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
+            <div style="background:#0891b2;color:white;padding:20px;border-radius:12px 12px 0 0;text-align:center">
+                <h1 style="margin:0;font-size:24px">🧬 SenGenoScope</h1>
+            </div>
+            <div style="background:#f9fafb;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e5e7eb">
+                <h2 style="color:#111827">Dossier patient partagé</h2>
+                <p style="color:#6b7280;margin:12px 0">
+                    <strong>{owner_name}</strong> vous a partagé le dossier de 
+                    <strong>{nom_complet}</strong> sur SenGenoScope.
+                </p>
+                <div style="background:white;border-radius:8px;padding:16px;border:1px solid #e5e7eb;margin:16px 0">
+                    <div style="font-size:13px;color:#6b7280">Patient</div>
+                    <div style="font-size:16px;font-weight:600;color:#111827">{nom_complet}</div>
+                </div>
+                <a href="https://clinical-genomic.onrender.com/app" 
+                   style="display:inline-block;background:#0891b2;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;margin-top:8px">
+                    Voir le dossier →
+                </a>
+                <p style="color:#9ca3af;font-size:12px;margin-top:24px">
+                    SenGenoScope — Plateforme d'oncogénomique clinique
+                </p>
+            </div>
+        </div>"""
+        
+        # Récupérer email du destinataire
+        try:
+            cur.execute(f"SELECT email FROM users WHERE id={ph}", (target_uid,))
+            target_email_row = cur.fetchone()
+            if target_email_row:
+                threading.Thread(target=send_email, args=(
+                    target_email_row[0],
+                    f"Dossier partagé par {owner_name}",
+                    body_html
+                ), daemon=True).start()
+        except Exception as em:
+            logging.warning(f"Email partage: {em}")
+        
         return jsonify({
             "success": True,
             "message": f"Dossier de {nom_complet} partagé avec {target_name}"
@@ -1340,6 +1409,86 @@ def get_shared_patients():
         } for r in rows])
     except Exception as e:
         return jsonify([])
+
+
+@app.route('/notify/clinvar', methods=['POST'])
+@login_required  
+def notify_clinvar():
+    """Envoyer alertes ClinVar aux utilisateurs qui surveillent un gène."""
+    data = request.json or {}
+    gene = data.get('gene', '')
+    variant = data.get('variant', '')
+    old_class = data.get('old_class', '')
+    new_class = data.get('new_class', '')
+    
+    if not gene:
+        return jsonify({"success": False, "error": "Gène requis"})
+    
+    # Récupérer tous les utilisateurs depuis Supabase
+    import urllib.request as _ur, json as _json
+    SUPA_URL = "https://rfbayzcgceiyxdmxaoml.supabase.co"
+    SUPA_KEY = os.environ.get("SUPABASE_KEY", "")
+    hdrs = {"apikey": SUPA_KEY, "Authorization": f"Bearer {SUPA_KEY}"}
+    
+    try:
+        req = _ur.Request(f"{SUPA_URL}/rest/v1/user_profiles?select=email,full_name", headers=hdrs)
+        with _ur.urlopen(req) as r:
+            users = _json.loads(r.read())
+    except:
+        users = []
+    
+    sent = 0
+    for u in users:
+        email = u.get('email', '')
+        name = u.get('full_name', 'Dr.')
+        if not email:
+            continue
+        
+        body_html = f"""
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
+            <div style="background:#dc2626;color:white;padding:20px;border-radius:12px 12px 0 0;text-align:center">
+                <h1 style="margin:0;font-size:24px">⚠️ Alerte ClinVar</h1>
+            </div>
+            <div style="background:#f9fafb;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e5e7eb">
+                <h2 style="color:#111827">Reclassification de variant détectée</h2>
+                <p style="color:#6b7280">Bonjour {name},</p>
+                <p style="color:#6b7280;margin:12px 0">
+                    Une reclassification importante a été détectée sur ClinVar pour un gène que vous surveillez.
+                </p>
+                <div style="background:white;border-radius:8px;padding:16px;border:2px solid #dc2626;margin:16px 0">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                        <div><div style="font-size:11px;color:#6b7280;text-transform:uppercase">Gène</div>
+                        <div style="font-size:18px;font-weight:700;color:#111827">{gene}</div></div>
+                        <div><div style="font-size:11px;color:#6b7280;text-transform:uppercase">Variant</div>
+                        <div style="font-size:14px;font-weight:600;color:#111827">{variant}</div></div>
+                        <div><div style="font-size:11px;color:#6b7280;text-transform:uppercase">Ancienne classe</div>
+                        <div style="font-size:14px;color:#6b7280">{old_class}</div></div>
+                        <div><div style="font-size:11px;color:#6b7280;text-transform:uppercase">Nouvelle classe</div>
+                        <div style="font-size:14px;font-weight:700;color:#dc2626">{new_class}</div></div>
+                    </div>
+                </div>
+                <a href="https://www.ncbi.nlm.nih.gov/clinvar/?term={gene}" 
+                   style="display:inline-block;background:#dc2626;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;margin-right:8px">
+                    Voir sur ClinVar →
+                </a>
+                <a href="https://clinical-genomic.onrender.com/app" 
+                   style="display:inline-block;background:#0891b2;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">
+                    Ouvrir SenGenoScope →
+                </a>
+                <p style="color:#9ca3af;font-size:12px;margin-top:24px">
+                    SenGenoScope — Alertes automatiques ClinVar
+                </p>
+            </div>
+        </div>"""
+        
+        threading.Thread(target=send_email, args=(
+            email,
+            f"⚠️ Reclassification ClinVar: {gene} {variant} → {new_class}",
+            body_html
+        ), daemon=True).start()
+        sent += 1
+    
+    return jsonify({"success": True, "sent": sent, "message": f"Alertes envoyées à {sent} utilisateurs"})
 
 @app.route("/stats")
 def stats():
