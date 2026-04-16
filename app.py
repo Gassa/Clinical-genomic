@@ -1412,8 +1412,11 @@ def get_shared_patients():
 
 
 @app.route('/notify/clinvar', methods=['POST'])
-@login_required  
 def notify_clinvar():
+    # Vérifier clé admin
+    key = request.json.get('admin_key', '') if request.json else ''
+    if key != os.environ.get('ADMIN_PASSWORD', 'SenGeno2026!'):
+        return jsonify({"error": "Non autorisé"}), 403
     """Envoyer alertes ClinVar aux utilisateurs qui surveillent un gène."""
     data = request.json or {}
     gene = data.get('gene', '')
