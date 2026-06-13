@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dépistage hépatite B — SenGenoScope</title>
+<style>
+  :root {
+    --teal: #0F766E;
+    --teal-dark: #0D5F58;
+    --teal-light: #14B8A6;
+    --bg: #F8FAFC;
+    --card: #FFFFFF;
+    --text: #1F2937;
+    --text-muted: #6B7280;
+    --border: #E5E7EB;
+    --urgent: #B91C1C;
+    --priority: #B45309;
+    --recommended: #92400E;
+    --standard: #1F7A1F;
+    --shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 20px;
+  }
+  .container { max-width: 800px; margin: 0 auto; }
+  .header {
+    background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%);
+    color: white;
+    padding: 24px;
+    border-radius: 12px 12px 0 0;
+    box-shadow: var(--shadow);
+  }
+  .header h1 { font-size: 24px; margin-bottom: 8px; }
+  .header p { opacity: 0.9; font-size: 14px; }
+  .card {
+    background: var(--card);
+    padding: 28px;
+    border-radius: 0 0 12px 12px;
+    box-shadow: var(--shadow);
+    margin-bottom: 20px;
+  }
+  .step { display: none; }
+  .step.active { display: block; }
+  h2 { color: var(--teal); margin-bottom: 16px; font-size: 20px; }
+  h3 { color: var(--text); margin: 20px 0 12px 0; font-size: 16px; }
+  p { margin-bottom: 12px; color: var(--text); }
+  .question {
+    background: #F9FAFB;
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    border-left: 3px solid var(--teal);
+  }
+  .question label { display: block; font-weight: 600; margin-bottom: 12px; }
+  .options { display: flex; flex-direction: column; gap: 8px; }
+  .options label.opt {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: normal;
+    transition: all 0.15s;
+  }
+  .options label.opt:hover { border-color: var(--teal); background: #F0FDFA; }
+  .options input[type=radio] { accent-color: var(--teal); }
+  .options input[type=radio]:checked + span { color: var(--teal); font-weight: 600; }
+  select, input[type=number] {
+    width: 100%; padding: 10px 14px;
+    border: 1px solid var(--border); border-radius: 6px;
+    font-size: 14px; font-family: inherit;
+  }
+  select:focus, input:focus { outline: 2px solid var(--teal); outline-offset: -1px; border-color: var(--teal); }
+  .actions { display: flex; gap: 12px; margin-top: 24px; justify-content: space-between; }
+  .btn {
+    padding: 12px 24px; border: none; border-radius: 8px;
+    font-size: 15px; font-weight: 600; cursor: pointer;
+    transition: all 0.15s; font-family: inherit;
+  }
+  .btn-primary { background: var(--teal); color: white; }
+  .btn-primary:hover { background: var(--teal-dark); }
+  .btn-secondary { background: #F3F4F6; color: var(--text); }
+  .btn-secondary:hover { background: #E5E7EB; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .progress {
+    height: 6px; background: #E5E7EB; border-radius: 3px;
+    overflow: hidden; margin: 16px 0;
+  }
+  .progress-bar { height: 100%; background: var(--teal); transition: width 0.3s; }
+  .disclaimer {
+    background: #FEF2F2;
+    border-left: 4px solid var(--urgent);
+    padding: 14px 18px;
+    border-radius: 6px;
+    margin: 16px 0;
+    font-size: 13px;
+    color: #7F1D1D;
+  }
+  .info-box {
+    background: #F0FDFA;
+    border-left: 4px solid var(--teal);
+    padding: 14px 18px;
+    border-radius: 6px;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  .profile-choice {
+    display: grid; grid-template-columns: 1fr; gap: 12px;
+    margin: 20px 0;
+  }
+  .profile-card {
+    background: white; border: 2px solid var(--border);
+    border-radius: 10px; padding: 18px; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .profile-card:hover { border-color: var(--teal); transform: translateY(-2px); box-shadow: var(--shadow); }
+  .profile-card.selected { border-color: var(--teal); background: #F0FDFA; }
+  .profile-card .icon { font-size: 28px; margin-bottom: 8px; }
+  .profile-card h3 { margin: 0 0 4px 0; }
+  .profile-card p { font-size: 13px; color: var(--text-muted); margin: 0; }
+
+  .result-level {
+    padding: 24px; border-radius: 10px; margin-bottom: 20px;
+    color: white; text-align: center;
+  }
+  .result-level.urgent { background: var(--urgent); }
+  .result-level.priority { background: var(--priority); }
+  .result-level.recommended { background: var(--recommended); }
+  .result-level.standard { background: var(--standard); }
+  .result-level h2 { color: white; margin: 0; font-size: 26px; }
+  .result-level p { color: white; opacity: 0.95; margin: 8px 0 0 0; font-size: 15px; }
+  .recommendation {
+    background: white; border: 1px solid var(--border);
+    border-radius: 10px; padding: 20px; margin-bottom: 16px;
+  }
+  .recommendation h3 { margin-top: 0; color: var(--teal); }
+  .risk-factors {
+    background: #FFFBEB; border-left: 4px solid #F59E0B;
+    padding: 14px 18px; border-radius: 6px; margin: 16px 0;
+    font-size: 14px;
+  }
+  .risk-factors ul { margin-left: 20px; margin-top: 6px; }
+  .footer-disclaimer {
+    background: #F9FAFB; border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px; margin-top: 24px;
+    font-size: 12px; color: var(--text-muted);
+  }
+  .scientific-ref {
+    font-size: 11px; color: var(--text-muted);
+    margin-top: 8px; font-style: italic;
+  }
+  .badge {
+    display: inline-block; padding: 2px 8px;
+    border-radius: 4px; font-size: 11px;
+    font-weight: 600; margin-left: 8px;
+  }
+  @media (min-width: 640px) {
+    .profile-choice { grid-template-columns: 1fr 1fr 1fr; }
+  }
+  @media print {
+    body { background: white; padding: 0; }
+    .actions, .header { display: none; }
+    .card { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🩺 Dépistage clinique — Hépatite B</h1>
+    <p>Outil d'orientation et de stratification du risque · Contexte sénégalais</p>
+  </div>
+
+  <div class="card">
+
+    <!-- ÉTAPE 0 : CHOIX DU PROFIL -->
+    <div id="step-profile" class="step active">
+      <h2>Qui êtes-vous ?</h2>
+      <p>Cet outil adapte ses recommandations selon votre profil. Sélectionnez celui qui vous correspond.</p>
+      <div class="profile-choice">
+        <div class="profile-card" onclick="selectProfile('medecin')">
+          <div class="icon">👨‍⚕️</div>
+          <h3>Médecin</h3>
+          <p>Généraliste ou spécialiste, recommandations cliniques détaillées</p>
+        </div>
+        <div class="profile-card" onclick="selectProfile('asc')">
+          <div class="icon">🤝</div>
+          <h3>Agent de santé communautaire</h3>
+          <p>Messages d'orientation simplifiés</p>
+        </div>
+        <div class="profile-card" onclick="selectProfile('patient')">
+          <div class="icon">🙋</div>
+          <h3>Patient / Grand public</h3>
+          <p>Auto-évaluation, langage accessible</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ÉTAPE 1 : DISCLAIMER + CONSENTEMENT -->
+    <div id="step-consent" class="step">
+      <h2>Information importante</h2>
+      <div class="disclaimer">
+        <strong>⚠️ Cet outil ne pose AUCUN diagnostic médical.</strong><br>
+        Il propose une stratification du risque basée sur des facteurs publiés. Toute personne identifiée à risque, ou inquiète de ses symptômes, doit consulter un médecin pour une évaluation clinique complète et un test sérologique. Aucune décision thérapeutique ne doit reposer sur ses seuls résultats.
+      </div>
+      <div class="info-box">
+        <strong>Confidentialité :</strong> aucune donnée nominative ne vous sera demandée. Aucune information n'est stockée sur un serveur. Tout reste dans votre navigateur.
+      </div>
+      <p>En continuant, vous reconnaissez avoir compris ces limitations.</p>
+      <div class="actions">
+        <button class="btn btn-secondary" onclick="showStep('step-profile')">← Retour</button>
+        <button class="btn btn-primary" onclick="showStep('step-questions'); initProgress();">J'ai compris, continuer →</button>
+      </div>
+    </div>
+
+    <!-- ÉTAPE 2 : QUESTIONNAIRE -->
+    <div id="step-questions" class="step">
+      <h2 id="question-section-title">Questionnaire</h2>
+      <div class="progress"><div class="progress-bar" id="progress-bar" style="width: 0%"></div></div>
+      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+        Section <span id="current-section">1</span>/4 · Question <span id="current-q">1</span>/<span id="total-q">20</span>
+      </p>
+      <div id="questions-container"></div>
+      <div class="actions">
+        <button class="btn btn-secondary" id="btn-prev" onclick="prevQuestion()">← Précédent</button>
+        <button class="btn btn-primary" id="btn-next" onclick="nextQuestion()">Suivant →</button>
+      </div>
+    </div>
+
+    <!-- ÉTAPE 3 : RÉSULTAT -->
+    <div id="step-result" class="step">
+      <div id="result-content"></div>
+      <div class="actions">
+        <button class="btn btn-secondary" onclick="restart()">↻ Nouveau questionnaire</button>
+        <button class="btn btn-primary" onclick="window.print()">🖨️ Imprimer / PDF</button>
+      </div>
+      <div class="footer-disclaimer">
+        <strong>Rappel important :</strong> Ce résultat est une orientation, pas un diagnostic. Présentez-le à votre médecin pour évaluation complète. SenGenoScope et son équipe déclinent toute responsabilité quant à l'usage qui pourrait être fait des résultats produits.
+        <div class="scientific-ref">
+          Contenu clinique validé par Dr Moustapha Gassama, MD-PhD (génétique médicale, oncologie clinique). Basé sur CDC Recommendations 2023 (MMWR 72:1-25), OMS Guidelines 2024, AASLD 2018, EASL 2017.
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DÉFINITION DU QUESTIONNAIRE
+// Contenu strictement conforme au document clinique v0.2
+// validé par Dr Moustapha Gassama le 13/06/2026
+// ============================================================
+
+const questions = [
+  // BLOC A - Démographie
+  { id: 'A1', section: 'A', title: 'Démographie', type: 'number',
+    q: 'Quelle est votre année de naissance ?',
+    min: 1900, max: 2026 },
+  { id: 'A2', section: 'A', title: 'Démographie', type: 'radio',
+    q: 'Quel est votre sexe biologique ?',
+    options: ['Féminin', 'Masculin', 'Préfère ne pas répondre'] },
+  { id: 'A3', section: 'A', title: 'Démographie', type: 'select',
+    q: 'Pays de naissance ?',
+    options: ['Sénégal', 'Mali', 'Guinée', 'Mauritanie', 'Gambie', 'Côte d\u2019Ivoire', 'Burkina Faso', 'Autre Afrique subsaharienne', 'Autre Afrique', 'Europe', 'Amérique', 'Asie', 'Autre'] },
+  { id: 'A4', section: 'A', title: 'Démographie', type: 'select',
+    q: 'Région de résidence actuelle ?',
+    options: ['Dakar', 'Thiès', 'Saint-Louis', 'Diourbel', 'Fatick', 'Kaolack', 'Kaffrine', 'Kédougou', 'Kolda', 'Louga', 'Matam', 'Sédhiou', 'Tambacounda', 'Ziguinchor', 'Hors Sénégal'] },
+
+  // BLOC B - Antécédents personnels
+  { id: 'B1', section: 'B', title: 'Antécédents personnels', type: 'radio',
+    q: 'Avez-vous déjà été testé(e) pour l\u2019hépatite B ?',
+    options: ['Oui — positif', 'Oui — négatif', 'Non', 'Ne sait pas'] },
+  { id: 'B2', section: 'B', title: 'Antécédents personnels', type: 'radio',
+    q: 'Avez-vous reçu une vaccination complète contre l\u2019hépatite B (3 doses) ?',
+    options: ['Oui, documentée', 'Oui, non documentée', 'Vaccination incomplète', 'Non', 'Ne sait pas'] },
+  { id: 'B3', section: 'B', title: 'Antécédents personnels', type: 'radio',
+    q: 'Avez-vous déjà présenté un ictère (jaunisse) inexpliqué ?',
+    options: ['Oui', 'Non', 'Ne sait pas'] },
+  { id: 'B4', section: 'B', title: 'Antécédents personnels', type: 'radio',
+    q: 'Présentez-vous actuellement des symptômes : fatigue persistante, douleur du foie, urines foncées, perte d\u2019appétit ?',
+    options: ['Aucun', 'Un seul symptôme', 'Plusieurs symptômes'] },
+  { id: 'B5', section: 'B', title: 'Antécédents personnels', type: 'radio',
+    q: 'Êtes-vous actuellement enceinte ?',
+    options: ['Oui', 'Non', 'Possible — à vérifier'],
+    conditionalOn: (answers) => answers['A2'] === 'Féminin' },
+
+  // BLOC C - Antécédents familiaux
+  { id: 'C1', section: 'C', title: 'Antécédents familiaux', type: 'radio',
+    q: 'Votre mère biologique est-elle ou a-t-elle été porteuse de l\u2019hépatite B (AgHBs positif) ?',
+    options: ['Oui', 'Non', 'Ne sait pas'] },
+  { id: 'C2', section: 'C', title: 'Antécédents familiaux', type: 'radio',
+    q: 'Un membre de votre famille proche (père, frères/sœurs, conjoint) est-il porteur connu d\u2019hépatite B ?',
+    options: ['Oui', 'Non', 'Ne sait pas'] },
+  { id: 'C3', section: 'C', title: 'Antécédents familiaux', type: 'radio',
+    q: 'Un membre de votre famille a-t-il un antécédent de cancer du foie ou de cirrhose ?',
+    options: ['Oui', 'Non', 'Ne sait pas'] },
+
+  // BLOC D - Expositions
+  { id: 'D1', section: 'D', title: 'Expositions à risque', type: 'radio',
+    q: 'Avez-vous déjà reçu une transfusion sanguine au Sénégal avant l\u2019an 2000 ?',
+    options: ['Oui', 'Non', 'Ne sait pas'] },
+  { id: 'D2', section: 'D', title: 'Expositions à risque', type: 'radio',
+    q: 'Avez-vous des scarifications rituelles, tatouages ou piercings réalisés dans des conditions non stériles ?',
+    options: ['Oui', 'Non'] },
+  { id: 'D3', section: 'D', title: 'Expositions à risque', type: 'radio',
+    q: 'Avez-vous subi une intervention chirurgicale ou des soins dentaires dans des conditions douteuses (matériel non stérile) ?',
+    options: ['Oui', 'Non', 'Ne sait pas'] },
+  { id: 'D4', section: 'D', title: 'Expositions à risque', type: 'radio',
+    q: 'Avez-vous eu un partenaire sexuel connu porteur d\u2019hépatite B ?',
+    options: ['Oui', 'Non', 'Ne sait pas'] },
+  { id: 'D5', section: 'D', title: 'Expositions à risque', type: 'radio',
+    q: 'Avez-vous un antécédent d\u2019infection sexuellement transmissible diagnostiquée ?',
+    options: ['Oui', 'Non'] },
+  { id: 'D6', section: 'D', title: 'Expositions à risque', type: 'radio',
+    q: 'Êtes-vous co-infecté(e) par le VIH ou l\u2019hépatite C ?',
+    options: ['Oui', 'Non', 'Ne sait pas', 'Préfère ne pas répondre'] },
+  { id: 'D7', section: 'D', title: 'Expositions à risque', type: 'radio',
+    q: 'Travaillez-vous dans le secteur de la santé avec exposition au sang (soignant, technicien de labo, agent de nettoyage hospitalier) ?',
+    options: ['Oui', 'Non'] },
+  { id: 'D8', section: 'D', title: 'Expositions à risque', type: 'radio',
+    q: 'Êtes-vous ou avez-vous été dialysé(e) ?',
+    options: ['Oui', 'Non'] },
+  { id: 'D9', section: 'D', title: 'Expositions à risque', type: 'radio',
+    q: 'Avez-vous des facteurs de risque liés à l\u2019usage de drogues injectables ?',
+    options: ['Oui', 'Non', 'Préfère ne pas répondre'] },
+];
+
+// ============================================================
+// ÉTAT GLOBAL
+// ============================================================
+
+let currentProfile = null;
+let answers = {};
+let currentIndex = 0;
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+
+function showStep(stepId) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById(stepId).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function selectProfile(profile) {
+  currentProfile = profile;
+  document.querySelectorAll('.profile-card').forEach(c => c.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+  setTimeout(() => showStep('step-consent'), 200);
+}
+
+function getActiveQuestions() {
+  return questions.filter(q => !q.conditionalOn || q.conditionalOn(answers));
+}
+
+function initProgress() {
+  currentIndex = 0;
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const activeQs = getActiveQuestions();
+  if (currentIndex >= activeQs.length) {
+    computeResult();
+    return;
+  }
+
+  const q = activeQs[currentIndex];
+  document.getElementById('question-section-title').textContent = q.title;
+  document.getElementById('current-section').textContent = ['A','B','C','D'].indexOf(q.section) + 1;
+  document.getElementById('current-q').textContent = currentIndex + 1;
+  document.getElementById('total-q').textContent = activeQs.length;
+  document.getElementById('progress-bar').style.width = ((currentIndex / activeQs.length) * 100) + '%';
+
+  const container = document.getElementById('questions-container');
+  let html = `<div class="question"><label>${q.q}</label>`;
+
+  if (q.type === 'radio') {
+    html += '<div class="options">';
+    q.options.forEach(opt => {
+      const checked = answers[q.id] === opt ? 'checked' : '';
+      html += `<label class="opt"><input type="radio" name="${q.id}" value="${opt}" ${checked} onchange="answers['${q.id}'] = this.value"><span>${opt}</span></label>`;
+    });
+    html += '</div>';
+  } else if (q.type === 'select') {
+    html += `<select onchange="answers['${q.id}'] = this.value">`;
+    html += '<option value="">— Sélectionner —</option>';
+    q.options.forEach(opt => {
+      const sel = answers[q.id] === opt ? 'selected' : '';
+      html += `<option value="${opt}" ${sel}>${opt}</option>`;
+    });
+    html += '</select>';
+  } else if (q.type === 'number') {
+    const val = answers[q.id] || '';
+    html += `<input type="number" min="${q.min}" max="${q.max}" value="${val}" onchange="answers['${q.id}'] = this.value" placeholder="Ex: 1985">`;
+  }
+
+  html += '</div>';
+  container.innerHTML = html;
+
+  document.getElementById('btn-prev').disabled = currentIndex === 0;
+  document.getElementById('btn-next').textContent = (currentIndex === activeQs.length - 1) ? 'Voir le résultat →' : 'Suivant →';
+}
+
+function nextQuestion() {
+  const activeQs = getActiveQuestions();
+  const q = activeQs[currentIndex];
+  if (!answers[q.id]) {
+    alert('Veuillez répondre à la question avant de continuer.');
+    return;
+  }
+  currentIndex++;
+  renderQuestion();
+}
+
+function prevQuestion() {
+  if (currentIndex > 0) {
+    currentIndex--;
+    renderQuestion();
+  }
+}
+
+// ============================================================
+// LOGIQUE DE STRATIFICATION DU RISQUE
+// Strictement conforme au document clinique v0.2 (Section 4)
+// ============================================================
+
+function computeResult() {
+  // Cas spécial : déjà porteur chronique connu
+  if (answers['B1'] === 'Oui — positif') {
+    renderResultChronicCarrier();
+    showStep('step-result');
+    return;
+  }
+
+  // Identifier les facteurs de risque actifs
+  const triggers = {
+    urgent: [],
+    priority: [],
+    recommended: [],
+  };
+
+  // URGENT
+  if (answers['B4'] === 'Plusieurs symptômes') triggers.urgent.push('Plusieurs symptômes évocateurs d\u2019atteinte hépatique');
+  if (answers['D6'] === 'Oui') triggers.urgent.push('Co-infection VIH ou hépatite C connue');
+  if (answers['B5'] === 'Oui') triggers.urgent.push('Grossesse en cours (enjeu de transmission verticale)');
+
+  // PRIORITAIRE
+  if (answers['C1'] === 'Oui') triggers.priority.push('Mère biologique porteuse de l\u2019hépatite B');
+  if (answers['C2'] === 'Oui') triggers.priority.push('Membre de famille proche porteur');
+  if (answers['D2'] === 'Oui') triggers.priority.push('Scarifications/tatouages/piercings non stériles');
+  if (answers['D4'] === 'Oui') triggers.priority.push('Partenaire sexuel porteur connu');
+  if (answers['D7'] === 'Oui') triggers.priority.push('Exposition professionnelle au sang');
+  if (answers['D8'] === 'Oui') triggers.priority.push('Antécédent d\u2019hémodialyse');
+  if (answers['D9'] === 'Oui') triggers.priority.push('Facteurs de risque liés à l\u2019usage de drogues injectables');
+
+  // RECOMMANDÉ
+  if (answers['D1'] === 'Oui') triggers.recommended.push('Transfusion sanguine avant 2000');
+  if (answers['D3'] === 'Oui') triggers.recommended.push('Soins en conditions douteuses');
+  if (answers['C3'] === 'Oui') triggers.recommended.push('Antécédent familial de cancer du foie ou cirrhose');
+  if (answers['B3'] === 'Oui') triggers.recommended.push('Antécédent d\u2019ictère inexpliqué');
+  if (answers['D5'] === 'Oui') triggers.recommended.push('Antécédent d\u2019IST');
+
+  // Règle particulière : C1 "Ne sait pas" → minimum RECOMMANDÉ
+  if (answers['C1'] === 'Ne sait pas') triggers.recommended.push('Statut maternel inconnu');
+
+  // Déterminer le niveau brut
+  let level;
+  if (triggers.urgent.length > 0) level = 'urgent';
+  else if (triggers.priority.length > 0) level = 'priority';
+  else if (triggers.recommended.length > 0) level = 'recommended';
+  else level = 'standard';
+
+  // Règle particulière : vacciné complet documenté + aucun facteur C ni D → STANDARD
+  // MAIS maintien PRIORITAIRE si facteur familial (C1=Oui ou C2=Oui)
+  const vaccineComplete = answers['B2'] === 'Oui, documentée';
+  const familyRisk = answers['C1'] === 'Oui' || answers['C2'] === 'Oui';
+  if (vaccineComplete && level !== 'urgent' && !familyRisk) {
+    level = 'standard';
+  }
+
+  renderResult(level, triggers, vaccineComplete);
+  showStep('step-result');
+}
+
+// ============================================================
+// AFFICHAGE DU RÉSULTAT
+// Contenu strictement conforme au document clinique v0.2 (Section 5)
+// ============================================================
+
+function renderResult(level, triggers, vaccineComplete) {
+  const levelConfig = {
+    urgent: { label: 'URGENT', emoji: '🚨', tagline: 'Risque très élevé — Consultation médicale dans la semaine' },
+    priority: { label: 'PRIORITAIRE', emoji: '⚠️', tagline: 'Risque élevé — Test de dépistage dans les 2 semaines' },
+    recommended: { label: 'RECOMMANDÉ', emoji: '📋', tagline: 'Risque modéré — Dépistage à programmer' },
+    standard: { label: 'UNIVERSEL', emoji: '✓', tagline: 'Dépistage universel (au moins une fois dans la vie)' },
+  };
+  const cfg = levelConfig[level];
+
+  let html = `
+    <div class="result-level ${level}">
+      <div style="font-size: 36px; margin-bottom: 8px;">${cfg.emoji}</div>
+      <h2>${cfg.label}</h2>
+      <p>${cfg.tagline}</p>
+    </div>
+  `;
+
+  // Facteurs de risque détectés
+  const allTriggers = [...triggers.urgent, ...triggers.priority, ...triggers.recommended];
+  if (allTriggers.length > 0) {
+    html += `<div class="risk-factors"><strong>Facteurs identifiés :</strong><ul>`;
+    allTriggers.forEach(t => html += `<li>${t}</li>`);
+    html += `</ul></div>`;
+  }
+
+  // Recommandations selon profil
+  html += `<div class="recommendation">${getRecommendation(level, currentProfile, vaccineComplete)}</div>`;
+
+  document.getElementById('result-content').innerHTML = html;
+}
+
+function getRecommendation(level, profile, vaccineComplete) {
+  const recs = {
+    medecin: {
+      urgent: `<h3>Conduite à tenir — Médecin</h3>
+        <p><strong>Prescrire en urgence :</strong> AgHBs, anti-HBc total, anti-HBs, ALT, AST, bilirubine, TP.</p>
+        <p><strong>Si AgHBs+ confirmé :</strong> ajouter anti-HBc IgM, ADN VHB quantitatif, AFP, échographie abdominale.</p>
+        <p><strong>Orientation hépatologue dans les 7 jours.</strong></p>
+        <p>Si grossesse : protocole de prévention de la transmission verticale (immunoglobulines + vaccination néonatale dans les 12-24h).</p>`,
+      priority: `<h3>Conduite à tenir — Médecin</h3>
+        <p><strong>Prescrire :</strong> AgHBs, anti-HBc total, anti-HBs, ALT.</p>
+        <p><strong>Délai d\u2019action :</strong> sous 2 semaines.</p>
+        <p><strong>Si AgHBs+ :</strong> bilan complémentaire (ADN VHB, AFP, échographie) et orientation hépatologue dans les 30 jours.</p>`,
+      recommended: `<h3>Conduite à tenir — Médecin</h3>
+        <p><strong>Prescrire le triptyque sérologique de base :</strong> AgHBs, anti-HBs, anti-HBc total lors de la prochaine consultation programmée.</p>
+        <p>Conseiller la vaccination si non immunisé(e) (anti-HBs négatif).</p>`,
+      standard: `<h3>Conduite à tenir — Médecin</h3>
+        <p>Conformément aux recommandations <strong>CDC 2023 et OMS 2024</strong>, proposer le dépistage au moins une fois dans la vie.</p>
+        <p><strong>Triptyque sérologique :</strong> AgHBs + anti-HBs + anti-HBc.</p>
+        <p>Si négatif et non vacciné : recommander vaccination.</p>
+        ${vaccineComplete ? '<p><em>Patient vacciné complet documenté : un simple anti-HBs peut suffire pour vérifier l\u2019immunité acquise.</em></p>' : ''}`,
+    },
+    asc: {
+      urgent: `<h3>Message à transmettre</h3>
+        <p>« Vos réponses indiquent un risque très élevé. Vous devez être vu(e) par un médecin <strong>sans attendre, dans la semaine</strong>. Le médecin demandera une prise de sang pour vérifier l\u2019hépatite B. »</p>
+        <p><strong>Action :</strong> Orienter vers le centre de santé le plus proche. Accompagner si possible.</p>`,
+      priority: `<h3>Message à transmettre</h3>
+        <p>« Vous avez des facteurs de risque importants pour l\u2019hépatite B. Une consultation médicale avec prise de sang est nécessaire <strong>dans les deux semaines</strong>. »</p>
+        <p><strong>Action :</strong> Orienter vers poste de santé ou centre de santé.</p>`,
+      recommended: `<h3>Message à transmettre</h3>
+        <p>« Vous avez quelques facteurs de risque. Un test de dépistage est conseillé <strong>lors de votre prochaine visite médicale</strong>. »</p>
+        <p><strong>Action :</strong> Mentionner à la prochaine consultation programmée.</p>`,
+      standard: `<h3>Message à transmettre</h3>
+        <p>« Comme tous les adultes au Sénégal, il est conseillé de faire <strong>au moins une fois dans la vie</strong> un test de dépistage de l\u2019hépatite B. Parlez-en lors de votre prochaine consultation. »</p>`,
+    },
+    patient: {
+      urgent: `<h3>Ce que vous devez savoir</h3>
+        <p>Vos réponses suggèrent un <strong>risque très élevé</strong> d\u2019avoir une hépatite B non diagnostiquée. C\u2019est une maladie qui peut être grave si elle n\u2019est pas prise en charge, mais qui <strong>se soigne très bien aujourd\u2019hui</strong>.</p>
+        <p><strong>Consultez un médecin cette semaine.</strong> Près de chez vous : centre de santé, poste de santé, ou hôpital régional.</p>
+        <p><em>Coût indicatif du test de base (AgHBs) : à partir de 3 000 FCFA.</em></p>`,
+      priority: `<h3>Ce que vous devez savoir</h3>
+        <p>Vous avez <strong>plusieurs facteurs</strong> qui augmentent votre risque d\u2019hépatite B. Faites un test de dépistage <strong>dans les deux prochaines semaines</strong>.</p>
+        <p>Une simple prise de sang suffit. <em>Coût indicatif : à partir de 3 000 FCFA pour le test de base.</em></p>`,
+      recommended: `<h3>Ce que vous devez savoir</h3>
+        <p>Vous avez <strong>quelques facteurs de risque</strong>. Un dépistage est conseillé.</p>
+        <p>Vous pouvez le demander à votre médecin lors de votre prochaine visite.</p>`,
+      standard: `<h3>Ce que vous devez savoir</h3>
+        <p>L\u2019hépatite B est fréquente au Sénégal (environ <strong>1 personne sur 10</strong> est porteuse).</p>
+        <p>Le test de dépistage est conseillé <strong>au moins une fois dans la vie</strong>, même sans symptôme. Parlez-en à votre médecin.</p>`,
+    },
+  };
+  return recs[profile][level];
+}
+
+function renderResultChronicCarrier() {
+  const html = `
+    <div class="result-level priority">
+      <div style="font-size: 36px; margin-bottom: 8px;">📋</div>
+      <h2>PORTEUR CHRONIQUE CONNU</h2>
+      <p>Vous avez déclaré être déjà connu(e) comme porteur(se) de l\u2019hépatite B</p>
+    </div>
+    <div class="recommendation">
+      <h3>Suivi recommandé</h3>
+      <p>Ce module v1 couvre le <strong>dépistage initial</strong>. Le suivi du porteur chronique nécessite un protocole spécifique basé sur les scores REACH-B et PAGE-B (à venir dans une prochaine version).</p>
+      <p><strong>En attendant, votre médecin ou hépatologue référent doit organiser :</strong></p>
+      <ul style="margin-left: 20px; margin-top: 8px;">
+        <li>Bilan biologique semestriel (ALT, AST, ADN VHB quantitatif)</li>
+        <li>Échographie abdominale et alpha-fœtoprotéine tous les 6 mois</li>
+        <li>Évaluation de la fibrose hépatique (fibroscan si disponible)</li>
+        <li>Discussion d\u2019un traitement antiviral selon critères AASLD/EASL/OMS</li>
+      </ul>
+      <p>Si vous n\u2019êtes pas suivi(e) régulièrement, <strong>consultez un hépatologue dans le mois</strong>.</p>
+    </div>
+  `;
+  document.getElementById('result-content').innerHTML = html;
+}
+
+function restart() {
+  currentProfile = null;
+  answers = {};
+  currentIndex = 0;
+  document.querySelectorAll('.profile-card').forEach(c => c.classList.remove('selected'));
+  showStep('step-profile');
+}
+</script>
+</body>
+</html>
