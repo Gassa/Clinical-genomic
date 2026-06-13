@@ -7,4 +7,4 @@ SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXV
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def get_supabase():
-    return supabasebase
+    return supabase
