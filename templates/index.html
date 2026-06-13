@@ -6506,5 +6506,103 @@ async function openSharedWithMe() {
   document.body.appendChild(panel);
 }
 </script>
+<!-- ====== Sidebar accordéon (sections repliables) — ajouté 2026-06 ====== -->
+<style>
+  .ns {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    user-select: none;
+    transition: color .15s;
+  }
+  .ns:hover { color: rgba(255,255,255,.55); }
+  .ns::after {
+    content: "▾";
+    font-size: 9px;
+    opacity: .55;
+    transition: transform .2s;
+    margin-left: 8px;
+  }
+  .ns.collapsed::after { transform: rotate(-90deg); }
+  .ns-grp {
+    overflow: hidden;
+    max-height: 5000px;
+    transition: max-height .25s ease;
+  }
+  .ns-grp.collapsed { max-height: 0; }
+</style>
+<script>
+(function(){
+  const KEY = 'sgs_sb_sections_v1';
+  let state = {};
+  try { state = JSON.parse(localStorage.getItem(KEY)) || {}; } catch(e){}
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch(e){} };
+
+  function init(){
+    const nav = document.querySelector('.nv');
+    if (!nav) return;
+
+    // 1. Regrouper chaque suite de .ni dans un wrapper après son .ns parent
+    const sections = [];
+    let cur = null;
+    Array.from(nav.children).forEach(el => {
+      if (el.classList && el.classList.contains('ns')) {
+        const grp = document.createElement('div');
+        grp.className = 'ns-grp';
+        el.after(grp);
+        cur = { hdr: el, grp, label: el.textContent.trim() };
+        sections.push(cur);
+      } else if (cur) {
+        cur.grp.appendChild(el);
+      }
+    });
+
+    // 2. État initial : ouvre la section qui contient l'item actif,
+    //    sinon respecte localStorage, sinon "Analyse clinique" par défaut
+    sections.forEach(sec => {
+      const hasActive = !!sec.grp.querySelector('.ni.active');
+      const stored = state[sec.label];
+      const open = hasActive ? true
+                 : stored === 'open'   ? true
+                 : stored === 'closed' ? false
+                 : sec.label === 'Analyse clinique';
+      if (!open) {
+        sec.hdr.classList.add('collapsed');
+        sec.grp.classList.add('collapsed');
+      }
+      sec.hdr.addEventListener('click', () => {
+        const isOpen = !sec.hdr.classList.contains('collapsed');
+        sec.hdr.classList.toggle('collapsed', isOpen);
+        sec.grp.classList.toggle('collapsed', isOpen);
+        state[sec.label] = isOpen ? 'closed' : 'open';
+        save();
+      });
+    });
+
+    // 3. Si on clique sur un item dans une section repliée, on la déplie
+    nav.addEventListener('click', e => {
+      const ni = e.target.closest('.ni');
+      if (!ni) return;
+      const grp = ni.closest('.ns-grp');
+      if (grp && grp.classList.contains('collapsed')) {
+        grp.classList.remove('collapsed');
+        const hdr = grp.previousElementSibling;
+        if (hdr && hdr.classList.contains('ns')) {
+          hdr.classList.remove('collapsed');
+          state[hdr.textContent.trim()] = 'open';
+          save();
+        }
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
 </body>
 </html>
