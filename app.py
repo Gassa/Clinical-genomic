@@ -462,6 +462,13 @@ def service_worker():
     return send_file('templates/sw.js', mimetype='application/javascript')
 
 
+# ══ MODULE DÉPISTAGE CLINIQUE ════════════════════════════════════════════
+@app.route('/depistage/hepatite-b')
+def depistage_hbv():
+    """Module dépistage hépatite B — contenu clinique validé par Dr M. Gassama (MD-PhD)."""
+    return render_template('depistage_hbv.html')
+
+
 
 
 # ══ SECURITY HEADERS ═════════════════════════════════════════════════════
